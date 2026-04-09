@@ -9,6 +9,18 @@
     },
     {
       "path": "./packages/manifest"
+    },
+    {
+      "path": "./packages/tts-core"
+    },
+    {
+      "path": "./packages/tts-openai"
+    },
+    {
+      "path": "./packages/cli"
+    },
+    {
+      "path": "./packages/create-demohunter"
     }
   ]
 }
