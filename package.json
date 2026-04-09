@@ -1,0 +1,16 @@
+{
+  "name": "demohunter",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "bun x tsc -b tsconfig.json --pretty false",
+    "typecheck": "bun x tsc -b tsconfig.json --pretty false",
+    "test": "bun test"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3"
+  }
+}
