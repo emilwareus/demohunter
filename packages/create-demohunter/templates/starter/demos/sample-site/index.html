@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>DemoHunter sample page</title>
+    <style>
+      :root {
+        font-family: sans-serif;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        background: linear-gradient(160deg, #f5f1e8, #d7e6f2);
+        color: #18222f;
+      }
+
+      main {
+        width: min(32rem, calc(100vw - 2rem));
+        padding: 2rem;
+        border-radius: 1rem;
+        background: rgba(255, 255, 255, 0.88);
+        box-shadow: 0 1rem 3rem rgba(24, 34, 47, 0.16);
+      }
+
+      button {
+        margin-top: 1rem;
+        padding: 0.75rem 1rem;
+        border: 0;
+        border-radius: 999px;
+        background: #18222f;
+        color: white;
+        cursor: pointer;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>DemoHunter sample page</h1>
+      <p>This disposable starter page exists only to prove the scaffold works locally.</p>
+      <p id="status">Ready</p>
+      <button id="start-demo" type="button">Start demo</button>
+    </main>
+    <script>
+      const button = document.getElementById("start-demo");
+      const status = document.getElementById("status");
+
+      button?.addEventListener("click", () => {
+        if (status) {
+          status.textContent = "Step complete";
+        }
+      });
+    </script>
+  </body>
+</html>
