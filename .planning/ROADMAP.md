@@ -29,13 +29,14 @@ Decimal phases appear between their surrounding integers in numeric order.
   1. Developer can run `demohunter init` and receive a working config plus sample tour in an existing repo.
   2. The generated starter setup runs in Bun/TypeScript/ESM without requiring cloud services.
   3. DemoHunter config supports the core Phase 1 settings needed by later phases.
-**Plans**: 4 plans
+**Plans**: 5 plans
 
 Plans:
 - [ ] 01-01-PLAN.md — Set up the root Bun workspace and the first package-shell group.
 - [ ] 01-02-PLAN.md — Finish the remaining package shells and root project references.
 - [ ] 01-03-PLAN.md — Implement config defaults, loader tests, and self-contained starter assets.
 - [ ] 01-04-PLAN.md — Implement `demohunter init`, smoke-only `generate`, and overwrite-safe end-to-end validation.
+- [ ] 01-05-PLAN.md — Rebuild the workspace and prove the compiled dist/package/bin contract.
 
 ### Phase 2: Tour Authoring SDK
 **Goal**: Give developers a stable TypeScript DSL for narrated demos while keeping browser automation idiomatic to Playwright.
@@ -122,7 +123,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Repository and Scaffolding | 0/4 | Not started | - |
+| 1. Repository and Scaffolding | 0/5 | Not started | - |
 | 2. Tour Authoring SDK | 0/3 | Not started | - |
 | 3. Playwright Generation Engine | 0/4 | Not started | - |
 | 4. OpenAI Narration and Cache | 0/4 | Not started | - |
