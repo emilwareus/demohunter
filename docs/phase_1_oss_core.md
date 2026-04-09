@@ -15,7 +15,7 @@ The OSS core is intentionally narrow:
 ## Shared decisions
 
 1. All app code is TypeScript.
-   Node 20+, TypeScript 5+, pnpm workspace, ESM-first.
+   Bun, TypeScript 5+, Bun workspace, ESM-first.
 2. OSS and Cloud share one generated-output contract.
    OSS writes generated files into `.demohunter/`. Cloud can ingest those files later without needing the repo.
 3. Use Playwright directly, not `@playwright/test`, for browser automation.
@@ -34,6 +34,8 @@ The OSS core is intentionally narrow:
 * Dev teams making feature demos from local or preview environments
 * OSS users who want generated local assets without needing a paid backend
 * AI coding users who want Claude/Codex/etc. to help author `.tour.ts` files
+* Coding agents running autonomously in remote environments that need to demo their work back to developers
+* Teams that want to programmatically generate demos for documentation, release notes, and developer education
 
 ## Non-goals
 
@@ -46,7 +48,7 @@ The OSS core is intentionally narrow:
 ## Core user stories
 
 1. As a developer, I can run `demohunter init`, get a working sample, and generate a narrated demo from my local app.
-2. As a user with an OpenAI key, I can synthesize narration with OpenAI TTS.
+2. As a user with an OpenAI key, I can generate narrated demos with OpenAI TTS.
 3. As a repeat user, identical narration strings reuse cached audio automatically.
 4. As a user without network access, I can still generate if all required narration is already cached.
 5. As a Claude/Codex/etc. user, I can install a skill so my coding agent can generate or update `.tour.ts` files for me.
@@ -116,11 +118,23 @@ Commands:
 ```bash
 demohunter init
 demohunter generate demos/billing.tour.ts
-demohunter synth demos/billing.tour.ts
 demohunter cache list
 demohunter cache prune
 demohunter cache clear
 ```
+
+Command behavior:
+
+* `demohunter init`
+  Create a starter setup in the current repo with a sample `demohunter.config.ts`, example `.tour.ts` file, and the minimum scaffolding needed to generate the first demo.
+* `demohunter generate demos/billing.tour.ts`
+  Run the full generation flow for a tour file. This resolves narration, records the video pass, generates subtitles, and writes the final output into `.demohunter/<tour-id>/`.
+* `demohunter cache list`
+  Show the narration cache entries currently stored on disk so users can inspect what audio has already been synthesized.
+* `demohunter cache prune`
+  Remove cache entries that are no longer needed according to the tool's pruning rules, so the local cache does not grow forever.
+* `demohunter cache clear`
+  Delete the local narration cache so the next generate run starts from a clean slate.
 
 ### `@demohunter/generator-playwright`
 
@@ -217,7 +231,7 @@ sha256(JSON.stringify({
 ### Offline behavior
 
 * `demohunter generate` must succeed without `OPENAI_API_KEY` when every narration segment already exists in cache.
-* `demohunter synth` must fail clearly on uncached segments if key is missing.
+* `demohunter generate` must fail clearly when uncached narration is required and `OPENAI_API_KEY` is missing.
 
 ### Generated output
 
@@ -290,7 +304,7 @@ Pass 2 - generation pass:
 
 ### Muxing
 
-Use ffmpeg via Node wrappers/static binaries.
+Use ffmpeg via Bun-compatible wrappers or static binaries.
 
 ### Timing model
 
@@ -329,7 +343,7 @@ The OSS core is done when all of the following are true:
 
 Build:
 
-* pnpm workspace
+* Bun workspace
 * base packages
 * config loader
 * sample app + sample tour
