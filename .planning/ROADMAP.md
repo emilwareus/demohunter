@@ -32,9 +32,9 @@ Decimal phases appear between their surrounding integers in numeric order.
 **Plans**: 3 plans
 
 Plans:
-- [ ] 01-01: Set up Bun workspace, package structure, and shared TypeScript build conventions.
-- [ ] 01-02: Implement config loading, defaults, and starter template assets.
-- [ ] 01-03: Implement `demohunter init` and validate a minimal no-audio sample flow.
+- [ ] 01-01-PLAN.md — Set up Bun workspace, package structure, and shared TypeScript build conventions.
+- [ ] 01-02-PLAN.md — Implement config loading, defaults, and starter template assets.
+- [ ] 01-03-PLAN.md — Implement `demohunter init` and validate a minimal no-audio sample flow.
 
 ### Phase 2: Tour Authoring SDK
 **Goal**: Give developers a stable TypeScript DSL for narrated demos while keeping browser automation idiomatic to Playwright.
