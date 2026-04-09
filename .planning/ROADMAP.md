@@ -32,7 +32,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 **Plans**: 5 plans
 
 Plans:
-- [ ] 01-01-PLAN.md — Set up the root Bun workspace and the first package-shell group.
+- [x] 01-01-PLAN.md — Set up the root Bun workspace and the first package-shell group.
 - [ ] 01-02-PLAN.md — Finish the remaining package shells and root project references.
 - [ ] 01-03-PLAN.md — Implement config defaults, loader tests, and self-contained starter assets.
 - [ ] 01-04-PLAN.md — Implement `demohunter init`, smoke-only `generate`, and overwrite-safe end-to-end validation.
@@ -123,7 +123,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Repository and Scaffolding | 0/5 | Not started | - |
+| 1. Repository and Scaffolding | 1/5 | In Progress | - |
 | 2. Tour Authoring SDK | 0/3 | Not started | - |
 | 3. Playwright Generation Engine | 0/4 | Not started | - |
 | 4. OpenAI Narration and Cache | 0/4 | Not started | - |

@@ -8,7 +8,7 @@
 ### Setup
 
 - [ ] **INIT-01**: Developer can run `demohunter init` in an existing repo and receive a working `demohunter.config.ts` plus a sample `.tour.ts` file.
-- [ ] **INIT-02**: Scaffolded DemoHunter projects use Bun, TypeScript, and ESM without any required cloud dependency.
+- [x] **INIT-02**: Scaffolded DemoHunter projects use Bun, TypeScript, and ESM without any required cloud dependency.
 - [ ] **INIT-03**: Developer can configure `baseURL`, output and cache directories, browser, viewport, `holdPaddingMs`, overlay toggles, and TTS defaults in `demohunter.config.ts`.
 
 ### Tour Authoring
@@ -78,7 +78,7 @@
 | Requirement | Phase | Status |
 |-------------|-------|--------|
 | INIT-01 | Phase 1 | Pending |
-| INIT-02 | Phase 1 | Pending |
+| INIT-02 | Phase 1 | Complete |
 | INIT-03 | Phase 1 | Pending |
 | TOUR-01 | Phase 2 | Pending |
 | TOUR-02 | Phase 2 | Pending |
