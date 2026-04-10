@@ -206,6 +206,74 @@ describe("smokeGenerate", () => {
     expect(closeBrowser).toHaveBeenCalledTimes(1);
   });
 
+  test("preserves the primary tour failure when cleanup also fails", async () => {
+    const cwd = await makeTempRoot();
+    const page = { goto: mock(async () => {}) };
+    const closeContextError = new Error("context close failed");
+    const closeBrowserError = new Error("browser close failed");
+    const closeContext = mock(async () => {
+      throw closeContextError;
+    });
+    const closeBrowser = mock(async () => {
+      throw closeBrowserError;
+    });
+    const launch = mock(async () => ({
+      close: closeBrowser,
+      newContext: mock(async () => ({
+        close: closeContext,
+        newPage: mock(async () => page),
+      })),
+    }));
+    const failure = new Error("run failed");
+
+    await expect(
+      smokeGenerate(
+        {
+          loadedConfig: {
+            config: {
+              baseURL: "http://localhost:3000",
+              outputDir: path.join(cwd, ".demohunter"),
+              cacheDir: path.join(cwd, ".demohunter/cache"),
+              browser: "chromium",
+              viewport: { width: 1280, height: 720 },
+              holdPaddingMs: 300,
+              record: { showActions: true, showChapters: true },
+              tts: {
+                provider: "openai",
+                model: "gpt-4o-mini-tts",
+                voice: "marin",
+                format: "mp3",
+                instructions: "Speak clearly.",
+              },
+            },
+            configPath: path.join(cwd, "demohunter.config.ts"),
+            projectRoot: cwd,
+          },
+          tourFile: {
+            path: path.join(cwd, "demos/sample.tour.ts"),
+            tour: {
+              id: "sample-smoke",
+              title: "Sample demo",
+              run: mock(async () => {
+                throw failure;
+              }),
+            },
+          },
+        },
+        {
+          playwright: {
+            chromium: { launch },
+            firefox: { launch: mock(async () => { throw new Error("unexpected browser"); }) },
+            webkit: { launch: mock(async () => { throw new Error("unexpected browser"); }) },
+          },
+        },
+      ),
+    ).rejects.toBe(failure);
+
+    expect(closeContext).toHaveBeenCalledTimes(1);
+    expect(closeBrowser).toHaveBeenCalledTimes(1);
+  });
+
   test("rejects unsafe tour ids before generating output", async () => {
     const cwd = await makeTempRoot();
     const goto = mock(async () => {});

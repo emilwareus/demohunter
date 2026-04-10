@@ -75,6 +75,7 @@ export async function smokeGenerate(
   const browserType = resolvedDependencies.playwright[config.browser];
   const browser = await browserType.launch();
   let context: Awaited<ReturnType<typeof browser.newContext>> | undefined;
+  let primaryError: unknown;
 
   try {
     context = await browser.newContext({
@@ -88,8 +89,6 @@ export async function smokeGenerate(
     });
 
     await page.goto(new URL(config.baseURL).href);
-
-    let primaryError: unknown;
 
     try {
       await Promise.resolve(tourFile.tour.setup?.(runtime));
@@ -131,8 +130,26 @@ export async function smokeGenerate(
     );
 
     return { outputPath };
+  } catch (error) {
+    primaryError ??= error;
+    throw error;
   } finally {
-    await context?.close();
-    await browser.close();
+    let closeError: unknown;
+
+    try {
+      await context?.close();
+    } catch (error) {
+      closeError ??= error;
+    }
+
+    try {
+      await browser.close();
+    } catch (error) {
+      closeError ??= error;
+    }
+
+    if (primaryError === undefined && closeError !== undefined) {
+      throw closeError;
+    }
   }
 }
