@@ -240,22 +240,22 @@ What's changed recently:
 </sota_updates>
 
 <open_questions>
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **Where should runtime-only helper implementations live?**
-   - What we know: the SDK should own the public contract, while generator code already constructs the execution context.
-   - What's unclear: whether helper implementations should live entirely in `generator-playwright` or partially in `sdk`.
-   - Recommendation: keep public types/export plumbing in `sdk`, but let the generator own runtime factories and execution behavior.
+   - Resolved answer: public type and export ownership stays in `packages/sdk`, while executable helper factories and lifecycle orchestration live in `packages/generator-playwright`.
+   - Why: this keeps the SDK thin and publishable while preserving generator control over runtime behavior and later event capture.
+   - Planning implication: Plan 02-01 defines the public contract; Plan 02-02 implements the runtime factory and execution order.
 
 2. **How rich should helper option bags be in Phase 2?**
-   - What we know: helper signatures can be designed during planning, and later phases will need event metadata.
-   - What's unclear: how much of highlight/snapshot/wait configuration is worth exposing immediately.
-   - Recommendation: plan minimal option bags now and expand later only when a downstream phase proves the need.
+   - Resolved answer: expose only minimal option bags now, limited to helper-adjacent fields that are immediately meaningful in smoke execution and future event capture.
+   - Why: larger option surfaces would speculate about Phase 3 and Phase 4 behavior before the engine exists.
+   - Planning implication: Plan 02-01 should define narrow option types, and Plan 02-02 should keep helper behavior observable but thin.
 
-3. **Should the Phase 1 starter tour migrate fully to the Phase 2 DSL in this phase?**
-   - What we know: roadmap plan 02-03 explicitly calls for representative sample tour validation, and the current starter still exports a plain object.
-   - What's unclear: whether the minimal starter should change immediately or a separate Phase 2 sample should carry validation.
-   - Recommendation: include a plan item to validate at least one real `.tour.ts` sample through the new SDK surface and update the starter if that is the lowest-friction path.
+3. **How should TOUR-01 be proven in a real developer-consumable path while preserving the Phase 1 starter?**
+   - Resolved answer: keep the Phase 1 starter tour as a plain object for now, but add Phase 2 validation that installs the local `@demohunter/sdk` package into a fresh temp repo and runs a real `defineTour`-based `.tour.ts` file there through both source and built CLI paths.
+   - Why: this satisfies the requirement that developers can author with `defineTour` without prematurely coupling the minimal scaffold to local-package resolution concerns.
+   - Planning implication: Plan 02-03 must cover temp-repo authoring validation in addition to preserving the existing starter smoke path.
 </open_questions>
 
 <sources>
