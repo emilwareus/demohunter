@@ -2,9 +2,11 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { mkdtemp, readFile, realpath, rm } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 
 const tempRoots: string[] = [];
-const cliEntryPoint = "/Users/emilwareus/Development/demohunter/packages/cli/src/bin/demohunter.ts";
+const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
+const cliEntryPoint = path.join(repoRoot, "packages/cli/src/bin/demohunter.ts");
 
 afterEach(async () => {
   await Promise.all(tempRoots.splice(0).map((tempRoot) => rm(tempRoot, { force: true, recursive: true })));
