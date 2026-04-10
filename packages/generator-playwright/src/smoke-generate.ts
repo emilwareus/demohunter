@@ -81,9 +81,27 @@ export async function smokeGenerate(
     });
 
     await page.goto(new URL(config.baseURL).href);
-    await Promise.resolve(tourFile.tour.setup?.(runtime));
-    await Promise.resolve(tourFile.tour.run(runtime));
-    await Promise.resolve(tourFile.tour.teardown?.(runtime));
+
+    let primaryError: unknown;
+
+    try {
+      await Promise.resolve(tourFile.tour.setup?.(runtime));
+      await Promise.resolve(tourFile.tour.run(runtime));
+    } catch (error) {
+      primaryError = error;
+    } finally {
+      try {
+        await Promise.resolve(tourFile.tour.teardown?.(runtime));
+      } catch (teardownError) {
+        if (primaryError === undefined) {
+          throw teardownError;
+        }
+      }
+
+      if (primaryError !== undefined) {
+        throw primaryError;
+      }
+    }
 
     const outputPath = path.join(outputDir, "smoke-run.json");
 

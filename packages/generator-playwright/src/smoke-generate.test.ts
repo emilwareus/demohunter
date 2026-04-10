@@ -134,6 +134,77 @@ describe("smokeGenerate", () => {
       generatedAt: "2026-04-10T00:00:00.000Z",
     });
   });
+
+  test("still runs teardown when run fails and rethrows the primary error", async () => {
+    const cwd = await makeTempRoot();
+    const page = { goto: mock(async () => {}) };
+    const closeContext = mock(async () => {});
+    const closeBrowser = mock(async () => {});
+    const launch = mock(async () => ({
+      close: closeBrowser,
+      newContext: mock(async () => ({
+        close: closeContext,
+        newPage: mock(async () => page),
+      })),
+    }));
+    const calls: string[] = [];
+    const failure = new Error("run failed");
+
+    await expect(
+      smokeGenerate(
+        {
+          loadedConfig: {
+            config: {
+              baseURL: "http://localhost:3000",
+              outputDir: path.join(cwd, ".demohunter"),
+              cacheDir: path.join(cwd, ".demohunter/cache"),
+              browser: "chromium",
+              viewport: { width: 1280, height: 720 },
+              holdPaddingMs: 300,
+              record: { showActions: true, showChapters: true },
+              tts: {
+                provider: "openai",
+                model: "gpt-4o-mini-tts",
+                voice: "marin",
+                format: "mp3",
+                instructions: "Speak clearly.",
+              },
+            },
+            configPath: path.join(cwd, "demohunter.config.ts"),
+            projectRoot: cwd,
+          },
+          tourFile: {
+            path: path.join(cwd, "demos/sample.tour.ts"),
+            tour: {
+              id: "sample-smoke",
+              title: "Sample demo",
+              setup: mock(async () => {
+                calls.push("setup");
+              }),
+              run: mock(async () => {
+                calls.push("run");
+                throw failure;
+              }),
+              teardown: mock(async () => {
+                calls.push("teardown");
+              }),
+            },
+          },
+        },
+        {
+          playwright: {
+            chromium: { launch },
+            firefox: { launch: mock(async () => { throw new Error("unexpected browser"); }) },
+            webkit: { launch: mock(async () => { throw new Error("unexpected browser"); }) },
+          },
+        },
+      ),
+    ).rejects.toThrow("run failed");
+
+    expect(calls).toEqual(["setup", "run", "teardown"]);
+    expect(closeContext).toHaveBeenCalledTimes(1);
+    expect(closeBrowser).toHaveBeenCalledTimes(1);
+  });
 });
 
 async function makeTempRoot(): Promise<string> {
