@@ -13,7 +13,7 @@ DemoHunter v1 starts as a local-first OSS toolkit, not a hosted product. The roa
 Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Repository and Scaffolding** - Create the monorepo, config layer, scaffold flow, and no-audio sample path.
-- [ ] **Phase 2: Tour Authoring SDK** - Define the `.tour.ts` authoring model and helper APIs on top of Playwright.
+- [x] **Phase 2: Tour Authoring SDK** - Define the `.tour.ts` authoring model and helper APIs on top of Playwright.
 - [ ] **Phase 3: Playwright Generation Engine** - Implement two-pass execution, recording, overlays, and base local output writing.
 - [ ] **Phase 4: OpenAI Narration and Cache** - Add provider-backed narration, cache behavior, subtitles, and offline regeneration rules.
 - [ ] **Phase 5: Portable Output Contract** - Finalize the manifest schema, checksums, poster generation, and portable artifact layout.
@@ -49,9 +49,9 @@ Plans:
 **Plans**: 3 plans
 
 Plans:
-- [ ] 02-01: Define the SDK surface and tour runtime contracts.
-- [ ] 02-02: Implement chapters, steps, narration declarations, and helper primitives.
-- [ ] 02-03: Validate the authoring model with representative sample tours.
+- [x] 02-01: Define the SDK surface and tour runtime contracts.
+- [x] 02-02: Implement chapters, steps, narration declarations, and helper primitives.
+- [x] 02-03: Validate the authoring model with representative sample tours.
 
 ### Phase 3: Playwright Generation Engine
 **Goal**: Execute tours in two passes, record the scripted demo, and write the baseline local artifact set to `.demohunter/`.
@@ -124,7 +124,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Repository and Scaffolding | 5/5 | Complete | 2026-04-10 |
-| 2. Tour Authoring SDK | 0/3 | Not started | - |
+| 2. Tour Authoring SDK | 3/3 | Complete | 2026-04-10 |
 | 3. Playwright Generation Engine | 0/4 | Not started | - |
 | 4. OpenAI Narration and Cache | 0/4 | Not started | - |
 | 5. Portable Output Contract | 0/3 | Not started | - |

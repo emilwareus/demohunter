@@ -13,11 +13,11 @@
 
 ### Tour Authoring
 
-- [ ] **TOUR-01**: Developer can define a narrated demo in a `.tour.ts` file with `defineTour`.
-- [ ] **TOUR-02**: Developer can organize the demo into named chapters and steps.
-- [ ] **TOUR-03**: Developer can add declarative narration with `narrate(text, opts?)` without manually calculating timing.
-- [ ] **TOUR-04**: Developer can use helper APIs `waitForStable`, `highlight`, `snapshot`, `assertVisible`, `setup`, and `teardown` inside a tour.
-- [ ] **TOUR-05**: Developer keeps auth, session, and app bootstrap logic in normal Playwright code rather than DemoHunter-specific abstractions.
+- [x] **TOUR-01**: Developer can define a narrated demo in a `.tour.ts` file with `defineTour`.
+- [x] **TOUR-02**: Developer can organize the demo into named chapters and steps.
+- [x] **TOUR-03**: Developer can add declarative narration with `narrate(text, opts?)` without manually calculating timing.
+- [x] **TOUR-04**: Developer can use helper APIs `waitForStable`, `highlight`, `snapshot`, `assertVisible`, `setup`, and `teardown` inside a tour.
+- [x] **TOUR-05**: Developer keeps auth, session, and app bootstrap logic in normal Playwright code rather than DemoHunter-specific abstractions.
 
 ### Generation
 
@@ -80,11 +80,11 @@
 | INIT-01 | Phase 1 | Complete |
 | INIT-02 | Phase 1 | Complete |
 | INIT-03 | Phase 1 | Complete |
-| TOUR-01 | Phase 2 | Pending |
-| TOUR-02 | Phase 2 | Pending |
-| TOUR-03 | Phase 2 | Pending |
-| TOUR-04 | Phase 2 | Pending |
-| TOUR-05 | Phase 2 | Pending |
+| TOUR-01 | Phase 2 | Complete |
+| TOUR-02 | Phase 2 | Complete |
+| TOUR-03 | Phase 2 | Complete |
+| TOUR-04 | Phase 2 | Complete |
+| TOUR-05 | Phase 2 | Complete |
 | GEN-01 | Phase 3 | Pending |
 | GEN-02 | Phase 3 | Pending |
 | GEN-03 | Phase 3 | Pending |
@@ -115,4 +115,4 @@
 
 ---
 *Requirements defined: 2026-04-09*
-*Last updated: 2026-04-09 after initialization*
+*Last updated: 2026-04-10 after completing Phase 02*
