@@ -75,10 +75,11 @@ describe("built cli bin contract", () => {
       }>;
 
       await access(path.join(outputDir, "video.mp4"));
-      expect(chapters).toEqual([
-        { startMs: 0, title: "Workspace Overview" },
-        { startMs: 300, title: "Payment History" },
-      ]);
+      await expect(access(path.join(cwd, ".demohunter/phase-03-generation.recording.webm"))).rejects.toThrow();
+      expect(chapters).toHaveLength(2);
+      expect(chapters.map((chapter) => chapter.title)).toEqual(["Workspace Overview", "Payment History"]);
+      expect(chapters[0]?.startMs).toBeGreaterThanOrEqual(0);
+      expect(chapters[1]?.startMs).toBeGreaterThan(chapters[0]?.startMs ?? -1);
       expect((await readdir(outputDir)).sort()).toEqual(["chapters.json", "video.mp4"]);
     },
     30_000,

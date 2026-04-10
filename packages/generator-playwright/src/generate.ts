@@ -1,3 +1,4 @@
+import { rm } from "node:fs/promises";
 import path from "node:path";
 
 import type { DemoHunterRunContext, ResolvedDemoHunterConfig } from "@demohunter/sdk";
@@ -35,6 +36,7 @@ export type GenerateTourInput = {
 type GenerateTourDependencies = {
   collectTimeline: typeof collectTimeline;
   muxVideo: typeof muxVideo;
+  now: () => number;
   playwright: BrowserTypeMap;
   prepareOutputDir: (tourId: string, projectRoot: string) => Promise<string>;
   replayTimeline: typeof replayTimeline;
@@ -47,6 +49,7 @@ type GenerateTourDependencies = {
 const defaultDependencies: GenerateTourDependencies = {
   collectTimeline,
   muxVideo,
+  now: () => Date.now(),
   playwright,
   prepareOutputDir: (tourId, projectRoot) =>
     prepareOutputDirHelper(tourId, {
@@ -75,6 +78,7 @@ export async function generateTour(
   let passOneContext: Awaited<ReturnType<typeof browser.newContext>> | undefined;
   let passTwoContext: Awaited<ReturnType<typeof browser.newContext>> | undefined;
   let primaryError: unknown;
+  const chapters: GenerationChapter[] = [];
 
   try {
     passOneContext = await browser.newContext({
@@ -103,10 +107,21 @@ export async function generateTour(
       showActions: config.record.showActions,
       viewport: config.viewport,
     });
+    const recordingStartedAt = resolvedDependencies.now();
 
     try {
       await resolvedDependencies.replayTimeline({
         loadedConfig,
+        onMatchedEvent: (event) => {
+          if (event.kind !== "chapter") {
+            return;
+          }
+
+          chapters.push({
+            startMs: Math.max(0, resolvedDependencies.now() - recordingStartedAt),
+            title: event.title,
+          });
+        },
         page: passTwoPage,
         timeline,
         tourFile: wrapTourForReplay({
@@ -132,7 +147,7 @@ export async function generateTour(
     });
 
     return await resolvedDependencies.writeGenerationOutput({
-      chapters: buildChapters(timeline, config.holdPaddingMs),
+      chapters,
       finalVideo,
       outputDir,
     });
@@ -141,6 +156,12 @@ export async function generateTour(
     throw error;
   } finally {
     let closeError: unknown;
+
+    try {
+      await rm(tempScreencastPath, { force: true });
+    } catch (error) {
+      closeError ??= error;
+    }
 
     try {
       await passOneContext?.close();
@@ -213,25 +234,4 @@ function wrapTourForReplay(args: {
       },
     },
   };
-}
-
-function buildChapters(timeline: CollectedTimeline, holdPaddingMs: number): GenerationChapter[] {
-  const chapters: GenerationChapter[] = [];
-  let elapsedMs = 0;
-
-  for (const entry of timeline.entries) {
-    if (entry.kind === "narration") {
-      elapsedMs += entry.durationMs + holdPaddingMs;
-      continue;
-    }
-
-    if (entry.event.kind === "chapter") {
-      chapters.push({
-        startMs: elapsedMs,
-        title: entry.event.title,
-      });
-    }
-  }
-
-  return chapters;
 }

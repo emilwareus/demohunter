@@ -60,6 +60,23 @@ describe("writeGenerationOutput", () => {
     expect((await readdir(fixture.outputDir)).includes("poster.jpg")).toBe(false);
     expect((await readdir(fixture.outputDir)).includes("audio")).toBe(false);
   });
+
+  test("removes the stale alternate video artifact on rerun", async () => {
+    const fixture = await makeFixture();
+    await writeFile(path.join(fixture.outputDir, "video.webm"), "stale webm bytes");
+
+    await writeGenerationOutput({
+      chapters: [{ title: "Billing", startMs: 100 }],
+      finalVideo: {
+        format: "mp4",
+        fileName: "video.mp4",
+        path: fixture.sourceVideoPath,
+      },
+      outputDir: fixture.outputDir,
+    });
+
+    expect((await readdir(fixture.outputDir)).sort()).toEqual(["chapters.json", "video.mp4"]);
+  });
 });
 
 async function makeFixture(): Promise<{ outputDir: string; sourceVideoPath: string }> {

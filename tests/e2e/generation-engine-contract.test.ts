@@ -38,14 +38,20 @@ describe("generation engine contract", () => {
 
       await access(videoPath);
       await access(chaptersPath);
+      await expect(access(path.join(cwd, ".demohunter/phase-03-generation.recording.webm"))).rejects.toThrow();
       await expect(access(path.join(outputDir, "manifest.json"))).rejects.toThrow();
       await expect(access(path.join(outputDir, "captions.srt"))).rejects.toThrow();
       await expect(access(path.join(outputDir, "captions.vtt"))).rejects.toThrow();
 
-      expect(JSON.parse(await readFile(chaptersPath, "utf8"))).toEqual([
-        { startMs: 0, title: "Workspace Overview" },
-        { startMs: 300, title: "Payment History" },
-      ]);
+      const chapters = JSON.parse(await readFile(chaptersPath, "utf8")) as Array<{
+        startMs: number;
+        title: string;
+      }>;
+
+      expect(chapters).toHaveLength(2);
+      expect(chapters.map((chapter) => chapter.title)).toEqual(["Workspace Overview", "Payment History"]);
+      expect(chapters[0]?.startMs).toBeGreaterThanOrEqual(0);
+      expect(chapters[1]?.startMs).toBeGreaterThan(chapters[0]?.startMs ?? -1);
       expect((await readdir(outputDir)).sort()).toEqual(["chapters.json", "video.mp4"]);
     },
     20_000,
@@ -76,6 +82,37 @@ describe("generation engine contract", () => {
     },
     20_000,
   );
+
+  test(
+    "rerunning the same tour with a different record format leaves only the selected video artifact",
+    async () => {
+      const cwd = await makeTempProject();
+      const tourPath = "demos/phase-03-generation.tour.ts";
+
+      await writeTempRepoPackageJson(cwd);
+      await writeTempRepoConfig(cwd);
+      await writeTempRepoSite(cwd);
+      await mkdir(path.join(cwd, "demos"), { recursive: true });
+      await cp(generationFixturePath, path.join(cwd, tourPath));
+
+      const installResult = await spawnCommand([process.execPath, "install"], cwd);
+      expect(installResult.exitCode).toBe(0);
+
+      const firstGenerate = await spawnCommand([process.execPath, cliEntryPoint, "generate", tourPath], cwd);
+      expect(firstGenerate.exitCode).toBe(0);
+
+      await writeTempRepoConfig(cwd, { format: "webm" });
+
+      const secondGenerate = await spawnCommand([process.execPath, cliEntryPoint, "generate", tourPath], cwd);
+      expect(secondGenerate.exitCode).toBe(0);
+
+      const outputDir = path.join(cwd, ".demohunter/phase-03-generation");
+      await access(path.join(outputDir, "video.webm"));
+      await expect(access(path.join(outputDir, "video.mp4"))).rejects.toThrow();
+      expect((await readdir(outputDir)).sort()).toEqual(["chapters.json", "video.webm"]);
+    },
+    20_000,
+  );
 });
 
 async function makeTempProject(): Promise<string> {
@@ -103,14 +140,20 @@ async function writeTempRepoPackageJson(cwd: string): Promise<void> {
   );
 }
 
-async function writeTempRepoConfig(cwd: string): Promise<void> {
+async function writeTempRepoConfig(
+  cwd: string,
+  options: {
+    format?: "mp4" | "webm";
+  } = {},
+): Promise<void> {
   const sitePath = path.join(cwd, "site", "index.html");
+  const recordBlock = options.format === undefined ? "" : `  record: { format: ${JSON.stringify(options.format)} },\n`;
 
   await writeFile(
     path.join(cwd, "demohunter.config.ts"),
     `export default {
   baseURL: ${JSON.stringify(pathToFileURL(sitePath).href)},
-};
+${recordBlock}};
 `,
   );
 }

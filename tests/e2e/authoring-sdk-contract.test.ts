@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { cp, mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { access, cp, mkdtemp, mkdir, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -30,18 +30,19 @@ describe("authoring sdk contract", () => {
     const generateResult = await spawnCommand([process.execPath, cliEntryPoint, "generate", tourPath], cwd);
     expect(generateResult.exitCode).toBe(0);
 
-    const artifactPath = path.join(cwd, ".demohunter/phase-02-authoring/smoke-run.json");
-    const artifact = JSON.parse(await readFile(artifactPath, "utf8")) as {
-      status: string;
-      tourId: string;
+    const outputDir = path.join(cwd, ".demohunter/phase-02-authoring");
+    const chaptersPath = path.join(outputDir, "chapters.json");
+    const videoPath = path.join(outputDir, "video.mp4");
+    const chapters = JSON.parse(await readFile(chaptersPath, "utf8")) as Array<{
+      startMs: number;
       title: string;
-    };
+    }>;
 
-    expect(artifact).toMatchObject({
-      status: "ok",
-      tourId: "phase-02-authoring",
-      title: "Phase 2 authoring contract",
-    });
+    await access(videoPath);
+    expect(chapters).toHaveLength(1);
+    expect(chapters[0]?.title).toBe("Workspace Settings");
+    expect(chapters[0]?.startMs).toBeGreaterThanOrEqual(0);
+    expect((await readdir(outputDir)).sort()).toEqual(["chapters.json", "video.mp4"]);
   });
 
   test("keeps bootstrap logic in setup with plain Playwright page actions", async () => {

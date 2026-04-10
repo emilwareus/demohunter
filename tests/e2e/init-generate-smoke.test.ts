@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { mkdtemp, readFile, realpath, rm } from "node:fs/promises";
+import { access, mkdtemp, readFile, readdir, realpath, rm } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -13,7 +13,7 @@ afterEach(async () => {
 });
 
 describe("init to generate smoke flow", () => {
-  test("scaffolds safely and writes the smoke artifact in a temp repo", async () => {
+  test("scaffolds safely and writes the baseline generation artifacts in a temp repo", async () => {
     const cwd = await makeTempProject();
 
     const firstInit = await runCli(cwd, ["init"]);
@@ -41,11 +41,17 @@ describe("init to generate smoke flow", () => {
     const generate = await runCli(cwd, ["generate", "demos/sample.tour.ts"]);
     expect(generate.exitCode).toBe(0);
 
-    const artifactPath = path.join(cwd, ".demohunter/sample-smoke/smoke-run.json");
-    const artifact = JSON.parse(await readFile(artifactPath, "utf8"));
+    const outputDir = path.join(cwd, ".demohunter/sample-smoke");
+    const chaptersPath = path.join(outputDir, "chapters.json");
+    const videoPath = path.join(outputDir, "video.mp4");
+    const chapters = JSON.parse(await readFile(chaptersPath, "utf8")) as Array<{
+      startMs: number;
+      title: string;
+    }>;
 
-    expect(artifact.status).toBe("ok");
-    expect(artifact.tourId).toBe("sample-smoke");
+    await access(videoPath);
+    expect(chapters).toEqual([]);
+    expect((await readdir(outputDir)).sort()).toEqual(["chapters.json", "video.mp4"]);
   });
 });
 

@@ -157,6 +157,70 @@ describe("replayTimeline", () => {
       }),
     );
   });
+
+  test("matches teardown-emitted runtime events before declaring replay complete", async () => {
+    const page = {
+      goto: mock(async () => {}),
+      waitForTimeout: mock(async () => {}),
+    };
+
+    await expect(
+      replayTimeline({
+        loadedConfig: createLoadedConfig("/tmp/workspace"),
+        page: page as never,
+        timeline: {
+          entries: [
+            {
+              event: {
+                chapterTitle: undefined,
+                kind: "step-start",
+                title: "Cleanup",
+              },
+              kind: "event",
+              order: 1,
+            },
+            {
+              chapterTitle: undefined,
+              durationMs: 200,
+              event: {
+                chapterTitle: undefined,
+                kind: "narrate",
+                text: "Finish cleanup",
+              },
+              kind: "narration",
+              order: 2,
+              text: "Finish cleanup",
+            },
+            {
+              event: {
+                chapterTitle: undefined,
+                kind: "step-end",
+                title: "Cleanup",
+              },
+              kind: "event",
+              order: 3,
+            },
+          ],
+          narrations: [],
+        },
+        tourFile: {
+          path: "/tmp/workspace/demos/billing.tour.ts",
+          tour: {
+            id: "billing-overview",
+            title: "Billing overview",
+            run: async () => {},
+            teardown: async ({ step, narrate }) => {
+              await step("Cleanup", async () => {
+                await narrate("Finish cleanup");
+              });
+            },
+          },
+        },
+      }),
+    ).resolves.toBeUndefined();
+
+    expect(page.waitForTimeout).toHaveBeenCalledWith(500);
+  });
 });
 
 function createLoadedConfig(projectRoot: string) {

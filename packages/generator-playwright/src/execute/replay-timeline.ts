@@ -10,6 +10,7 @@ import type { CollectedTimeline, CollectedTimelineEntry, TourRuntimeEvent } from
 
 export type ReplayTimelineInput = {
   loadedConfig: SmokeGenerateInput["loadedConfig"];
+  onMatchedEvent?: (event: TourRuntimeEvent, index: number) => void;
   page: Page;
   timeline: CollectedTimeline;
   tourFile: SmokeTourModule;
@@ -35,6 +36,7 @@ export class ReplayTimelineError extends Error {
 
 export async function replayTimeline({
   loadedConfig,
+  onMatchedEvent,
   page,
   timeline,
   tourFile,
@@ -51,6 +53,7 @@ export async function replayTimeline({
     page,
     replayWait,
     timeline,
+    onMatchedEvent,
     updatePendingNarrationWait: (durationMs) => {
       pendingNarrationWaitMs = durationMs;
     },
@@ -67,7 +70,6 @@ export async function replayTimeline({
   try {
     await Promise.resolve(tourFile.tour.setup?.(runtime));
     await Promise.resolve(tourFile.tour.run(runtime));
-    assertReplayComplete(timeline.entries, nextExpectedIndex);
   } catch (error) {
     primaryError = error;
   } finally {
@@ -83,6 +85,8 @@ export async function replayTimeline({
       throw primaryError;
     }
 
+    assertReplayComplete(timeline.entries, nextExpectedIndex);
+
     if (pendingNarrationWaitMs !== undefined) {
       pendingNarrationWaitMs = undefined;
     }
@@ -91,6 +95,7 @@ export async function replayTimeline({
 
 function createReplayRuntime(args: {
   config: ReplayTimelineInput["loadedConfig"]["config"];
+  onMatchedEvent?: (event: TourRuntimeEvent, index: number) => void;
   outputDir: string;
   page: Page;
   replayWait: (durationMs: number) => Promise<void>;
@@ -129,6 +134,7 @@ function createReplayRuntime(args: {
         );
       }
 
+      args.onMatchedEvent?.(actualEvent, index);
       args.updateReplayPosition();
 
       if (expectedEntry.kind === "narration") {

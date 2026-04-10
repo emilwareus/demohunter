@@ -41,8 +41,28 @@ describe("generateTour", () => {
       calls.push("collect");
       return createTimeline();
     });
-    const replayTimeline = mock(async ({ tourFile }) => {
+    const replayTimeline = mock(async ({ onMatchedEvent, tourFile }) => {
       calls.push("replay");
+      onMatchedEvent?.(
+        {
+          chapterTitle: "Billing",
+          id: "billing",
+          kind: "chapter",
+          outputDir: "/tmp/project/.demohunter/billing-overview",
+          title: "Billing",
+        },
+        1,
+      );
+      onMatchedEvent?.(
+        {
+          chapterTitle: "Invoices",
+          id: "invoices",
+          kind: "chapter",
+          outputDir: "/tmp/project/.demohunter/billing-overview",
+          title: "Invoices",
+        },
+        3,
+      );
       await tourFile.tour.run({
         chapter: mock(async () => {
           calls.push("chapter");
@@ -73,6 +93,11 @@ describe("generateTour", () => {
     const showChapterOverlay = mock(async () => {
       calls.push("show-chapter-overlay");
     });
+    const timestamps = [1_000, 1_100, 2_750];
+    const now = mock(() => {
+      const next = timestamps.shift();
+      return next ?? 2_750;
+    });
 
     const result = await generateTour(
       {
@@ -82,6 +107,7 @@ describe("generateTour", () => {
       {
         collectTimeline,
         muxVideo,
+        now,
         playwright: {
           chromium: {
             launch: mock(async () => {
@@ -135,8 +161,8 @@ describe("generateTour", () => {
     });
     expect(writeGenerationOutput).toHaveBeenCalledWith({
       chapters: [
-        { startMs: 0, title: "Billing" },
-        { startMs: 1500, title: "Invoices" },
+        { startMs: 100, title: "Billing" },
+        { startMs: 1750, title: "Invoices" },
       ],
       finalVideo: {
         fileName: "video.mp4",
@@ -150,6 +176,7 @@ describe("generateTour", () => {
       page: passTwoPage,
       title: "Billing",
     });
+    expect(now).toHaveBeenCalledTimes(3);
   });
 
   test("fails directly when pass 1 navigation fails instead of retrying readiness checks", async () => {
