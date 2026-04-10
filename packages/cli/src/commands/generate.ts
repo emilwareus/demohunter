@@ -1,7 +1,7 @@
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 
-import { smokeGenerate } from "@demohunter/generator-playwright";
+import { generateTour } from "@demohunter/generator-playwright";
 import type { DemoHunterTour } from "@demohunter/sdk";
 
 import { loadConfig } from "../config/load-config.js";
@@ -11,17 +11,17 @@ type TourModule = {
 };
 
 type GenerateDependencies = {
+  generateTour: typeof generateTour;
   importModule: (href: string) => Promise<TourModule>;
   loadConfig: typeof loadConfig;
   log: (message: string) => void;
-  smokeGenerate: typeof smokeGenerate;
 };
 
 const defaultDependencies: GenerateDependencies = {
+  generateTour,
   importModule: (href) => import(href),
   loadConfig,
   log: console.log,
-  smokeGenerate,
 };
 
 export async function generateCommand(
@@ -36,7 +36,7 @@ export async function generateCommand(
   const loadedConfig = await resolvedDependencies.loadConfig(cwd);
   const resolvedTourPath = path.resolve(cwd, tourPath);
   const tourModule = await resolvedDependencies.importModule(pathToFileURL(resolvedTourPath).href);
-  const result = await resolvedDependencies.smokeGenerate({
+  const result = await resolvedDependencies.generateTour({
     loadedConfig,
     tourFile: {
       path: resolvedTourPath,
@@ -44,7 +44,7 @@ export async function generateCommand(
     },
   });
 
-  resolvedDependencies.log(result.outputPath);
+  resolvedDependencies.log(result.videoPath);
 }
 
 type TourLike = DemoHunterTour & {
