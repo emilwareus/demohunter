@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { access, mkdtemp, rm } from "node:fs/promises";
+import { access, mkdtemp, readFile, rm } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
@@ -30,6 +30,7 @@ describe("workspace build contract", () => {
       const sdk = await import(${JSON.stringify(pathToFileURL(path.join(repoRoot, "packages/sdk/dist/index.js")).href)});
       const generator = await import(${JSON.stringify(pathToFileURL(path.join(repoRoot, "packages/generator-playwright/dist/index.js")).href)});
       const scaffold = await import(${JSON.stringify(pathToFileURL(path.join(repoRoot, "packages/create-demohunter/dist/index.js")).href)});
+      const cli = await import(${JSON.stringify(pathToFileURL(path.join(repoRoot, "packages/cli/dist/bin/demohunter.js")).href)});
       console.log(JSON.stringify({
         sdk: {
           defineConfig: typeof sdk.defineConfig,
@@ -41,6 +42,9 @@ describe("workspace build contract", () => {
         scaffold: {
           scaffoldStarter: typeof scaffold.scaffoldStarter,
         },
+        cli: {
+          runCli: typeof cli.runCli,
+        },
       }));
     `);
 
@@ -48,7 +52,10 @@ describe("workspace build contract", () => {
       sdk: Record<string, string>;
       generator: Record<string, string>;
       scaffold: Record<string, string>;
+      cli: Record<string, string>;
     };
+
+    const sdkDeclarations = await readFile(path.join(repoRoot, "packages/sdk/dist/index.d.ts"), "utf8");
 
     expect(exports.sdk).toEqual({
       defineConfig: "function",
@@ -60,6 +67,11 @@ describe("workspace build contract", () => {
     expect(exports.scaffold).toEqual({
       scaffoldStarter: "function",
     });
+    expect(exports.cli).toEqual({
+      runCli: "function",
+    });
+    expect(sdkDeclarations).toContain("DemoHunterRunContext");
+    expect(sdkDeclarations).toContain("WaitForStableOptions");
   });
 });
 
