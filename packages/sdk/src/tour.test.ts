@@ -1,4 +1,6 @@
 import { describe, expect, test } from "bun:test";
+import { readFile } from "node:fs/promises";
+import path from "node:path";
 import type { Locator, Page } from "playwright";
 
 import type {
@@ -11,13 +13,34 @@ import type {
   SnapshotOptions,
   WaitForStableOptions,
 } from "./runtime-types.js";
+import * as sdk from "./index.js";
 import { defineTour } from "./tour.js";
 
 function expectType<T>(_value: T): void {}
 
+const repoRoot = path.resolve(path.dirname(new URL(import.meta.url).pathname), "../../..");
+
 describe("defineTour", () => {
   test("ships a dedicated runtime types module for the authored contract", async () => {
     await expect(import("./runtime-types.js")).resolves.toBeDefined();
+  });
+
+  test("re-exports defineTour from the sdk entrypoint and exposes runtime types in dist declarations", async () => {
+    expect(sdk.defineTour).toBe(defineTour);
+
+    const declarationPath = path.join(repoRoot, "packages/sdk/dist/index.d.ts");
+    const declarations = await readFile(declarationPath, "utf8");
+
+    expect(declarations).toContain('from "./runtime-types.js"');
+    expect(declarations).toContain("DemoHunterLifecycleContext");
+    expect(declarations).toContain("DemoHunterRunContext");
+    expect(declarations).toContain("ChapterOptions");
+    expect(declarations).toContain("NarrateOptions");
+    expect(declarations).toContain("WaitForStableOptions");
+    expect(declarations).toContain("HighlightOptions");
+    expect(declarations).toContain("SnapshotOptions");
+    expect(declarations).toContain("AssertVisibleOptions");
+    expect(declarations).toContain("DemoHunterTour");
   });
 
   test("returns the authored object unchanged while supporting top-level lifecycle hooks", async () => {
