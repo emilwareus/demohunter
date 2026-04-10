@@ -14,7 +14,8 @@
     }
   },
   "dependencies": {
-    "@demohunter/sdk": "workspace:*"
+    "@demohunter/sdk": "workspace:*",
+    "create-demohunter": "workspace:*"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",

@@ -18,6 +18,9 @@
   "references": [
     {
       "path": "../sdk"
+    },
+    {
+      "path": "../create-demohunter"
     }
   ]
 }
