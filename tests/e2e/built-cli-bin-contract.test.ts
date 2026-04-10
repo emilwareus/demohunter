@@ -2,7 +2,7 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { cp, mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const builtCliEntryPoint = path.join(repoRoot, "packages/cli/dist/bin/demohunter.js");
@@ -150,7 +150,7 @@ async function writeAuthoringConfig(cwd: string): Promise<void> {
   await writeFile(
     path.join(cwd, "demohunter.config.ts"),
     `export default {
-  baseURL: ${JSON.stringify(new URL(`file://${sitePath}`).href)},
+  baseURL: ${JSON.stringify(pathToFileURL(sitePath).href)},
 };
 `,
   );
