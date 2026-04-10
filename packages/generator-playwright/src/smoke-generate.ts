@@ -49,7 +49,7 @@ type SmokeGenerateDependencies = {
   writeFile: typeof writeFile;
 };
 
-const TOUR_ID_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/i;
+const TOUR_ID_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
 const defaultDependencies: SmokeGenerateDependencies = {
   mkdir,
@@ -69,7 +69,7 @@ export async function smokeGenerate(
   const { config } = loadedConfig;
 
   if (!TOUR_ID_PATTERN.test(tourFile.tour.id)) {
-    throw new Error(`Tour id must be a filesystem-safe slug: ${tourFile.path}`);
+    throw new Error(`Tour id must be a lowercase filesystem-safe slug: ${tourFile.path}`);
   }
 
   const browserType = resolvedDependencies.playwright[config.browser];

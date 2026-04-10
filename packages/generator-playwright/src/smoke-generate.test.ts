@@ -268,7 +268,7 @@ describe("smokeGenerate", () => {
           writeFile,
         },
       ),
-    ).rejects.toThrow(`Tour id must be a filesystem-safe slug: ${tourPath}`);
+    ).rejects.toThrow(`Tour id must be a lowercase filesystem-safe slug: ${tourPath}`);
 
     expect(goto).not.toHaveBeenCalled();
     expect(mkdir).not.toHaveBeenCalled();
@@ -276,6 +276,68 @@ describe("smokeGenerate", () => {
     expect(launch).not.toHaveBeenCalled();
     expect(closeContext).not.toHaveBeenCalled();
     expect(closeBrowser).not.toHaveBeenCalled();
+  });
+
+  test("rejects uppercase tour ids before generating output", async () => {
+    const cwd = await makeTempRoot();
+    const launch = mock(async () => {
+      throw new Error("launch should not run");
+    });
+    const mkdir = mock(async () => {
+      throw new Error("mkdir should not run");
+    });
+    const writeFile = mock(async () => {
+      throw new Error("writeFile should not run");
+    });
+    const tourPath = path.join(cwd, "demos/unsafe-uppercase.tour.ts");
+
+    await expect(
+      smokeGenerate(
+        {
+          loadedConfig: {
+            config: {
+              baseURL: "http://localhost:3000",
+              outputDir: path.join(cwd, ".demohunter"),
+              cacheDir: path.join(cwd, ".demohunter/cache"),
+              browser: "chromium",
+              viewport: { width: 1280, height: 720 },
+              holdPaddingMs: 300,
+              record: { showActions: true, showChapters: true },
+              tts: {
+                provider: "openai",
+                model: "gpt-4o-mini-tts",
+                voice: "marin",
+                format: "mp3",
+                instructions: "Speak clearly.",
+              },
+            },
+            configPath: path.join(cwd, "demohunter.config.ts"),
+            projectRoot: cwd,
+          },
+          tourFile: {
+            path: tourPath,
+            tour: {
+              id: "Sample-Smoke",
+              title: "Unsafe uppercase demo",
+              run: mock(async () => {}),
+            },
+          },
+        },
+        {
+          mkdir,
+          playwright: {
+            chromium: { launch },
+            firefox: { launch: mock(async () => { throw new Error("unexpected browser"); }) },
+            webkit: { launch: mock(async () => { throw new Error("unexpected browser"); }) },
+          },
+          writeFile,
+        },
+      ),
+    ).rejects.toThrow(`Tour id must be a lowercase filesystem-safe slug: ${tourPath}`);
+
+    expect(mkdir).not.toHaveBeenCalled();
+    expect(writeFile).not.toHaveBeenCalled();
+    expect(launch).not.toHaveBeenCalled();
   });
 });
 
