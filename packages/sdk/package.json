@@ -14,5 +14,11 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json"
+  },
+  "devDependencies": {
+    "playwright": ">=1.59"
+  },
+  "peerDependencies": {
+    "playwright": ">=1.59"
   }
 }

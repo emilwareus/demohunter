@@ -38,6 +38,12 @@
     "packages/sdk": {
       "name": "@demohunter/sdk",
       "version": "0.0.0",
+      "devDependencies": {
+        "playwright": ">=1.59",
+      },
+      "peerDependencies": {
+        "playwright": ">=1.59",
+      },
     },
     "packages/tts-core": {
       "name": "@demohunter/tts-core",

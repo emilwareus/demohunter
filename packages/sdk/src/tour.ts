@@ -1,16 +1,13 @@
-export type DemoHunterNarrate = (text: string, options?: Record<string, unknown>) => Promise<void>;
+import type { DemoHunterLifecycleContext, DemoHunterRunContext } from "./runtime-types.js";
 
-export type DemoHunterRunContext = {
-  page: unknown;
-  chapter: unknown;
-  step: unknown;
-  narrate: DemoHunterNarrate;
-};
+export type { DemoHunterLifecycleContext, DemoHunterNarrate, DemoHunterRunContext } from "./runtime-types.js";
 
 export type DemoHunterTour = {
   id: string;
   title: string;
-  run: (context: DemoHunterRunContext) => Promise<void>;
+  setup?: (context: DemoHunterLifecycleContext) => Promise<void> | void;
+  run: (context: DemoHunterRunContext) => Promise<void> | void;
+  teardown?: (context: DemoHunterLifecycleContext) => Promise<void> | void;
 };
 
 export function defineTour<T extends DemoHunterTour>(tour: T): T {
