@@ -50,6 +50,21 @@ describe("scaffoldStarter", () => {
     expect(afterFiles).toEqual(beforeFiles);
     expect(afterContents).toEqual(beforeContents);
   });
+
+  test("force overwrites starter files without touching unrelated files", async () => {
+    const cwd = await makeTempProject();
+    await scaffoldStarter(cwd);
+    await writeFile(path.join(cwd, "demohunter.config.ts"), "export default { baseURL: 'broken' };\n");
+    await writeFile(path.join(cwd, "README.md"), "keep me\n");
+
+    const result = await scaffoldStarter(cwd, { force: true });
+
+    expect(result.createdFiles).toEqual(STARTER_TARGETS.map((relativePath) => path.join(cwd, relativePath)));
+    expect(await readFile(path.join(cwd, "README.md"), "utf8")).toBe("keep me\n");
+    expect(await readFile(path.join(cwd, "demohunter.config.ts"), "utf8")).toContain(
+      'new URL("./demos/sample-site/index.html", import.meta.url).href',
+    );
+  });
 });
 
 async function makeTempProject(): Promise<string> {

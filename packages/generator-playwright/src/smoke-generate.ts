@@ -2,6 +2,7 @@ import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 import * as playwright from "playwright";
+import type { BrowserType, Page } from "playwright";
 
 export type SmokeGenerateInput = {
   loadedConfig: {
@@ -33,7 +34,7 @@ export type SmokeTourModule = {
     id: string;
     title: string;
     run: (context: {
-      page: playwright.Page;
+      page: Page;
       chapter: () => Promise<void>;
       step: (_title: string, fn: () => Promise<void>) => Promise<void>;
       narrate: () => Promise<void>;
@@ -45,13 +46,37 @@ export type SmokeGenerateResult = {
   outputPath: string;
 };
 
-export async function smokeGenerate({ loadedConfig, tourFile }: SmokeGenerateInput): Promise<SmokeGenerateResult> {
+type BrowserTypeMap = Record<"chromium" | "firefox" | "webkit", Pick<BrowserType, "launch">>;
+
+type SmokeGenerateDependencies = {
+  mkdir: typeof mkdir;
+  now: () => Date;
+  playwright: BrowserTypeMap;
+  writeFile: typeof writeFile;
+};
+
+const defaultDependencies: SmokeGenerateDependencies = {
+  mkdir,
+  now: () => new Date(),
+  playwright,
+  writeFile,
+};
+
+export async function smokeGenerate(
+  { loadedConfig, tourFile }: SmokeGenerateInput,
+  dependencies: Partial<SmokeGenerateDependencies> = {},
+): Promise<SmokeGenerateResult> {
+  const resolvedDependencies = {
+    ...defaultDependencies,
+    ...dependencies,
+  };
   const { config } = loadedConfig;
-  const browserType = playwright[config.browser];
+  const browserType = resolvedDependencies.playwright[config.browser];
   const browser = await browserType.launch();
+  let context: Awaited<ReturnType<typeof browser.newContext>> | undefined;
 
   try {
-    const context = await browser.newContext({
+    context = await browser.newContext({
       viewport: config.viewport,
     });
     const page = await context.newPage();
@@ -69,8 +94,8 @@ export async function smokeGenerate({ loadedConfig, tourFile }: SmokeGenerateInp
     const outputDir = path.join(config.outputDir, tourFile.tour.id);
     const outputPath = path.join(outputDir, "smoke-run.json");
 
-    await mkdir(outputDir, { recursive: true });
-    await writeFile(
+    await resolvedDependencies.mkdir(outputDir, { recursive: true });
+    await resolvedDependencies.writeFile(
       outputPath,
       JSON.stringify(
         {
@@ -80,17 +105,16 @@ export async function smokeGenerate({ loadedConfig, tourFile }: SmokeGenerateInp
           baseURL: config.baseURL,
           browser: config.browser,
           viewport: config.viewport,
-          generatedAt: new Date().toISOString(),
+          generatedAt: resolvedDependencies.now().toISOString(),
         },
         null,
         2,
       ),
     );
 
-    await context.close();
-
     return { outputPath };
   } finally {
+    await context?.close();
     await browser.close();
   }
 }

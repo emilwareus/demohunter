@@ -7,6 +7,10 @@
   ],
   "scripts": {
     "build": "bun x tsc -b tsconfig.json --pretty false",
+    "clean": "rm -rf packages/*/dist",
+    "test:e2e": "bun test tests/e2e",
+    "test:unit": "bun test packages",
+    "verify": "bun run build && bun run test",
     "typecheck": "bun x tsc -b tsconfig.json --pretty false",
     "test": "bun test"
   },
