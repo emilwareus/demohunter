@@ -55,11 +55,13 @@ class FakeDocument {
 const originalDocument = globalThis.document;
 const originalSetTimeout = globalThis.setTimeout;
 const originalClearTimeout = globalThis.clearTimeout;
+const CHAPTER_OVERLAY_TIMER_KEY = "__demohunterChapterOverlayHideTimer";
 
 afterEach(() => {
   globalThis.document = originalDocument;
   globalThis.setTimeout = originalSetTimeout;
   globalThis.clearTimeout = originalClearTimeout;
+  delete (globalThis as typeof globalThis & Record<string, unknown>)[CHAPTER_OVERLAY_TIMER_KEY];
 });
 
 describe("showChapterOverlay", () => {
