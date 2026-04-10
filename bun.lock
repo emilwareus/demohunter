@@ -15,7 +15,9 @@
         "demohunter": "./dist/bin/demohunter.js",
       },
       "dependencies": {
+        "@demohunter/generator-playwright": "workspace:*",
         "@demohunter/sdk": "workspace:*",
+        "create-demohunter": "workspace:*",
       },
     },
     "packages/create-demohunter": {

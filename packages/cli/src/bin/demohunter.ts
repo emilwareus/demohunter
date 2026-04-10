@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 
+import { generateCommand } from "../commands/generate.js";
 import { initCommand } from "../commands/init.js";
 
 export async function runCli(argv: string[], cwd = process.cwd()): Promise<void> {
@@ -9,8 +10,16 @@ export async function runCli(argv: string[], cwd = process.cwd()): Promise<void>
     case "init":
       await initCommand(cwd, { force: rest.includes("--force") });
       return;
+    case "generate": {
+      const [tourPath] = rest;
+      if (!tourPath) {
+        throw new Error("Usage: demohunter generate <tour-file>");
+      }
+      await generateCommand(cwd, tourPath);
+      return;
+    }
     default:
-      throw new Error("Usage: demohunter init [--force]");
+      throw new Error("Usage: demohunter <init|generate> [options]");
   }
 }
 

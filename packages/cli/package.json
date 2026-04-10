@@ -14,6 +14,7 @@
     }
   },
   "dependencies": {
+    "@demohunter/generator-playwright": "workspace:*",
     "@demohunter/sdk": "workspace:*",
     "create-demohunter": "workspace:*"
   },

@@ -21,6 +21,9 @@
     },
     {
       "path": "../create-demohunter"
+    },
+    {
+      "path": "../generator-playwright"
     }
   ]
 }
