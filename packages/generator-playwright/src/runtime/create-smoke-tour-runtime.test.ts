@@ -1,6 +1,23 @@
 import { describe, expect, mock, test } from "bun:test";
 
+import type {
+  CollectedNarration,
+  CollectedTimeline,
+  CollectedTimelineEntry,
+  NarrationDurationResolver,
+  TourRuntimeEvent,
+} from "../execute/generator-types.js";
+import {
+  COLLECTED_TIMELINE_ENTRY_KINDS,
+  TOUR_RUNTIME_EVENT_KINDS,
+} from "../execute/generator-types.js";
 import { createSmokeTourRuntime } from "./create-smoke-tour-runtime.js";
+
+const assertTourRuntimeEvent = <T extends TourRuntimeEvent>(event: T): T => event;
+const assertCollectedNarration = <T extends CollectedNarration>(entry: T): T => entry;
+const assertCollectedTimelineEntry = <T extends CollectedTimelineEntry>(entry: T): T => entry;
+const assertCollectedTimeline = <T extends CollectedTimeline>(timeline: T): T => timeline;
+const assertNarrationDurationResolver = <T extends NarrationDurationResolver>(resolver: T): T => resolver;
 
 describe("createSmokeTourRuntime", () => {
   test("records chapter markers and runs steps inline", async () => {
@@ -93,5 +110,60 @@ describe("createSmokeTourRuntime", () => {
         voice: "marin",
       },
     ]);
+  });
+
+  test("shares Phase 3 event and timeline contracts with the runtime helpers", async () => {
+    const chapterEvent = assertTourRuntimeEvent({
+      chapterTitle: "Billing",
+      kind: "chapter",
+      outputDir: "/tmp/demohunter-output",
+      title: "Billing",
+    });
+    const narration = assertCollectedNarration({
+      chapterTitle: "Billing",
+      durationMs: 1200,
+      event: {
+        chapterTitle: "Billing",
+        kind: "narrate",
+        text: "Describe the invoice",
+        voice: "marin",
+      },
+      kind: "narration",
+      order: 3,
+      text: "Describe the invoice",
+    });
+    const entries = [
+      assertCollectedTimelineEntry({
+        event: chapterEvent,
+        kind: "event",
+        order: 1,
+      }),
+      narration,
+    ];
+    const resolveNarrationDuration = assertNarrationDurationResolver(async () => 1200);
+    const timeline = assertCollectedTimeline({
+      entries,
+      narration,
+      resolveNarrationDuration,
+    });
+
+    expect(TOUR_RUNTIME_EVENT_KINDS).toEqual([
+      "chapter",
+      "step-start",
+      "step-end",
+      "narrate",
+      "wait-for-stable",
+      "highlight",
+      "snapshot",
+      "assert-visible",
+    ]);
+    expect(COLLECTED_TIMELINE_ENTRY_KINDS).toEqual(["event", "narration"]);
+    expect(timeline.entries).toHaveLength(2);
+    expect(timeline.entries[0]).toEqual({
+      event: chapterEvent,
+      kind: "event",
+      order: 1,
+    });
+    await expect(timeline.resolveNarrationDuration(narration.event)).resolves.toBe(1200);
   });
 });
