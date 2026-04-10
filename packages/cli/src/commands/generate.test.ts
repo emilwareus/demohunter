@@ -13,21 +13,24 @@ afterEach(async () => {
 });
 
 describe("generateCommand", () => {
-  test("loads the requested tour file and forwards a valid phase 2 tour to smokeGenerate", async () => {
+  test("loads the requested tour file and forwards a valid phase 3 tour to generateTour", async () => {
     const cwd = await makeTempProject();
     const tourPath = path.join(cwd, "demos", "sample.tour.ts");
-    const smokeGenerate = mock(async () => ({ outputPath: path.join(cwd, ".demohunter/sample-smoke/smoke-run.json") }));
+    const generateTour = mock(async () => ({
+      outputDir: path.join(cwd, ".demohunter/sample-smoke"),
+      videoPath: path.join(cwd, ".demohunter/sample-smoke/video.mp4"),
+    }));
     const log = mock(() => {});
 
     await generateCommand(cwd, "demos/sample.tour.ts", {
       importModule: (href) => import(href),
+      generateTour,
       loadConfig: async () => makeLoadedConfig(cwd),
       log,
-      smokeGenerate,
     });
 
-    expect(smokeGenerate).toHaveBeenCalledTimes(1);
-    expect(smokeGenerate.mock.calls[0]?.[0]).toEqual({
+    expect(generateTour).toHaveBeenCalledTimes(1);
+    expect(generateTour.mock.calls[0]?.[0]).toEqual({
       loadedConfig: makeLoadedConfig(cwd),
       tourFile: {
         path: tourPath,
@@ -40,7 +43,7 @@ describe("generateCommand", () => {
         },
       },
     });
-    expect(log).toHaveBeenCalledWith(path.join(cwd, ".demohunter/sample-smoke/smoke-run.json"));
+    expect(log).toHaveBeenCalledWith(path.join(cwd, ".demohunter/sample-smoke/video.mp4"));
   });
 
   test("throws a clear error for invalid default exports", async () => {
@@ -49,9 +52,9 @@ describe("generateCommand", () => {
     await expect(
       generateCommand(cwd, "demos/invalid.tour.ts", {
         importModule: (href) => import(href),
+        generateTour: async () => ({ outputDir: "", videoPath: "" }),
         loadConfig: async () => makeLoadedConfig(cwd),
         log: () => {},
-        smokeGenerate: async () => ({ outputPath: "" }),
       }),
     ).rejects.toThrow(
       `Tour file must default export an object with string id/title and a run function: ${path.join(cwd, "demos/invalid.tour.ts")}`,
@@ -64,9 +67,9 @@ describe("generateCommand", () => {
     await expect(
       generateCommand(cwd, "demos/invalid-setup.tour.ts", {
         importModule: (href) => import(href),
+        generateTour: async () => ({ outputDir: "", videoPath: "" }),
         loadConfig: async () => makeLoadedConfig(cwd),
         log: () => {},
-        smokeGenerate: async () => ({ outputPath: "" }),
       }),
     ).rejects.toThrow(
       `Tour file has invalid setup export; expected a function when provided: ${path.join(cwd, "demos/invalid-setup.tour.ts")}`,
@@ -79,9 +82,9 @@ describe("generateCommand", () => {
     await expect(
       generateCommand(cwd, "demos/invalid-teardown.tour.ts", {
         importModule: (href) => import(href),
+        generateTour: async () => ({ outputDir: "", videoPath: "" }),
         loadConfig: async () => makeLoadedConfig(cwd),
         log: () => {},
-        smokeGenerate: async () => ({ outputPath: "" }),
       }),
     ).rejects.toThrow(
       `Tour file has invalid teardown export; expected a function when provided: ${path.join(cwd, "demos/invalid-teardown.tour.ts")}`,
