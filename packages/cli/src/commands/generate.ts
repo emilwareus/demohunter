@@ -2,6 +2,7 @@ import path from "node:path";
 import { pathToFileURL } from "node:url";
 
 import { smokeGenerate } from "@demohunter/generator-playwright";
+import type { DemoHunterTour } from "@demohunter/sdk";
 
 import { loadConfig } from "../config/load-config.js";
 
@@ -46,23 +47,30 @@ export async function generateCommand(
   resolvedDependencies.log(result.outputPath);
 }
 
-type TourLike = {
-  id: string;
-  title: string;
-  run: (...args: unknown[]) => Promise<void> | void;
+type TourLike = DemoHunterTour & {
+  setup?: unknown;
+  teardown?: unknown;
 };
 
-function readTourDefaultExport(tourModule: unknown, tourPath: string): TourLike {
-  if (!isTourLike(tourModule)) {
+function readTourDefaultExport(tourModule: unknown, tourPath: string): DemoHunterTour {
+  if (!isTourShape(tourModule)) {
     throw new Error(
       `Tour file must default export an object with string id/title and a run function: ${tourPath}`,
     );
   }
 
+  if (tourModule.setup !== undefined && typeof tourModule.setup !== "function") {
+    throw new Error(`Tour file has invalid setup export; expected a function when provided: ${tourPath}`);
+  }
+
+  if (tourModule.teardown !== undefined && typeof tourModule.teardown !== "function") {
+    throw new Error(`Tour file has invalid teardown export; expected a function when provided: ${tourPath}`);
+  }
+
   return tourModule;
 }
 
-function isTourLike(value: unknown): value is TourLike {
+function isTourShape(value: unknown): value is TourLike {
   if (typeof value !== "object" || value === null || Array.isArray(value)) {
     return false;
   }

@@ -1,8 +1,11 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 
+import type { DemoHunterTour } from "@demohunter/sdk";
 import * as playwright from "playwright";
 import type { BrowserType, Page } from "playwright";
+
+import { createSmokeTourRuntime } from "./runtime/create-smoke-tour-runtime.js";
 
 export type SmokeGenerateInput = {
   loadedConfig: {
@@ -30,16 +33,7 @@ export type SmokeGenerateInput = {
 
 export type SmokeTourModule = {
   path: string;
-  tour: {
-    id: string;
-    title: string;
-    run: (context: {
-      page: Page;
-      chapter: () => Promise<void>;
-      step: (_title: string, fn: () => Promise<void>) => Promise<void>;
-      narrate: () => Promise<void>;
-    }) => Promise<void> | void;
-  };
+  tour: DemoHunterTour;
 };
 
 export type SmokeGenerateResult = {
@@ -80,18 +74,17 @@ export async function smokeGenerate(
       viewport: config.viewport,
     });
     const page = await context.newPage();
+    const outputDir = path.join(config.outputDir, tourFile.tour.id);
+    const runtime = createSmokeTourRuntime({
+      outputDir,
+      page,
+    });
 
     await page.goto(new URL(config.baseURL).href);
-    await Promise.resolve(
-      tourFile.tour.run({
-        page,
-        chapter: async () => undefined,
-        step: async (_title, fn) => await fn(),
-        narrate: async () => undefined,
-      }),
-    );
+    await Promise.resolve(tourFile.tour.setup?.(runtime));
+    await Promise.resolve(tourFile.tour.run(runtime));
+    await Promise.resolve(tourFile.tour.teardown?.(runtime));
 
-    const outputDir = path.join(config.outputDir, tourFile.tour.id);
     const outputPath = path.join(outputDir, "smoke-run.json");
 
     await resolvedDependencies.mkdir(outputDir, { recursive: true });
