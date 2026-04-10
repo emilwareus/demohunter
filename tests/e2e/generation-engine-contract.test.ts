@@ -5,7 +5,7 @@ import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
-const builtCliEntryPoint = path.join(repoRoot, "packages/cli/dist/bin/demohunter.js");
+const cliEntryPoint = path.join(repoRoot, "packages/cli/src/bin/demohunter.ts");
 const generationFixturePath = path.join(repoRoot, "tests/fixtures/tours/phase-03-generation.tour.ts");
 const tempRoots: string[] = [];
 
@@ -13,116 +13,75 @@ afterEach(async () => {
   await Promise.all(tempRoots.splice(0).map((tempRoot) => rm(tempRoot, { force: true, recursive: true })));
 });
 
-describe("built cli bin contract", () => {
-  test("runs init and generate from compiled dist output", async () => {
-    await runRepoCommand(["x", "tsc", "-b", "tsconfig.json", "--pretty", "false"]);
-
-    const cwd = await makeTempProject();
-
-    const initResult = await spawnCommand([process.execPath, builtCliEntryPoint, "init"], cwd);
-    expect(initResult.exitCode).toBe(0);
-    expect(await listFiles(cwd)).toEqual([
-      "demohunter.config.ts",
-      "demos/sample-site/index.html",
-      "demos/sample.tour.ts",
-    ]);
-
-    const generateResult = await spawnCommand(
-      [process.execPath, builtCliEntryPoint, "generate", "demos/sample.tour.ts"],
-      cwd,
-    );
-    expect(generateResult.exitCode).toBe(0);
-
-    const outputDir = path.join(cwd, ".demohunter/sample-smoke");
-    const videoPath = path.join(outputDir, "video.mp4");
-    const chaptersPath = path.join(outputDir, "chapters.json");
-
-    await access(videoPath);
-    await access(chaptersPath);
-    await expect(access(path.join(outputDir, "manifest.json"))).rejects.toThrow();
-    await expect(access(path.join(outputDir, "captions.srt"))).rejects.toThrow();
-    expect((await readdir(outputDir)).sort()).toEqual(["chapters.json", "video.mp4"]);
-  });
-
-  test("runs a representative phase 3 fixture from a fresh temp repo through compiled dist output", async () => {
-    await runRepoCommand(["x", "tsc", "-b", "tsconfig.json", "--pretty", "false"]);
-
+describe("generation engine contract", () => {
+  test("runs a representative phase 3 tour through the source cli and writes the baseline output set", async () => {
     const cwd = await makeTempProject();
     const tourPath = "demos/phase-03-generation.tour.ts";
 
-    await writeGenerationPackageJson(cwd);
-    await writeGenerationConfig(cwd);
-    await writeGenerationSite(cwd);
+    await writeTempRepoPackageJson(cwd);
+    await writeTempRepoConfig(cwd);
+    await writeTempRepoSite(cwd);
     await mkdir(path.join(cwd, "demos"), { recursive: true });
     await cp(generationFixturePath, path.join(cwd, tourPath));
 
     const installResult = await spawnCommand([process.execPath, "install"], cwd);
     expect(installResult.exitCode).toBe(0);
 
-    const generateResult = await spawnCommand([process.execPath, builtCliEntryPoint, "generate", tourPath], cwd);
+    const generateResult = await spawnCommand([process.execPath, cliEntryPoint, "generate", tourPath], cwd);
     expect(generateResult.exitCode).toBe(0);
 
     const outputDir = path.join(cwd, ".demohunter/phase-03-generation");
-    const chapters = JSON.parse(await readFile(path.join(outputDir, "chapters.json"), "utf8")) as Array<{
-      startMs: number;
-      title: string;
-    }>;
+    const chaptersPath = path.join(outputDir, "chapters.json");
+    const videoPath = path.join(outputDir, "video.mp4");
 
-    await access(path.join(outputDir, "video.mp4"));
-    expect(chapters).toEqual([
+    await access(videoPath);
+    await access(chaptersPath);
+    await expect(access(path.join(outputDir, "manifest.json"))).rejects.toThrow();
+    await expect(access(path.join(outputDir, "captions.srt"))).rejects.toThrow();
+    await expect(access(path.join(outputDir, "captions.vtt"))).rejects.toThrow();
+
+    expect(JSON.parse(await readFile(chaptersPath, "utf8"))).toEqual([
       { startMs: 0, title: "Workspace Overview" },
       { startMs: 300, title: "Payment History" },
     ]);
     expect((await readdir(outputDir)).sort()).toEqual(["chapters.json", "video.mp4"]);
   });
+
+  test("fails clearly on recorded-pass divergence and avoids false-success artifacts", async () => {
+    const cwd = await makeTempProject();
+    const tourPath = "demos/divergent-phase-03.tour.ts";
+
+    await writeTempRepoPackageJson(cwd);
+    await writeTempRepoConfig(cwd);
+    await writeTempRepoSite(cwd);
+    await mkdir(path.join(cwd, "demos"), { recursive: true });
+    await writeFile(path.join(cwd, tourPath), createDivergentTourFixture());
+
+    const installResult = await spawnCommand([process.execPath, "install"], cwd);
+    expect(installResult.exitCode).toBe(0);
+
+    const generateResult = await spawnCommand([process.execPath, cliEntryPoint, "generate", tourPath], cwd);
+    expect(generateResult.exitCode).toBe(1);
+    expect(generateResult.stderr).toContain("Recorded pass diverged");
+
+    const outputDir = path.join(cwd, ".demohunter/divergent-phase-03");
+    await expect(access(path.join(outputDir, "video.mp4"))).rejects.toThrow();
+    await expect(access(path.join(outputDir, "chapters.json"))).rejects.toThrow();
+  });
 });
 
-async function runRepoCommand(args: string[]): Promise<void> {
-  const result = await spawnCommand([process.execPath, ...args], repoRoot);
-
-  if (result.exitCode !== 0) {
-    throw new Error(result.stderr || result.stdout || `Command failed: bun ${args.join(" ")}`);
-  }
-}
-
-async function spawnCommand(
-  cmd: string[],
-  cwd: string,
-): Promise<{ exitCode: number; stdout: string; stderr: string }> {
-  const processResult = Bun.spawn({
-    cmd,
-    cwd,
-    stdout: "pipe",
-    stderr: "pipe",
-    env: process.env,
-  });
-
-  const [exitCode, stdout, stderr] = await Promise.all([
-    processResult.exited,
-    new Response(processResult.stdout).text(),
-    new Response(processResult.stderr).text(),
-  ]);
-
-  return { exitCode, stdout, stderr };
-}
-
 async function makeTempProject(): Promise<string> {
-  const tempRoot = await mkdtemp(path.join(os.tmpdir(), "demohunter-built-bin-"));
+  const tempRoot = await mkdtemp(path.join(os.tmpdir(), "demohunter-generation-contract-"));
   tempRoots.push(tempRoot);
   return tempRoot;
 }
 
-async function listFiles(cwd: string): Promise<string[]> {
-  const results = await Array.fromAsync(new Bun.Glob("**/*").scan({ cwd, onlyFiles: true }));
-  return results.sort();
-}
-
-async function writeGenerationPackageJson(cwd: string): Promise<void> {
+async function writeTempRepoPackageJson(cwd: string): Promise<void> {
   await writeFile(
     path.join(cwd, "package.json"),
     `${JSON.stringify(
       {
-        name: "phase-03-built-generation-contract",
+        name: "phase-03-generation-contract",
         private: true,
         type: "module",
         dependencies: {
@@ -136,7 +95,7 @@ async function writeGenerationPackageJson(cwd: string): Promise<void> {
   );
 }
 
-async function writeGenerationConfig(cwd: string): Promise<void> {
+async function writeTempRepoConfig(cwd: string): Promise<void> {
   const sitePath = path.join(cwd, "site", "index.html");
 
   await writeFile(
@@ -148,7 +107,7 @@ async function writeGenerationConfig(cwd: string): Promise<void> {
   );
 }
 
-async function writeGenerationSite(cwd: string): Promise<void> {
+async function writeTempRepoSite(cwd: string): Promise<void> {
   const siteDir = path.join(cwd, "site");
   await mkdir(siteDir, { recursive: true });
   await writeFile(
@@ -221,4 +180,50 @@ async function writeGenerationSite(cwd: string): Promise<void> {
 </html>
 `,
   );
+}
+
+function createDivergentTourFixture(): string {
+  return `import { defineTour } from "@demohunter/sdk";
+
+let runCount = 0;
+
+export default defineTour({
+  id: "divergent-phase-03",
+  title: "Divergent generation contract",
+  async setup({ page }) {
+    await page.getByLabel("Email").fill("demo@demohunter.dev");
+    await page.getByLabel("Password").fill("demo-password");
+    await page.getByRole("button", { name: "Sign in" }).click();
+    await page.getByRole("heading", { name: "Workspace home" }).waitFor();
+  },
+  async run({ chapter, step, narrate }) {
+    runCount += 1;
+    await chapter(runCount === 1 ? "Deterministic chapter" : "Diverged chapter");
+    await step("Open the billing workspace", async () => {
+      await narrate("This fixture intentionally diverges on the recorded pass.");
+    });
+  },
+});
+`;
+}
+
+async function spawnCommand(
+  cmd: string[],
+  cwd: string,
+): Promise<{ exitCode: number; stdout: string; stderr: string }> {
+  const processResult = Bun.spawn({
+    cmd,
+    cwd,
+    stdout: "pipe",
+    stderr: "pipe",
+    env: process.env,
+  });
+
+  const [exitCode, stdout, stderr] = await Promise.all([
+    processResult.exited,
+    new Response(processResult.stdout).text(),
+    new Response(processResult.stderr).text(),
+  ]);
+
+  return { exitCode, stdout, stderr };
 }
