@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { mkdtemp, rm } from "node:fs/promises";
+import { mkdtemp, rm, stat } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 
@@ -20,6 +20,7 @@ describe("prepareOutputDir", () => {
     });
 
     expect(outputDir).toBe(path.join(cwd, ".demohunter", "billing-overview"));
+    expect((await stat(outputDir)).isDirectory()).toBe(true);
   });
 
   test.each(["Billing-Overview", "../billing-overview", "billing overview"])(
