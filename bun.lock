@@ -28,6 +28,7 @@
       "name": "@demohunter/generator-playwright",
       "version": "0.0.0",
       "dependencies": {
+        "@demohunter/sdk": "workspace:*",
         "playwright": ">=1.59",
       },
     },

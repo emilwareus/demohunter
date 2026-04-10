@@ -16,6 +16,7 @@
     "typecheck": "tsc -p tsconfig.json"
   },
   "dependencies": {
+    "@demohunter/sdk": "workspace:*",
     "playwright": ">=1.59"
   }
 }
