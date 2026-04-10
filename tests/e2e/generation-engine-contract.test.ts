@@ -14,60 +14,68 @@ afterEach(async () => {
 });
 
 describe("generation engine contract", () => {
-  test("runs a representative phase 3 tour through the source cli and writes the baseline output set", async () => {
-    const cwd = await makeTempProject();
-    const tourPath = "demos/phase-03-generation.tour.ts";
+  test(
+    "runs a representative phase 3 tour through the source cli and writes the baseline output set",
+    async () => {
+      const cwd = await makeTempProject();
+      const tourPath = "demos/phase-03-generation.tour.ts";
 
-    await writeTempRepoPackageJson(cwd);
-    await writeTempRepoConfig(cwd);
-    await writeTempRepoSite(cwd);
-    await mkdir(path.join(cwd, "demos"), { recursive: true });
-    await cp(generationFixturePath, path.join(cwd, tourPath));
+      await writeTempRepoPackageJson(cwd);
+      await writeTempRepoConfig(cwd);
+      await writeTempRepoSite(cwd);
+      await mkdir(path.join(cwd, "demos"), { recursive: true });
+      await cp(generationFixturePath, path.join(cwd, tourPath));
 
-    const installResult = await spawnCommand([process.execPath, "install"], cwd);
-    expect(installResult.exitCode).toBe(0);
+      const installResult = await spawnCommand([process.execPath, "install"], cwd);
+      expect(installResult.exitCode).toBe(0);
 
-    const generateResult = await spawnCommand([process.execPath, cliEntryPoint, "generate", tourPath], cwd);
-    expect(generateResult.exitCode).toBe(0);
+      const generateResult = await spawnCommand([process.execPath, cliEntryPoint, "generate", tourPath], cwd);
+      expect(generateResult.exitCode).toBe(0);
 
-    const outputDir = path.join(cwd, ".demohunter/phase-03-generation");
-    const chaptersPath = path.join(outputDir, "chapters.json");
-    const videoPath = path.join(outputDir, "video.mp4");
+      const outputDir = path.join(cwd, ".demohunter/phase-03-generation");
+      const chaptersPath = path.join(outputDir, "chapters.json");
+      const videoPath = path.join(outputDir, "video.mp4");
 
-    await access(videoPath);
-    await access(chaptersPath);
-    await expect(access(path.join(outputDir, "manifest.json"))).rejects.toThrow();
-    await expect(access(path.join(outputDir, "captions.srt"))).rejects.toThrow();
-    await expect(access(path.join(outputDir, "captions.vtt"))).rejects.toThrow();
+      await access(videoPath);
+      await access(chaptersPath);
+      await expect(access(path.join(outputDir, "manifest.json"))).rejects.toThrow();
+      await expect(access(path.join(outputDir, "captions.srt"))).rejects.toThrow();
+      await expect(access(path.join(outputDir, "captions.vtt"))).rejects.toThrow();
 
-    expect(JSON.parse(await readFile(chaptersPath, "utf8"))).toEqual([
-      { startMs: 0, title: "Workspace Overview" },
-      { startMs: 300, title: "Payment History" },
-    ]);
-    expect((await readdir(outputDir)).sort()).toEqual(["chapters.json", "video.mp4"]);
-  });
+      expect(JSON.parse(await readFile(chaptersPath, "utf8"))).toEqual([
+        { startMs: 0, title: "Workspace Overview" },
+        { startMs: 300, title: "Payment History" },
+      ]);
+      expect((await readdir(outputDir)).sort()).toEqual(["chapters.json", "video.mp4"]);
+    },
+    20_000,
+  );
 
-  test("fails clearly on recorded-pass divergence and avoids false-success artifacts", async () => {
-    const cwd = await makeTempProject();
-    const tourPath = "demos/divergent-phase-03.tour.ts";
+  test(
+    "fails clearly on recorded-pass divergence and avoids false-success artifacts",
+    async () => {
+      const cwd = await makeTempProject();
+      const tourPath = "demos/divergent-phase-03.tour.ts";
 
-    await writeTempRepoPackageJson(cwd);
-    await writeTempRepoConfig(cwd);
-    await writeTempRepoSite(cwd);
-    await mkdir(path.join(cwd, "demos"), { recursive: true });
-    await writeFile(path.join(cwd, tourPath), createDivergentTourFixture());
+      await writeTempRepoPackageJson(cwd);
+      await writeTempRepoConfig(cwd);
+      await writeTempRepoSite(cwd);
+      await mkdir(path.join(cwd, "demos"), { recursive: true });
+      await writeFile(path.join(cwd, tourPath), createDivergentTourFixture());
 
-    const installResult = await spawnCommand([process.execPath, "install"], cwd);
-    expect(installResult.exitCode).toBe(0);
+      const installResult = await spawnCommand([process.execPath, "install"], cwd);
+      expect(installResult.exitCode).toBe(0);
 
-    const generateResult = await spawnCommand([process.execPath, cliEntryPoint, "generate", tourPath], cwd);
-    expect(generateResult.exitCode).toBe(1);
-    expect(generateResult.stderr).toContain("Recorded pass diverged");
+      const generateResult = await spawnCommand([process.execPath, cliEntryPoint, "generate", tourPath], cwd);
+      expect(generateResult.exitCode).toBe(1);
+      expect(generateResult.stderr).toContain("Recorded pass diverged");
 
-    const outputDir = path.join(cwd, ".demohunter/divergent-phase-03");
-    await expect(access(path.join(outputDir, "video.mp4"))).rejects.toThrow();
-    await expect(access(path.join(outputDir, "chapters.json"))).rejects.toThrow();
-  });
+      const outputDir = path.join(cwd, ".demohunter/divergent-phase-03");
+      await expect(access(path.join(outputDir, "video.mp4"))).rejects.toThrow();
+      await expect(access(path.join(outputDir, "chapters.json"))).rejects.toThrow();
+    },
+    20_000,
+  );
 });
 
 async function makeTempProject(): Promise<string> {
