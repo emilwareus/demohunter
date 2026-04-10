@@ -49,6 +49,8 @@ type SmokeGenerateDependencies = {
   writeFile: typeof writeFile;
 };
 
+const TOUR_ID_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/i;
+
 const defaultDependencies: SmokeGenerateDependencies = {
   mkdir,
   now: () => new Date(),
@@ -65,6 +67,11 @@ export async function smokeGenerate(
     ...dependencies,
   };
   const { config } = loadedConfig;
+
+  if (!TOUR_ID_PATTERN.test(tourFile.tour.id)) {
+    throw new Error(`Tour id must be a filesystem-safe slug: ${tourFile.path}`);
+  }
+
   const browserType = resolvedDependencies.playwright[config.browser];
   const browser = await browserType.launch();
   let context: Awaited<ReturnType<typeof browser.newContext>> | undefined;
