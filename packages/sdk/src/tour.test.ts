@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import type { Locator, Page } from "playwright";
 
 import type {
@@ -18,7 +19,7 @@ import { defineTour } from "./tour.js";
 
 function expectType<T>(_value: T): void {}
 
-const repoRoot = path.resolve(path.dirname(new URL(import.meta.url).pathname), "../../..");
+const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..");
 
 async function buildSdk(): Promise<void> {
   const processResult = Bun.spawn({
