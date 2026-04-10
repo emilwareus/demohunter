@@ -143,9 +143,10 @@ describe("createSmokeTourRuntime", () => {
     const resolveNarrationDuration = assertNarrationDurationResolver(async () => 1200);
     const timeline = assertCollectedTimeline({
       entries,
-      narration,
-      resolveNarrationDuration,
+      narrations: [narration],
     });
+
+    const durationMs = await resolveNarrationDuration(narration.event);
 
     expect(TOUR_RUNTIME_EVENT_KINDS).toEqual([
       "chapter",
@@ -159,11 +160,12 @@ describe("createSmokeTourRuntime", () => {
     ]);
     expect(COLLECTED_TIMELINE_ENTRY_KINDS).toEqual(["event", "narration"]);
     expect(timeline.entries).toHaveLength(2);
+    expect(timeline.narrations).toEqual([narration]);
     expect(timeline.entries[0]).toEqual({
       event: chapterEvent,
       kind: "event",
       order: 1,
     });
-    await expect(timeline.resolveNarrationDuration(narration.event)).resolves.toBe(1200);
+    expect(durationMs).toBe(1200);
   });
 });

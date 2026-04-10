@@ -9,45 +9,13 @@ import type {
   WaitForStableOptions,
 } from "@demohunter/sdk";
 import type { Locator, Page } from "playwright";
+import type { TourRuntimeEvent } from "../execute/generator-types.js";
 
 export type SmokeRuntime = DemoHunterRunContext & DemoHunterLifecycleContext;
 
 type SnapshotInput = string | SnapshotOptions | undefined;
 
-export type SmokeTourRuntimeEvent =
-  | {
-      kind: "chapter";
-      title: string;
-      chapterTitle: string;
-      outputDir: string;
-      id?: string;
-    }
-  | {
-      kind: "step-start" | "step-end";
-      title: string;
-      chapterTitle?: string;
-    }
-  | ({
-      kind: "narrate";
-      text: string;
-      chapterTitle?: string;
-    } & NarrateOptions)
-  | ({
-      kind: "wait-for-stable";
-      chapterTitle?: string;
-    } & WaitForStableOptions & { state: "load" | "domcontentloaded" | "networkidle" })
-  | ({
-      kind: "highlight";
-      chapterTitle?: string;
-    } & HighlightOptions)
-  | ({
-      kind: "snapshot";
-      chapterTitle?: string;
-    } & SnapshotOptions)
-  | ({
-      kind: "assert-visible";
-      chapterTitle?: string;
-    } & AssertVisibleOptions);
+export type SmokeTourRuntimeEvent = TourRuntimeEvent;
 
 export function createSmokeTourRuntime(args: {
   page: Page;
@@ -56,7 +24,7 @@ export function createSmokeTourRuntime(args: {
 }): SmokeRuntime {
   let currentChapter: string | undefined;
 
-  const emit = (event: SmokeTourRuntimeEvent): void => {
+  const emit = (event: TourRuntimeEvent): void => {
     args.onEvent?.(event);
   };
 
