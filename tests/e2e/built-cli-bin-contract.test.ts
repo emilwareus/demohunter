@@ -63,6 +63,9 @@ describe("built cli bin contract", () => {
     await mkdir(path.join(cwd, "demos"), { recursive: true });
     await cp(authoringFixturePath, path.join(cwd, tourPath));
 
+    const installResult = await spawnCommand([process.execPath, "install"], cwd);
+    expect(installResult.exitCode).toBe(0);
+
     const generateResult = await spawnCommand([process.execPath, builtCliEntryPoint, "generate", tourPath], cwd);
     expect(generateResult.exitCode).toBe(0);
 
@@ -129,6 +132,10 @@ async function writeAuthoringPackageJson(cwd: string): Promise<void> {
         name: "phase-02-built-authoring-contract",
         private: true,
         type: "module",
+        dependencies: {
+          "@demohunter/sdk": `file:${path.join(repoRoot, "packages/sdk")}`,
+          playwright: ">=1.59",
+        },
       },
       null,
       2,
