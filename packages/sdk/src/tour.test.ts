@@ -20,6 +20,26 @@ function expectType<T>(_value: T): void {}
 
 const repoRoot = path.resolve(path.dirname(new URL(import.meta.url).pathname), "../../..");
 
+async function buildSdk(): Promise<void> {
+  const processResult = Bun.spawn({
+    cmd: [process.execPath, "x", "tsc", "-b", "packages/sdk/tsconfig.json", "--pretty", "false"],
+    cwd: repoRoot,
+    stdout: "pipe",
+    stderr: "pipe",
+    env: process.env,
+  });
+
+  const [exitCode, stdout, stderr] = await Promise.all([
+    processResult.exited,
+    new Response(processResult.stdout).text(),
+    new Response(processResult.stderr).text(),
+  ]);
+
+  if (exitCode !== 0) {
+    throw new Error(stderr || stdout || "SDK build failed");
+  }
+}
+
 describe("defineTour", () => {
   test("ships a dedicated runtime types module for the authored contract", async () => {
     await expect(import("./runtime-types.js")).resolves.toBeDefined();
@@ -27,6 +47,7 @@ describe("defineTour", () => {
 
   test("re-exports defineTour from the sdk entrypoint and exposes runtime types in dist declarations", async () => {
     expect(sdk.defineTour).toBe(defineTour);
+    await buildSdk();
 
     const declarationPath = path.join(repoRoot, "packages/sdk/dist/index.d.ts");
     const declarations = await readFile(declarationPath, "utf8");

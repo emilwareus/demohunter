@@ -14,8 +14,21 @@ export type {
   ViewportConfig,
 } from "./config.js";
 export { defineTour } from "./tour.js";
+export type { DemoHunterTour } from "./tour.js";
 export type {
+  AssertVisibleOptions,
+  ChapterOptions,
+  DemoHunterAssertVisible,
+  DemoHunterChapter,
+  DemoHunterHighlight,
+  DemoHunterLifecycleContext,
   DemoHunterNarrate,
   DemoHunterRunContext,
-  DemoHunterTour,
-} from "./tour.js";
+  DemoHunterSnapshot,
+  DemoHunterStep,
+  DemoHunterWaitForStable,
+  HighlightOptions,
+  NarrateOptions,
+  SnapshotOptions,
+  WaitForStableOptions,
+} from "./runtime-types.js";
