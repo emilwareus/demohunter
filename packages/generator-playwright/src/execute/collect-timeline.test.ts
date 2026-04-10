@@ -22,10 +22,13 @@ describe("collectTimeline", () => {
       (context as Record<string, unknown>).marker = "shared";
     });
     const run = mock(
-      async ({ page: runtimePage, chapter, step, narrate, waitForStable, highlight, snapshot, assertVisible, marker }) => {
+      async (context) => {
+        const { page: runtimePage, chapter, step, narrate, waitForStable, highlight, snapshot, assertVisible } =
+          context;
+
         calls.push(`run:${runtimePage === page}`);
-        contexts.push(arguments[0] as object);
-        expect(marker).toBe("shared");
+        contexts.push(context as object);
+        expect((context as Record<string, unknown>).marker).toBe("shared");
         await chapter("Billing", { id: "billing" });
         await step("Open invoice view", async () => {
           calls.push("step");
