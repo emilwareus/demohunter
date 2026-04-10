@@ -9,6 +9,7 @@ export type {
   BrowserName,
   DemoHunterUserConfig,
   RecordConfig,
+  RecordFormat,
   ResolvedDemoHunterConfig,
   TTSConfig,
   ViewportConfig,

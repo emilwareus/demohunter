@@ -1,4 +1,5 @@
 export type BrowserName = "chromium" | "firefox" | "webkit";
+export type RecordFormat = "mp4" | "webm";
 
 export type ViewportConfig = {
   width: number;
@@ -8,6 +9,7 @@ export type ViewportConfig = {
 export type RecordConfig = {
   showActions: boolean;
   showChapters: boolean;
+  format: RecordFormat;
 };
 
 export type TTSConfig = {
@@ -48,6 +50,7 @@ export const DEFAULT_VIEWPORT_CONFIG: ViewportConfig = {
 export const DEFAULT_RECORD_CONFIG: RecordConfig = {
   showActions: true,
   showChapters: true,
+  format: "mp4",
 };
 
 export const DEFAULT_TTS_CONFIG: TTSConfig = {
