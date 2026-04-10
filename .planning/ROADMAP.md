@@ -12,7 +12,7 @@ DemoHunter v1 starts as a local-first OSS toolkit, not a hosted product. The roa
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: Repository and Scaffolding** - Create the monorepo, config layer, scaffold flow, and no-audio sample path.
+- [x] **Phase 1: Repository and Scaffolding** - Create the monorepo, config layer, scaffold flow, and no-audio sample path.
 - [ ] **Phase 2: Tour Authoring SDK** - Define the `.tour.ts` authoring model and helper APIs on top of Playwright.
 - [ ] **Phase 3: Playwright Generation Engine** - Implement two-pass execution, recording, overlays, and base local output writing.
 - [ ] **Phase 4: OpenAI Narration and Cache** - Add provider-backed narration, cache behavior, subtitles, and offline regeneration rules.
@@ -33,10 +33,10 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 Plans:
 - [x] 01-01-PLAN.md — Set up the root Bun workspace and the first package-shell group.
-- [ ] 01-02-PLAN.md — Finish the remaining package shells and root project references.
-- [ ] 01-03-PLAN.md — Implement config defaults, loader tests, and self-contained starter assets.
-- [ ] 01-04-PLAN.md — Implement `demohunter init`, smoke-only `generate`, and overwrite-safe end-to-end validation.
-- [ ] 01-05-PLAN.md — Rebuild the workspace and prove the compiled dist/package/bin contract.
+- [x] 01-02-PLAN.md — Finish the remaining package shells and root project references.
+- [x] 01-03-PLAN.md — Implement config defaults, loader tests, and self-contained starter assets.
+- [x] 01-04-PLAN.md — Implement `demohunter init`, smoke-only `generate`, and overwrite-safe end-to-end validation.
+- [x] 01-05-PLAN.md — Rebuild the workspace and prove the compiled dist/package/bin contract.
 
 ### Phase 2: Tour Authoring SDK
 **Goal**: Give developers a stable TypeScript DSL for narrated demos while keeping browser automation idiomatic to Playwright.
@@ -123,7 +123,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Repository and Scaffolding | 1/5 | In Progress | - |
+| 1. Repository and Scaffolding | 5/5 | Complete | 2026-04-10 |
 | 2. Tour Authoring SDK | 0/3 | Not started | - |
 | 3. Playwright Generation Engine | 0/4 | Not started | - |
 | 4. OpenAI Narration and Cache | 0/4 | Not started | - |
