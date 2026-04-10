@@ -13,7 +13,7 @@ afterEach(async () => {
 });
 
 describe("generateCommand", () => {
-  test("loads the requested tour file and forwards it to smokeGenerate", async () => {
+  test("loads the requested tour file and forwards a valid phase 2 tour to smokeGenerate", async () => {
     const cwd = await makeTempProject();
     const tourPath = path.join(cwd, "demos", "sample.tour.ts");
     const smokeGenerate = mock(async () => ({ outputPath: path.join(cwd, ".demohunter/sample-smoke/smoke-run.json") }));
@@ -33,7 +33,9 @@ describe("generateCommand", () => {
         path: tourPath,
         tour: {
           id: "sample-smoke",
+          setup: expect.any(Function),
           title: "Sample",
+          teardown: expect.any(Function),
           run: expect.any(Function),
         },
       },
@@ -55,14 +57,55 @@ describe("generateCommand", () => {
       `Tour file must default export an object with string id/title and a run function: ${path.join(cwd, "demos/invalid.tour.ts")}`,
     );
   });
+
+  test("rejects a non-function setup export with the tour path", async () => {
+    const cwd = await makeTempProject();
+
+    await expect(
+      generateCommand(cwd, "demos/invalid-setup.tour.ts", {
+        importModule: (href) => import(href),
+        loadConfig: async () => makeLoadedConfig(cwd),
+        log: () => {},
+        smokeGenerate: async () => ({ outputPath: "" }),
+      }),
+    ).rejects.toThrow(
+      `Tour file has invalid setup export; expected a function when provided: ${path.join(cwd, "demos/invalid-setup.tour.ts")}`,
+    );
+  });
+
+  test("rejects a non-function teardown export with the tour path", async () => {
+    const cwd = await makeTempProject();
+
+    await expect(
+      generateCommand(cwd, "demos/invalid-teardown.tour.ts", {
+        importModule: (href) => import(href),
+        loadConfig: async () => makeLoadedConfig(cwd),
+        log: () => {},
+        smokeGenerate: async () => ({ outputPath: "" }),
+      }),
+    ).rejects.toThrow(
+      `Tour file has invalid teardown export; expected a function when provided: ${path.join(cwd, "demos/invalid-teardown.tour.ts")}`,
+    );
+  });
 });
 
 async function makeTempProject(): Promise<string> {
   const tempRoot = await mkdtemp(path.join(os.tmpdir(), "demohunter-generate-command-"));
   tempRoots.push(tempRoot);
   await mkdir(path.join(tempRoot, "demos"), { recursive: true });
-  await writeFile(path.join(tempRoot, "demos", "sample.tour.ts"), 'export default { id: "sample-smoke", title: "Sample", async run() {} };\n');
+  await writeFile(
+    path.join(tempRoot, "demos", "sample.tour.ts"),
+    'export default { id: "sample-smoke", title: "Sample", async setup() {}, async run() {}, async teardown() {} };\n',
+  );
   await writeFile(path.join(tempRoot, "demos", "invalid.tour.ts"), "export default { nope: true };\n");
+  await writeFile(
+    path.join(tempRoot, "demos", "invalid-setup.tour.ts"),
+    'export default { id: "sample-smoke", title: "Sample", setup: true, async run() {} };\n',
+  );
+  await writeFile(
+    path.join(tempRoot, "demos", "invalid-teardown.tour.ts"),
+    'export default { id: "sample-smoke", title: "Sample", async run() {}, teardown: \"later\" };\n',
+  );
   return tempRoot;
 }
 

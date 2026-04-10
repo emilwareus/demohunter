@@ -12,9 +12,10 @@ afterEach(async () => {
 });
 
 describe("smokeGenerate", () => {
-  test("writes the smoke artifact and passes the runtime helpers to the tour", async () => {
+  test("runs setup, run, and teardown in order on a shared page and writes the smoke artifact", async () => {
     const cwd = await makeTempRoot();
-    const page = { goto: mock(async () => {}) };
+    const waitForLoadState = mock(async () => {});
+    const page = { goto: mock(async () => {}), waitForLoadState };
     const newPage = mock(async () => page);
     const closeContext = mock(async () => {});
     const closeBrowser = mock(async () => {});
@@ -26,10 +27,36 @@ describe("smokeGenerate", () => {
       close: closeBrowser,
       newContext,
     }));
-    const run = mock(async ({ chapter, step, narrate }) => {
-      await chapter();
-      await step("demo", async () => {});
+    const locator = {
+      scrollIntoViewIfNeeded: mock(async () => {}),
+      waitFor: mock(async () => {}),
+    };
+    const calls: string[] = [];
+    const setup = mock(async ({ page: lifecyclePage }) => {
+      calls.push(`setup:${lifecyclePage === page}`);
+    });
+    const run = mock(async ({ page: runtimePage, chapter, step, narrate, waitForStable, highlight, snapshot, assertVisible }) => {
+      calls.push(`run:${runtimePage === page}`);
+      expect(typeof chapter).toBe("function");
+      expect(typeof step).toBe("function");
+      expect(typeof narrate).toBe("function");
+      expect(typeof waitForStable).toBe("function");
+      expect(typeof highlight).toBe("function");
+      expect(typeof snapshot).toBe("function");
+      expect(typeof assertVisible).toBe("function");
+      await chapter("Billing");
+      await step("demo", async () => {
+        calls.push("step");
+        return "done";
+      });
       await narrate("ignored");
+      await waitForStable({ state: "load", timeoutMs: 123 });
+      await highlight(locator as never, { name: "CTA" });
+      await snapshot({ name: "hero" });
+      await assertVisible(locator as never, { timeoutMs: 456 });
+    });
+    const teardown = mock(async ({ page: lifecyclePage }) => {
+      calls.push(`teardown:${lifecyclePage === page}`);
     });
 
     const result = await smokeGenerate(
@@ -58,7 +85,9 @@ describe("smokeGenerate", () => {
           path: path.join(cwd, "demos/sample.tour.ts"),
           tour: {
             id: "sample-smoke",
+            setup,
             title: "Sample demo",
+            teardown,
             run,
           },
         },
@@ -78,7 +107,13 @@ describe("smokeGenerate", () => {
       viewport: { width: 1280, height: 720 },
     });
     expect(page.goto).toHaveBeenCalledWith("http://localhost:3000/");
+    expect(calls).toEqual(["setup:true", "run:true", "step", "teardown:true"]);
     expect(run).toHaveBeenCalledTimes(1);
+    expect(setup).toHaveBeenCalledTimes(1);
+    expect(teardown).toHaveBeenCalledTimes(1);
+    expect(waitForLoadState).toHaveBeenCalledWith("load", { timeout: 123 });
+    expect(locator.waitFor).toHaveBeenCalledTimes(2);
+    expect(locator.scrollIntoViewIfNeeded).toHaveBeenCalledTimes(1);
     expect(closeContext).toHaveBeenCalledTimes(1);
     expect(closeBrowser).toHaveBeenCalledTimes(1);
 
