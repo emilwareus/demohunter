@@ -22,6 +22,10 @@ describe("init to generate smoke flow", () => {
       "demos/sample.tour.ts",
     ]);
 
+    const scaffoldedTour = await readFile(path.join(cwd, "demos/sample.tour.ts"), "utf8");
+    expect(scaffoldedTour).toContain("export default {");
+    expect(scaffoldedTour).not.toContain("defineTour(");
+
     const beforeRerun = await listFiles(cwd);
     const effectiveCwd = await realpath(cwd);
     const secondInit = await runCli(cwd, ["init"]);
