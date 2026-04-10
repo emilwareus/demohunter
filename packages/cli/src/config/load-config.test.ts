@@ -84,6 +84,7 @@ describe("loadConfig", () => {
     expect(loaded.config.record).toEqual({
       showActions: false,
       showChapters: true,
+      format: "mp4",
     });
   });
 
@@ -100,6 +101,40 @@ describe("loadConfig", () => {
     expect(loaded.config.record).toEqual({
       showActions: true,
       showChapters: false,
+      format: "mp4",
+    });
+  });
+
+  test("preserves the default mp4 record format when it is omitted", async () => {
+    const cwd = await writeConfig(`
+      export default {
+        baseURL: "http://localhost:4173",
+        record: { showActions: false }
+      };
+    `);
+
+    const loaded = await loadConfig(cwd);
+
+    expect(loaded.config.record.format).toBe("mp4");
+  });
+
+  test("resolves an explicit webm record format without generating mp4 by default", async () => {
+    const cwd = await writeConfig(`
+      export default {
+        baseURL: "http://localhost:4173",
+        record: {
+          format: "webm",
+          showActions: false
+        }
+      };
+    `);
+
+    const loaded = await loadConfig(cwd);
+
+    expect(loaded.config.record).toEqual({
+      showActions: false,
+      showChapters: true,
+      format: "webm",
     });
   });
 

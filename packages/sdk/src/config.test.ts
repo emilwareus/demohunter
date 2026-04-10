@@ -32,3 +32,14 @@ describe("sdk entrypoint", () => {
     expect(sdk.DEFAULT_TTS_CONFIG).toBe(DEFAULT_TTS_CONFIG);
   });
 });
+
+describe("record defaults", () => {
+  test("defaults the record format to mp4", () => {
+    expect(DEFAULT_RECORD_CONFIG).toEqual({
+      showActions: true,
+      showChapters: true,
+      format: "mp4",
+    });
+    expect(DEFAULT_DEMOHUNTER_CONFIG.record.format).toBe("mp4");
+  });
+});
