@@ -1,1 +1,6 @@
-export const ttsOpenAIPackageName = "@demohunter/tts-openai";
+export {
+  createOpenAINarrationProvider,
+} from "./openai-provider.js";
+export type {
+  OpenAINarrationProviderOptions,
+} from "./openai-provider.js";

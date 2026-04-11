@@ -52,13 +52,13 @@ describe("createOpenAINarrationProvider", () => {
         },
       });
 
-      const request = createNarrationRequest({
+      const request = createRequest({
         model,
         voice: "alloy",
         format: "wav",
         sampleRate: 24_000,
         instructions: "Keep it brisk.",
-        text: " Explain billing ",
+        text: "Explain billing",
       });
 
       const result = await provider.synthesize(request);
@@ -119,18 +119,29 @@ describe("createOpenAINarrationProvider", () => {
     assert.equal("cacheKey" in (result as Record<string, unknown>), false);
     assert.equal("path" in (result as Record<string, unknown>), false);
   });
-});
 
-function createNarrationRequest(input: {
-  model: string;
-  voice: string;
-  format: string;
-  sampleRate: number;
-  instructions: string;
-  text: string;
-}) {
-  return createRequest(input);
-}
+  test("surfaces non-2xx OpenAI responses with status details", async () => {
+    process.env.OPENAI_API_KEY = "test-key";
+    const provider = createOpenAINarrationProvider({
+      fetch: async () =>
+        new Response("bad request", {
+          status: 400,
+          statusText: "Bad Request",
+        }),
+    });
+
+    await assert.rejects(
+      () =>
+        provider.synthesize(
+          createRequest({
+            model: "gpt-4o-mini-tts",
+            text: "Narrate the billing dashboard.",
+          }),
+        ),
+      /OpenAI speech synthesis failed \(400 Bad Request\): bad request/,
+    );
+  });
+});
 
 function createRequest(
   input: Partial<{
