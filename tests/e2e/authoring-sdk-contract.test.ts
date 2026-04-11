@@ -41,10 +41,17 @@ describe("authoring sdk contract", () => {
       }>;
 
       await access(videoPath);
+      await access(path.join(outputDir, "captions.srt"));
+      await access(path.join(outputDir, "captions.vtt"));
       expect(chapters).toHaveLength(1);
       expect(chapters[0]?.title).toBe("Workspace Settings");
       expect(chapters[0]?.startMs).toBeGreaterThanOrEqual(0);
-      expect((await readdir(outputDir)).sort()).toEqual(["chapters.json", "video.mp4"]);
+      expect((await readdir(outputDir)).sort()).toEqual([
+        "captions.srt",
+        "captions.vtt",
+        "chapters.json",
+        "video.mp4",
+      ]);
     },
     20_000,
   );

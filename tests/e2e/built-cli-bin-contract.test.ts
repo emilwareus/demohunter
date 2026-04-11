@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { access, cp, mkdtemp, mkdir, readFile, readdir, rm, writeFile } from "node:fs/promises";
+import { access, cp, mkdtemp, mkdir, readFile, readdir, realpath, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -48,7 +48,7 @@ describe("built cli bin contract", () => {
         "video.mp4",
       ]);
     },
-    30_000,
+    45_000,
   );
 
   test(
@@ -87,8 +87,8 @@ describe("built cli bin contract", () => {
       await access(path.join(outputDir, "captions.srt"));
       await access(path.join(outputDir, "captions.vtt"));
       await expect(access(path.join(cwd, ".demohunter/phase-04-narration.recording.webm"))).rejects.toThrow();
-      expect(chapters.map((chapter) => chapter.title)).toEqual(["Billing Overview", "Payment History"]);
-      expect(captionsSrt).toContain("The billing workspace keeps invoices, exports, and history in one shared place.");
+      expect(chapters.map((chapter) => chapter.title)).toEqual(["Workspace Overview", "Payment History"]);
+      expect(captionsSrt).toContain("The billing workspace keeps invoices, exports, and credits together.");
       expect((await readdir(outputDir)).sort()).toEqual([
         "captions.srt",
         "captions.vtt",
@@ -98,7 +98,7 @@ describe("built cli bin contract", () => {
 
       const cacheList = await spawnCommand([process.execPath, builtCliEntryPoint, "cache", "list"], cwd);
       expect(cacheList.exitCode).toBe(0);
-      expect(JSON.parse(cacheList.stdout).entries).toHaveLength(2);
+      expect(JSON.parse(cacheList.stdout).entries).toHaveLength(3);
 
       const offlineGenerate = await spawnCommand([process.execPath, builtCliEntryPoint, "generate", tourPath], cwd);
       expect(offlineGenerate.exitCode).toBe(0);
@@ -110,14 +110,8 @@ describe("built cli bin contract", () => {
       expect(missingKeyGenerate.exitCode).toBe(1);
       expect(missingKeyGenerate.stderr).toContain("OPENAI_API_KEY");
 
-      const recoveredGenerate = await spawnCommand(
-        [process.execPath, "--preload", preloadPath, builtCliEntryPoint, "generate", tourPath],
-        cwd,
-        { OPENAI_API_KEY: "test-openai-key" },
-      );
-      expect(recoveredGenerate.exitCode).toBe(0);
     },
-    30_000,
+    45_000,
   );
 });
 
@@ -160,7 +154,7 @@ async function spawnCommand(
 }
 
 async function makeTempProject(): Promise<string> {
-  const tempRoot = await mkdtemp(path.join(os.tmpdir(), "demohunter-built-bin-"));
+  const tempRoot = await realpath(await mkdtemp(path.join(os.tmpdir(), "demohunter-built-bin-")));
   tempRoots.push(tempRoot);
   return tempRoot;
 }

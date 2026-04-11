@@ -50,8 +50,15 @@ describe("init to generate smoke flow", () => {
     }>;
 
     await access(videoPath);
+    await access(path.join(outputDir, "captions.srt"));
+    await access(path.join(outputDir, "captions.vtt"));
     expect(chapters).toEqual([]);
-    expect((await readdir(outputDir)).sort()).toEqual(["chapters.json", "video.mp4"]);
+    expect((await readdir(outputDir)).sort()).toEqual([
+      "captions.srt",
+      "captions.vtt",
+      "chapters.json",
+      "video.mp4",
+    ]);
   });
 });
 
