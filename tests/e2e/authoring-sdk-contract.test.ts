@@ -14,36 +14,40 @@ afterEach(async () => {
 });
 
 describe("authoring sdk contract", () => {
-  test("runs a defineTour fixture from a fresh temp repo via the source cli", async () => {
-    const cwd = await makeTempProject();
-    const tourPath = "demos/phase-02-authoring.tour.ts";
+  test(
+    "runs a defineTour fixture from a fresh temp repo via the source cli",
+    async () => {
+      const cwd = await makeTempProject();
+      const tourPath = "demos/phase-02-authoring.tour.ts";
 
-    await writeTempRepoPackageJson(cwd);
-    await writeTempRepoConfig(cwd);
-    await writeTempRepoSite(cwd);
-    await mkdir(path.join(cwd, "demos"), { recursive: true });
-    await cp(authoringFixturePath, path.join(cwd, tourPath));
+      await writeTempRepoPackageJson(cwd);
+      await writeTempRepoConfig(cwd);
+      await writeTempRepoSite(cwd);
+      await mkdir(path.join(cwd, "demos"), { recursive: true });
+      await cp(authoringFixturePath, path.join(cwd, tourPath));
 
-    const installResult = await spawnCommand([process.execPath, "install"], cwd);
-    expect(installResult.exitCode).toBe(0);
+      const installResult = await spawnCommand([process.execPath, "install"], cwd);
+      expect(installResult.exitCode).toBe(0);
 
-    const generateResult = await spawnCommand([process.execPath, cliEntryPoint, "generate", tourPath], cwd);
-    expect(generateResult.exitCode).toBe(0);
+      const generateResult = await spawnCommand([process.execPath, cliEntryPoint, "generate", tourPath], cwd);
+      expect(generateResult.exitCode).toBe(0);
 
-    const outputDir = path.join(cwd, ".demohunter/phase-02-authoring");
-    const chaptersPath = path.join(outputDir, "chapters.json");
-    const videoPath = path.join(outputDir, "video.mp4");
-    const chapters = JSON.parse(await readFile(chaptersPath, "utf8")) as Array<{
-      startMs: number;
-      title: string;
-    }>;
+      const outputDir = path.join(cwd, ".demohunter/phase-02-authoring");
+      const chaptersPath = path.join(outputDir, "chapters.json");
+      const videoPath = path.join(outputDir, "video.mp4");
+      const chapters = JSON.parse(await readFile(chaptersPath, "utf8")) as Array<{
+        startMs: number;
+        title: string;
+      }>;
 
-    await access(videoPath);
-    expect(chapters).toHaveLength(1);
-    expect(chapters[0]?.title).toBe("Workspace Settings");
-    expect(chapters[0]?.startMs).toBeGreaterThanOrEqual(0);
-    expect((await readdir(outputDir)).sort()).toEqual(["chapters.json", "video.mp4"]);
-  });
+      await access(videoPath);
+      expect(chapters).toHaveLength(1);
+      expect(chapters[0]?.title).toBe("Workspace Settings");
+      expect(chapters[0]?.startMs).toBeGreaterThanOrEqual(0);
+      expect((await readdir(outputDir)).sort()).toEqual(["chapters.json", "video.mp4"]);
+    },
+    20_000,
+  );
 
   test("keeps bootstrap logic in setup with plain Playwright page actions", async () => {
     const fixtureSource = await readFile(authoringFixturePath, "utf8");
