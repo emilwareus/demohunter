@@ -4,6 +4,11 @@ export {
   createNarrationRequest,
   normalizeNarrationText,
 } from "./contracts.js";
+export {
+  NARRATION_CACHE_SCHEMA_VERSION,
+  createNarrationCacheIdentity,
+  createNarrationCacheKey,
+} from "./cache/cache-key.js";
 export type {
   NarrationProvider,
   NarrationProviderName,
@@ -13,3 +18,7 @@ export type {
   NarrationSynthesisOutput,
   NarrationSynthesisResult,
 } from "./contracts.js";
+export type {
+  NarrationCacheIdentity,
+  NarrationCacheKeyOptions,
+} from "./cache/cache-key.js";
