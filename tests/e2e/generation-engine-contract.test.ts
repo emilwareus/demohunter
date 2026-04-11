@@ -4,10 +4,21 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
+import { createNarrationRequest, resolveNarrationFromCache } from "../../packages/tts-core/src/index.js";
+
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const cliEntryPoint = path.join(repoRoot, "packages/cli/src/bin/demohunter.ts");
-const generationFixturePath = path.join(repoRoot, "tests/fixtures/tours/phase-03-generation.tour.ts");
+const narrationFixturePath = path.join(repoRoot, "tests/fixtures/tours/phase-04-narration.tour.ts");
 const tempRoots: string[] = [];
+
+const NARRATION_SAMPLE_RATE = 24_000;
+const NARRATION_TEXTS = [
+  "The billing workspace keeps invoices, exports, and credits together.",
+  "Each replay stays strict because narration timing comes from cached audio.",
+  "Caption files are emitted from narration segments only, not from overlay labels.",
+] as const;
+const NARRATION_DURATIONS_MS = [750, 1_100, 900] as const;
+const DEFAULT_TTS_INSTRUCTIONS = "Speak clearly, calm, concise, product-demo style.";
 
 afterEach(async () => {
   await Promise.all(tempRoots.splice(0).map((tempRoot) => rm(tempRoot, { force: true, recursive: true })));
@@ -15,103 +26,122 @@ afterEach(async () => {
 
 describe("generation engine contract", () => {
   test(
-    "runs a representative phase 3 tour through the source cli and writes the baseline output set",
+    "runs a narrated phase 4 tour through the source cli, emits captions, and reruns offline from cache",
     async () => {
       const cwd = await makeTempProject();
-      const tourPath = "demos/phase-03-generation.tour.ts";
+      const tourPath = "demos/phase-04-narration.tour.ts";
 
-      await writeTempRepoPackageJson(cwd);
-      await writeTempRepoConfig(cwd);
-      await writeTempRepoSite(cwd);
-      await mkdir(path.join(cwd, "demos"), { recursive: true });
-      await cp(generationFixturePath, path.join(cwd, tourPath));
+      await setupNarrationProject(cwd, tourPath);
 
       const installResult = await spawnCommand([process.execPath, "install"], cwd);
       expect(installResult.exitCode).toBe(0);
 
-      const generateResult = await spawnCommand([process.execPath, cliEntryPoint, "generate", tourPath], cwd);
+      await primeNarrationCache(cwd);
+
+      const listResult = await runCli(cwd, ["cache", "list"], unsetNarrationEnv());
+      expect(listResult.exitCode).toBe(0);
+
+      const listedEntries = parseJson<{ entries: Array<{ status: string }> }>(listResult.stdout);
+      expect(listedEntries.entries).toHaveLength(NARRATION_TEXTS.length);
+      expect(listedEntries.entries.every((entry) => entry.status === "ready")).toBe(true);
+
+      const generateResult = await runCli(cwd, ["generate", tourPath], unsetNarrationEnv());
       expect(generateResult.exitCode).toBe(0);
 
-      const outputDir = path.join(cwd, ".demohunter/phase-03-generation");
+      const outputDir = path.join(cwd, ".demohunter/phase-04-narration");
       const chaptersPath = path.join(outputDir, "chapters.json");
+      const captionsSrtPath = path.join(outputDir, "captions.srt");
+      const captionsVttPath = path.join(outputDir, "captions.vtt");
       const videoPath = path.join(outputDir, "video.mp4");
-
-      await access(videoPath);
-      await access(chaptersPath);
-      await expect(access(path.join(cwd, ".demohunter/phase-03-generation.recording.webm"))).rejects.toThrow();
-      await expect(access(path.join(outputDir, "manifest.json"))).rejects.toThrow();
-      await expect(access(path.join(outputDir, "captions.srt"))).rejects.toThrow();
-      await expect(access(path.join(outputDir, "captions.vtt"))).rejects.toThrow();
-
       const chapters = JSON.parse(await readFile(chaptersPath, "utf8")) as Array<{
         startMs: number;
         title: string;
       }>;
+      const captionsSrt = await readFile(captionsSrtPath, "utf8");
+      const captionsVtt = await readFile(captionsVttPath, "utf8");
 
-      expect(chapters).toHaveLength(2);
+      await access(videoPath);
       expect(chapters.map((chapter) => chapter.title)).toEqual(["Workspace Overview", "Payment History"]);
-      expect(chapters[0]?.startMs).toBeGreaterThanOrEqual(0);
-      expect(chapters[1]?.startMs).toBeGreaterThan(chapters[0]?.startMs ?? -1);
-      expect((await readdir(outputDir)).sort()).toEqual(["chapters.json", "video.mp4"]);
+      expect(captionsSrt).toBe(createExpectedSrt());
+      expect(captionsVtt).toBe(createExpectedVtt());
+      expect(captionsSrt).not.toContain("Workspace Overview");
+      expect(captionsSrt).not.toContain("Payment History");
+      expect((await readdir(outputDir)).sort()).toEqual([
+        "captions.srt",
+        "captions.vtt",
+        "chapters.json",
+        "video.mp4",
+      ]);
+
+      const rerunResult = await runCli(cwd, ["generate", tourPath], unsetNarrationEnv());
+      expect(rerunResult.exitCode).toBe(0);
     },
-    20_000,
+    30_000,
   );
 
   test(
-    "fails clearly on recorded-pass divergence and avoids false-success artifacts",
+    "fails clearly when narration is uncached and OPENAI_API_KEY is absent",
     async () => {
       const cwd = await makeTempProject();
-      const tourPath = "demos/divergent-phase-03.tour.ts";
+      const tourPath = "demos/phase-04-narration.tour.ts";
 
-      await writeTempRepoPackageJson(cwd);
-      await writeTempRepoConfig(cwd);
-      await writeTempRepoSite(cwd);
-      await mkdir(path.join(cwd, "demos"), { recursive: true });
-      await writeFile(path.join(cwd, tourPath), createDivergentTourFixture());
+      await setupNarrationProject(cwd, tourPath);
 
       const installResult = await spawnCommand([process.execPath, "install"], cwd);
       expect(installResult.exitCode).toBe(0);
 
-      const generateResult = await spawnCommand([process.execPath, cliEntryPoint, "generate", tourPath], cwd);
+      const generateResult = await runCli(cwd, ["generate", tourPath], unsetNarrationEnv());
+
       expect(generateResult.exitCode).toBe(1);
-      expect(generateResult.stderr).toContain("Recorded pass diverged");
+      expect(generateResult.stderr).toContain("Unable to resolve narration segment");
+      expect(generateResult.stderr).toContain("OPENAI_API_KEY");
 
-      const outputDir = path.join(cwd, ".demohunter/divergent-phase-03");
+      const outputDir = path.join(cwd, ".demohunter/phase-04-narration");
       await expect(access(path.join(outputDir, "video.mp4"))).rejects.toThrow();
-      await expect(access(path.join(outputDir, "chapters.json"))).rejects.toThrow();
+      await expect(access(path.join(outputDir, "captions.srt"))).rejects.toThrow();
     },
     20_000,
   );
 
   test(
-    "rerunning the same tour with a different record format leaves only the selected video artifact",
+    "prunes corrupt cache artifacts, preserves healthy entries, and clears the local cache root",
     async () => {
       const cwd = await makeTempProject();
-      const tourPath = "demos/phase-03-generation.tour.ts";
+      const tourPath = "demos/phase-04-narration.tour.ts";
 
-      await writeTempRepoPackageJson(cwd);
-      await writeTempRepoConfig(cwd);
-      await writeTempRepoSite(cwd);
-      await mkdir(path.join(cwd, "demos"), { recursive: true });
-      await cp(generationFixturePath, path.join(cwd, tourPath));
+      await setupNarrationProject(cwd, tourPath);
 
       const installResult = await spawnCommand([process.execPath, "install"], cwd);
       expect(installResult.exitCode).toBe(0);
 
-      const firstGenerate = await spawnCommand([process.execPath, cliEntryPoint, "generate", tourPath], cwd);
-      expect(firstGenerate.exitCode).toBe(0);
+      await primeNarrationCache(cwd);
+      await writeCorruptCacheArtifacts(cwd);
 
-      await writeTempRepoConfig(cwd, { format: "webm" });
+      const pruneResult = await runCli(cwd, ["cache", "prune"], unsetNarrationEnv());
+      expect(pruneResult.exitCode).toBe(0);
 
-      const secondGenerate = await spawnCommand([process.execPath, cliEntryPoint, "generate", tourPath], cwd);
-      expect(secondGenerate.exitCode).toBe(0);
+      const pruned = parseJson<{
+        kept: Array<{ key: string }>;
+        removed: Array<{ path: string; reason: string }>;
+      }>(pruneResult.stdout);
+      expect(pruned.kept).toHaveLength(NARRATION_TEXTS.length);
+      expect(pruned.removed.map((artifact) => path.basename(artifact.path)).sort()).toEqual([
+        "broken.json",
+        "broken.mp3",
+      ]);
 
-      const outputDir = path.join(cwd, ".demohunter/phase-03-generation");
-      await access(path.join(outputDir, "video.webm"));
-      await expect(access(path.join(outputDir, "video.mp4"))).rejects.toThrow();
-      expect((await readdir(outputDir)).sort()).toEqual(["chapters.json", "video.webm"]);
+      const generateResult = await runCli(cwd, ["generate", tourPath], unsetNarrationEnv());
+      expect(generateResult.exitCode).toBe(0);
+
+      const clearResult = await runCli(cwd, ["cache", "clear"], unsetNarrationEnv());
+      expect(clearResult.exitCode).toBe(0);
+      expect(parseJson<{ cleared: boolean }>(clearResult.stdout).cleared).toBe(true);
+
+      const listAfterClear = await runCli(cwd, ["cache", "list"], unsetNarrationEnv());
+      expect(listAfterClear.exitCode).toBe(0);
+      expect(parseJson<{ entries: Array<unknown> }>(listAfterClear.stdout).entries).toEqual([]);
     },
-    20_000,
+    30_000,
   );
 });
 
@@ -121,12 +151,20 @@ async function makeTempProject(): Promise<string> {
   return tempRoot;
 }
 
+async function setupNarrationProject(cwd: string, tourPath: string): Promise<void> {
+  await writeTempRepoPackageJson(cwd);
+  await writeTempRepoConfig(cwd);
+  await writeTempRepoSite(cwd);
+  await mkdir(path.join(cwd, "demos"), { recursive: true });
+  await cp(narrationFixturePath, path.join(cwd, tourPath));
+}
+
 async function writeTempRepoPackageJson(cwd: string): Promise<void> {
   await writeFile(
     path.join(cwd, "package.json"),
     `${JSON.stringify(
       {
-        name: "phase-03-generation-contract",
+        name: "phase-04-generation-contract",
         private: true,
         type: "module",
         dependencies: {
@@ -140,20 +178,14 @@ async function writeTempRepoPackageJson(cwd: string): Promise<void> {
   );
 }
 
-async function writeTempRepoConfig(
-  cwd: string,
-  options: {
-    format?: "mp4" | "webm";
-  } = {},
-): Promise<void> {
+async function writeTempRepoConfig(cwd: string): Promise<void> {
   const sitePath = path.join(cwd, "site", "index.html");
-  const recordBlock = options.format === undefined ? "" : `  record: { format: ${JSON.stringify(options.format)} },\n`;
 
   await writeFile(
     path.join(cwd, "demohunter.config.ts"),
     `export default {
   baseURL: ${JSON.stringify(pathToFileURL(sitePath).href)},
-${recordBlock}};
+};
 `,
   );
 }
@@ -167,7 +199,7 @@ async function writeTempRepoSite(cwd: string): Promise<void> {
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <title>Phase 3 Generation Contract</title>
+    <title>Phase 4 Generation Contract</title>
   </head>
   <body>
     <main>
@@ -233,41 +265,25 @@ async function writeTempRepoSite(cwd: string): Promise<void> {
   );
 }
 
-function createDivergentTourFixture(): string {
-  return `import { defineTour } from "@demohunter/sdk";
-
-let runCount = 0;
-
-export default defineTour({
-  id: "divergent-phase-03",
-  title: "Divergent generation contract",
-  async setup({ page }) {
-    await page.getByLabel("Email").fill("demo@demohunter.dev");
-    await page.getByLabel("Password").fill("demo-password");
-    await page.getByRole("button", { name: "Sign in" }).click();
-    await page.getByRole("heading", { name: "Workspace home" }).waitFor();
-  },
-  async run({ chapter, step, narrate }) {
-    runCount += 1;
-    await chapter(runCount === 1 ? "Deterministic chapter" : "Diverged chapter");
-    await step("Open the billing workspace", async () => {
-      await narrate("This fixture intentionally diverges on the recorded pass.");
-    });
-  },
-});
-`;
+async function runCli(
+  cwd: string,
+  args: string[],
+  envOverrides: Record<string, string | undefined> = {},
+): Promise<{ exitCode: number; stdout: string; stderr: string }> {
+  return spawnCommand([process.execPath, cliEntryPoint, ...args], cwd, envOverrides);
 }
 
 async function spawnCommand(
   cmd: string[],
   cwd: string,
+  envOverrides: Record<string, string | undefined> = {},
 ): Promise<{ exitCode: number; stdout: string; stderr: string }> {
   const processResult = Bun.spawn({
     cmd,
     cwd,
     stdout: "pipe",
     stderr: "pipe",
-    env: process.env,
+    env: buildEnv(envOverrides),
   });
 
   const [exitCode, stdout, stderr] = await Promise.all([
@@ -277,4 +293,118 @@ async function spawnCommand(
   ]);
 
   return { exitCode, stdout, stderr };
+}
+
+async function primeNarrationCache(cwd: string): Promise<void> {
+  const cacheDir = path.join(cwd, ".demohunter", "cache");
+
+  for (const [index, text] of NARRATION_TEXTS.entries()) {
+    const request = createNarrationRequest({
+      provider: "openai",
+      model: "gpt-4o-mini-tts",
+      voice: "marin",
+      format: "mp3",
+      sampleRate: NARRATION_SAMPLE_RATE,
+      instructions: DEFAULT_TTS_INSTRUCTIONS,
+      text,
+    });
+
+    await resolveNarrationFromCache({
+      cacheDir,
+      request,
+      provider: {
+        async synthesize(currentRequest) {
+          return {
+            request: currentRequest,
+            output: {
+              kind: "bytes",
+              bytes: new Uint8Array([index + 1, index + 2, index + 3, index + 4]),
+            },
+            metadata: {
+              provider: currentRequest.provider,
+              model: currentRequest.model,
+              voice: currentRequest.voice,
+              format: currentRequest.format,
+              sampleRate: currentRequest.sampleRate,
+            },
+          };
+        },
+      },
+      measureDurationMs: async () => NARRATION_DURATIONS_MS[index] ?? 500,
+    });
+  }
+}
+
+async function writeCorruptCacheArtifacts(cwd: string): Promise<void> {
+  const cacheDir = path.join(cwd, ".demohunter", "cache");
+
+  await mkdir(cacheDir, { recursive: true });
+  await writeFile(path.join(cacheDir, "broken.json"), "{broken json", "utf8");
+  await writeFile(path.join(cacheDir, "broken.mp3"), new Uint8Array([9, 9, 9]));
+}
+
+function buildEnv(overrides: Record<string, string | undefined>): Record<string, string> {
+  const env: Record<string, string> = {};
+
+  for (const [key, value] of Object.entries(process.env)) {
+    if (typeof value === "string") {
+      env[key] = value;
+    }
+  }
+
+  for (const [key, value] of Object.entries(overrides)) {
+    if (value === undefined) {
+      delete env[key];
+      continue;
+    }
+
+    env[key] = value;
+  }
+
+  return env;
+}
+
+function unsetNarrationEnv(): Record<string, string | undefined> {
+  return {
+    DEMOHUNTER_RUN_LIVE_OPENAI_TESTS: undefined,
+    OPENAI_API_KEY: undefined,
+  };
+}
+
+function parseJson<T>(input: string): T {
+  return JSON.parse(input.trim()) as T;
+}
+
+function createExpectedSrt(): string {
+  return [
+    "1",
+    "00:00:00,000 --> 00:00:00,750",
+    NARRATION_TEXTS[0],
+    "",
+    "2",
+    "00:00:00,750 --> 00:00:01,850",
+    NARRATION_TEXTS[1],
+    "",
+    "3",
+    "00:00:01,850 --> 00:00:02,750",
+    NARRATION_TEXTS[2],
+  ].join("\n");
+}
+
+function createExpectedVtt(): string {
+  return [
+    "WEBVTT",
+    "",
+    "1",
+    "00:00:00.000 --> 00:00:00.750",
+    NARRATION_TEXTS[0],
+    "",
+    "2",
+    "00:00:00.750 --> 00:00:01.850",
+    NARRATION_TEXTS[1],
+    "",
+    "3",
+    "00:00:01.850 --> 00:00:02.750",
+    NARRATION_TEXTS[2],
+  ].join("\n");
 }
