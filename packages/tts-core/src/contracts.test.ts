@@ -1,4 +1,5 @@
-import { describe, expect, test } from "bun:test";
+import assert from "node:assert/strict";
+import { describe, test } from "node:test";
 
 import {
   DEFAULT_OPENAI_NARRATION_MODEL,
@@ -24,7 +25,7 @@ describe("narration contracts", () => {
       text: "  Cafe\u0301 launch \r\n\t now  ",
     });
 
-    expect(request).toEqual({
+    assert.deepEqual(request, {
       provider: "openai",
       model: "tts-1",
       voice: "alloy",
@@ -83,11 +84,11 @@ describe("narration contracts", () => {
       },
     };
 
-    expect(synthesized.output).toEqual({
+    assert.deepEqual(synthesized.output, {
       kind: "bytes",
       bytes,
     });
-    expect(persisted.output).toEqual({
+    assert.deepEqual(persisted.output, {
       kind: "file",
       path: "/tmp/narration.mp3",
     });
@@ -100,13 +101,13 @@ describe("narration contracts", () => {
     const first = normalizeNarrationText(input);
     const second = normalizeNarrationText(input);
 
-    expect(first).toBe("Café\n\nlaunch today");
-    expect(second).toBe(first);
+    assert.equal(first, "Café\n\nlaunch today");
+    assert.equal(second, first);
   });
 
   test("pins the supported OpenAI speech models with gpt-4o-mini-tts as the default", () => {
-    expect(DEFAULT_OPENAI_NARRATION_MODEL).toBe("gpt-4o-mini-tts");
-    expect(OPENAI_NARRATION_MODELS).toEqual([
+    assert.equal(DEFAULT_OPENAI_NARRATION_MODEL, "gpt-4o-mini-tts");
+    assert.deepEqual(OPENAI_NARRATION_MODELS, [
       "gpt-4o-mini-tts",
       "tts-1",
       "tts-1-hd",
