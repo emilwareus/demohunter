@@ -16,6 +16,7 @@
   "dependencies": {
     "@demohunter/generator-playwright": "workspace:*",
     "@demohunter/sdk": "workspace:*",
+    "@demohunter/tts-core": "workspace:*",
     "create-demohunter": "workspace:*"
   },
   "scripts": {

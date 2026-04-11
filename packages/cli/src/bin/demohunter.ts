@@ -3,15 +3,18 @@
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { cacheCommand } from "../commands/cache.js";
 import { generateCommand } from "../commands/generate.js";
 import { initCommand } from "../commands/init.js";
 
 type CliDependencies = {
+  cacheCommand: typeof cacheCommand;
   initCommand: typeof initCommand;
   generateCommand: typeof generateCommand;
 };
 
 const defaultDependencies: CliDependencies = {
+  cacheCommand,
   initCommand,
   generateCommand,
 };
@@ -27,6 +30,14 @@ export async function runCli(
     case "init":
       await dependencies.initCommand(cwd, { force: rest.includes("--force") });
       return;
+    case "cache": {
+      const [action, ...extraArgs] = rest;
+      if (!isCacheAction(action) || extraArgs.length > 0) {
+        throw new Error("Usage: demohunter cache <list|prune|clear>");
+      }
+      await dependencies.cacheCommand(cwd, { action });
+      return;
+    }
     case "generate": {
       const [tourPath] = rest;
       if (!tourPath) {
@@ -36,8 +47,12 @@ export async function runCli(
       return;
     }
     default:
-      throw new Error("Usage: demohunter <init|generate> [options]");
+      throw new Error("Usage: demohunter <init|generate|cache> [options]");
   }
+}
+
+function isCacheAction(action: string | undefined): action is "list" | "prune" | "clear" {
+  return action === "list" || action === "prune" || action === "clear";
 }
 
 async function main(): Promise<void> {
