@@ -6,7 +6,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const builtCliEntryPoint = path.join(repoRoot, "packages/cli/dist/bin/demohunter.js");
-const generationFixturePath = path.join(repoRoot, "tests/fixtures/tours/phase-03-generation.tour.ts");
+const narrationFixturePath = path.join(repoRoot, "tests/fixtures/tours/phase-04-narration.tour.ts");
 const tempRoots: string[] = [];
 
 afterEach(async () => {
@@ -36,51 +36,86 @@ describe("built cli bin contract", () => {
       expect(generateResult.exitCode).toBe(0);
 
       const outputDir = path.join(cwd, ".demohunter/sample-smoke");
-      const videoPath = path.join(outputDir, "video.mp4");
-      const chaptersPath = path.join(outputDir, "chapters.json");
-
-      await access(videoPath);
-      await access(chaptersPath);
+      await access(path.join(outputDir, "video.mp4"));
+      await access(path.join(outputDir, "chapters.json"));
+      await access(path.join(outputDir, "captions.srt"));
+      await access(path.join(outputDir, "captions.vtt"));
       await expect(access(path.join(outputDir, "manifest.json"))).rejects.toThrow();
-      await expect(access(path.join(outputDir, "captions.srt"))).rejects.toThrow();
-      expect((await readdir(outputDir)).sort()).toEqual(["chapters.json", "video.mp4"]);
+      expect((await readdir(outputDir)).sort()).toEqual([
+        "captions.srt",
+        "captions.vtt",
+        "chapters.json",
+        "video.mp4",
+      ]);
     },
     30_000,
   );
 
   test(
-    "runs a representative phase 3 fixture from a fresh temp repo through compiled dist output",
+    "proves narrated generation, cache commands, offline reuse, and missing-key failure through compiled dist output",
     async () => {
       await runRepoCommand(["x", "tsc", "-b", "tsconfig.json", "--pretty", "false"]);
 
       const cwd = await makeTempProject();
-      const tourPath = "demos/phase-03-generation.tour.ts";
+      const tourPath = "demos/phase-04-narration.tour.ts";
+      const preloadPath = await writeOpenAIMockPreload(cwd);
 
       await writeGenerationPackageJson(cwd);
-      await writeGenerationConfig(cwd);
+      await writeGenerationConfig(cwd, { ttsFormat: "wav" });
       await writeGenerationSite(cwd);
       await mkdir(path.join(cwd, "demos"), { recursive: true });
-      await cp(generationFixturePath, path.join(cwd, tourPath));
+      await cp(narrationFixturePath, path.join(cwd, tourPath));
 
       const installResult = await spawnCommand([process.execPath, "install"], cwd);
       expect(installResult.exitCode).toBe(0);
 
-      const generateResult = await spawnCommand([process.execPath, builtCliEntryPoint, "generate", tourPath], cwd);
+      const generateResult = await spawnCommand(
+        [process.execPath, "--preload", preloadPath, builtCliEntryPoint, "generate", tourPath],
+        cwd,
+        { OPENAI_API_KEY: "test-openai-key" },
+      );
       expect(generateResult.exitCode).toBe(0);
 
-      const outputDir = path.join(cwd, ".demohunter/phase-03-generation");
+      const outputDir = path.join(cwd, ".demohunter/phase-04-narration");
       const chapters = JSON.parse(await readFile(path.join(outputDir, "chapters.json"), "utf8")) as Array<{
         startMs: number;
         title: string;
       }>;
+      const captionsSrt = await readFile(path.join(outputDir, "captions.srt"), "utf8");
 
       await access(path.join(outputDir, "video.mp4"));
-      await expect(access(path.join(cwd, ".demohunter/phase-03-generation.recording.webm"))).rejects.toThrow();
-      expect(chapters).toHaveLength(2);
-      expect(chapters.map((chapter) => chapter.title)).toEqual(["Workspace Overview", "Payment History"]);
-      expect(chapters[0]?.startMs).toBeGreaterThanOrEqual(0);
-      expect(chapters[1]?.startMs).toBeGreaterThan(chapters[0]?.startMs ?? -1);
-      expect((await readdir(outputDir)).sort()).toEqual(["chapters.json", "video.mp4"]);
+      await access(path.join(outputDir, "captions.srt"));
+      await access(path.join(outputDir, "captions.vtt"));
+      await expect(access(path.join(cwd, ".demohunter/phase-04-narration.recording.webm"))).rejects.toThrow();
+      expect(chapters.map((chapter) => chapter.title)).toEqual(["Billing Overview", "Payment History"]);
+      expect(captionsSrt).toContain("The billing workspace keeps invoices, exports, and history in one shared place.");
+      expect((await readdir(outputDir)).sort()).toEqual([
+        "captions.srt",
+        "captions.vtt",
+        "chapters.json",
+        "video.mp4",
+      ]);
+
+      const cacheList = await spawnCommand([process.execPath, builtCliEntryPoint, "cache", "list"], cwd);
+      expect(cacheList.exitCode).toBe(0);
+      expect(JSON.parse(cacheList.stdout).entries).toHaveLength(2);
+
+      const offlineGenerate = await spawnCommand([process.execPath, builtCliEntryPoint, "generate", tourPath], cwd);
+      expect(offlineGenerate.exitCode).toBe(0);
+
+      const clearResult = await spawnCommand([process.execPath, builtCliEntryPoint, "cache", "clear"], cwd);
+      expect(clearResult.exitCode).toBe(0);
+
+      const missingKeyGenerate = await spawnCommand([process.execPath, builtCliEntryPoint, "generate", tourPath], cwd);
+      expect(missingKeyGenerate.exitCode).toBe(1);
+      expect(missingKeyGenerate.stderr).toContain("OPENAI_API_KEY");
+
+      const recoveredGenerate = await spawnCommand(
+        [process.execPath, "--preload", preloadPath, builtCliEntryPoint, "generate", tourPath],
+        cwd,
+        { OPENAI_API_KEY: "test-openai-key" },
+      );
+      expect(recoveredGenerate.exitCode).toBe(0);
     },
     30_000,
   );
@@ -97,13 +132,22 @@ async function runRepoCommand(args: string[]): Promise<void> {
 async function spawnCommand(
   cmd: string[],
   cwd: string,
+  envOverrides: Record<string, string | undefined> = {},
 ): Promise<{ exitCode: number; stdout: string; stderr: string }> {
+  const env = {
+    ...process.env,
+    ...envOverrides,
+  } as Record<string, string | undefined>;
+  delete env.OPENAI_API_KEY;
+  delete env.DEMOHUNTER_RUN_LIVE_OPENAI_TESTS;
+  Object.assign(env, envOverrides);
+
   const processResult = Bun.spawn({
     cmd,
     cwd,
     stdout: "pipe",
     stderr: "pipe",
-    env: process.env,
+    env,
   });
 
   const [exitCode, stdout, stderr] = await Promise.all([
@@ -131,7 +175,7 @@ async function writeGenerationPackageJson(cwd: string): Promise<void> {
     path.join(cwd, "package.json"),
     `${JSON.stringify(
       {
-        name: "phase-03-built-generation-contract",
+        name: "phase-04-built-generation-contract",
         private: true,
         type: "module",
         dependencies: {
@@ -145,14 +189,18 @@ async function writeGenerationPackageJson(cwd: string): Promise<void> {
   );
 }
 
-async function writeGenerationConfig(cwd: string): Promise<void> {
+async function writeGenerationConfig(
+  cwd: string,
+  options: { ttsFormat?: "wav" } = {},
+): Promise<void> {
   const sitePath = path.join(cwd, "site", "index.html");
+  const ttsBlock = options.ttsFormat === undefined ? "" : `  tts: { format: ${JSON.stringify(options.ttsFormat)} },\n`;
 
   await writeFile(
     path.join(cwd, "demohunter.config.ts"),
     `export default {
   baseURL: ${JSON.stringify(pathToFileURL(sitePath).href)},
-};
+${ttsBlock}};
 `,
   );
 }
@@ -166,7 +214,7 @@ async function writeGenerationSite(cwd: string): Promise<void> {
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <title>Phase 3 Generation Contract</title>
+    <title>Phase 4 Generation Contract</title>
   </head>
   <body>
     <main>
@@ -230,4 +278,71 @@ async function writeGenerationSite(cwd: string): Promise<void> {
 </html>
 `,
   );
+}
+
+async function writeOpenAIMockPreload(cwd: string): Promise<string> {
+  const preloadPath = path.join(cwd, "mock-openai.ts");
+  await writeFile(
+    preloadPath,
+    `const OPENAI_SPEECH_ENDPOINT = "https://api.openai.com/v1/audio/speech";
+const originalFetch = globalThis.fetch?.bind(globalThis);
+
+function writeString(view, offset, value) {
+  for (let index = 0; index < value.length; index += 1) {
+    view.setUint8(offset + index, value.charCodeAt(index));
+  }
+}
+
+function createSilentWav(durationMs, sampleRate = 24000) {
+  const channelCount = 1;
+  const bitsPerSample = 16;
+  const bytesPerSample = bitsPerSample / 8;
+  const frameCount = Math.max(1, Math.round((sampleRate * durationMs) / 1000));
+  const blockAlign = channelCount * bytesPerSample;
+  const byteRate = sampleRate * blockAlign;
+  const dataSize = frameCount * blockAlign;
+  const buffer = new ArrayBuffer(44 + dataSize);
+  const view = new DataView(buffer);
+
+  writeString(view, 0, "RIFF");
+  view.setUint32(4, 36 + dataSize, true);
+  writeString(view, 8, "WAVE");
+  writeString(view, 12, "fmt ");
+  view.setUint32(16, 16, true);
+  view.setUint16(20, 1, true);
+  view.setUint16(22, channelCount, true);
+  view.setUint32(24, sampleRate, true);
+  view.setUint32(28, byteRate, true);
+  view.setUint16(32, blockAlign, true);
+  view.setUint16(34, bitsPerSample, true);
+  writeString(view, 36, "data");
+  view.setUint32(40, dataSize, true);
+
+  return new Uint8Array(buffer);
+}
+
+globalThis.fetch = async (input, init) => {
+  if (String(input) !== OPENAI_SPEECH_ENDPOINT) {
+    if (!originalFetch) {
+      throw new Error("Unexpected fetch without a base implementation.");
+    }
+
+    return originalFetch(input, init);
+  }
+
+  const request = JSON.parse(String(init?.body ?? "{}"));
+  const text = String(request.input ?? "");
+  const durationMs = Math.max(600, Math.min(1800, text.length * 25));
+
+  return new Response(createSilentWav(durationMs), {
+    status: 200,
+    headers: {
+      "content-type": "audio/wav",
+    },
+  });
+};
+`,
+  );
+
+  return preloadPath;
 }
