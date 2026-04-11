@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
-import { mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { describe, test } from "node:test";
 
 import {
@@ -65,6 +65,7 @@ describe("narration cache maintenance", () => {
       const obsolete = await writeObsoleteEntry(fixture);
       const generatedOutputPath = join(fixture.tempRoot, ".demohunter", "billing-overview", "video.mp4");
 
+      await mkdir(dirname(generatedOutputPath), { recursive: true });
       await writeFile(brokenMetadataPath, "{broken json", "utf8");
       await writeFile(brokenAudioPath, new Uint8Array([7, 7, 7]));
       await writeFile(orphanAudioPath, new Uint8Array([8, 8, 8]));
@@ -103,6 +104,7 @@ describe("narration cache maintenance", () => {
 
       const generatedOutputPath = join(fixture.tempRoot, ".demohunter", "billing-overview", "video.mp4");
 
+      await mkdir(dirname(generatedOutputPath), { recursive: true });
       await writeFile(generatedOutputPath, new Uint8Array([4, 5, 6]));
 
       await clearNarrationCache({
