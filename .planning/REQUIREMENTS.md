@@ -21,30 +21,30 @@
 
 ### Generation
 
-- [ ] **GEN-01**: Developer can run `demohunter generate <tour-file>` against a local dev server, preview URL, or arbitrary base URL.
-- [ ] **GEN-02**: Generation uses a two-pass flow so narration timing is resolved before the recorded video pass starts.
-- [ ] **GEN-03**: During the recorded pass, the tool waits `durationMs + holdPaddingMs` after each narrated action.
-- [ ] **GEN-04**: Generated assets are written to `.demohunter/<tour-id>/` relative to the current working directory.
-- [ ] **GEN-05**: DemoHunter outputs `mp4` by default and can optionally generate `webm`.
-- [ ] **GEN-06**: DemoHunter can render action and chapter overlays during generation when enabled in config.
+- [x] **GEN-01**: Developer can run `demohunter generate <tour-file>` against a local dev server, preview URL, or arbitrary base URL.
+- [x] **GEN-02**: Generation uses a two-pass flow so narration timing is resolved before the recorded video pass starts.
+- [x] **GEN-03**: During the recorded pass, the tool waits `durationMs + holdPaddingMs` after each narrated action.
+- [x] **GEN-04**: Generated assets are written to `.demohunter/<tour-id>/` relative to the current working directory.
+- [x] **GEN-05**: DemoHunter outputs `mp4` by default and can optionally generate `webm`.
+- [x] **GEN-06**: DemoHunter can render action and chapter overlays during generation when enabled in config.
 
 ### Narration and Cache
 
-- [ ] **TTS-01**: OpenAI speech synthesis works by reading `OPENAI_API_KEY` from environment only.
-- [ ] **TTS-02**: Developer can choose OpenAI model, voice, instructions, and format for narration generation.
-- [ ] **TTS-03**: Narration timing is based on measured duration from the real cached audio file, not text heuristics.
-- [ ] **TTS-04**: Identical narration segments reuse cached audio without repeat API calls.
-- [ ] **TTS-05**: Different model, voice, instructions, format, sample rate, or provider version combinations produce distinct cache keys.
-- [ ] **TTS-06**: Corrupt cache entries are detected and regenerated automatically.
-- [ ] **TTS-07**: `demohunter generate` succeeds without `OPENAI_API_KEY` when every required narration segment is already cached locally.
-- [ ] **TTS-08**: `demohunter generate` fails clearly when uncached narration is required and `OPENAI_API_KEY` is missing.
-- [ ] **TTS-09**: CLI supports `demohunter cache list`, `demohunter cache prune`, and `demohunter cache clear`.
+- [x] **TTS-01**: OpenAI speech synthesis works by reading `OPENAI_API_KEY` from environment only.
+- [x] **TTS-02**: Developer can choose OpenAI model, voice, instructions, and format for narration generation.
+- [x] **TTS-03**: Narration timing is based on measured duration from the real cached audio file, not text heuristics.
+- [x] **TTS-04**: Identical narration segments reuse cached audio without repeat API calls.
+- [x] **TTS-05**: Different model, voice, instructions, format, sample rate, or provider version combinations produce distinct cache keys.
+- [x] **TTS-06**: Corrupt cache entries are detected and regenerated automatically.
+- [x] **TTS-07**: `demohunter generate` succeeds without `OPENAI_API_KEY` when every required narration segment is already cached locally.
+- [x] **TTS-08**: `demohunter generate` fails clearly when uncached narration is required and `OPENAI_API_KEY` is missing.
+- [x] **TTS-09**: CLI supports `demohunter cache list`, `demohunter cache prune`, and `demohunter cache clear`.
 
 ### Output Contract
 
 - [ ] **OUT-01**: Every successful generation writes `video.mp4`, optional `video.webm`, `poster.jpg`, `captions.srt`, `captions.vtt`, `chapters.json`, `manifest.json`, and cached audio files into `.demohunter/<tour-id>/`.
 - [ ] **OUT-02**: DemoHunter defines a versioned Zod manifest schema that describes generated files and includes checksums.
-- [ ] **OUT-03**: Subtitle files are generated from narration segments only.
+- [x] **OUT-03**: Subtitle files are generated from narration segments only.
 - [ ] **OUT-04**: The generated output contract is portable enough for a later cloud product to ingest without access to the original repo.
 
 ### OSS Readiness
@@ -85,22 +85,22 @@
 | TOUR-03 | Phase 2 | Complete |
 | TOUR-04 | Phase 2 | Complete |
 | TOUR-05 | Phase 2 | Complete |
-| GEN-01 | Phase 3 | Pending |
-| GEN-02 | Phase 3 | Pending |
-| GEN-03 | Phase 3 | Pending |
-| GEN-04 | Phase 3 | Pending |
-| GEN-05 | Phase 3 | Pending |
-| GEN-06 | Phase 3 | Pending |
-| TTS-01 | Phase 4 | Pending |
-| TTS-02 | Phase 4 | Pending |
-| TTS-03 | Phase 4 | Pending |
-| TTS-04 | Phase 4 | Pending |
-| TTS-05 | Phase 4 | Pending |
-| TTS-06 | Phase 4 | Pending |
-| TTS-07 | Phase 4 | Pending |
-| TTS-08 | Phase 4 | Pending |
-| TTS-09 | Phase 4 | Pending |
-| OUT-03 | Phase 4 | Pending |
+| GEN-01 | Phase 3 | Complete |
+| GEN-02 | Phase 3 | Complete |
+| GEN-03 | Phase 3 | Complete |
+| GEN-04 | Phase 3 | Complete |
+| GEN-05 | Phase 3 | Complete |
+| GEN-06 | Phase 3 | Complete |
+| TTS-01 | Phase 4 | Complete |
+| TTS-02 | Phase 4 | Complete |
+| TTS-03 | Phase 4 | Complete |
+| TTS-04 | Phase 4 | Complete |
+| TTS-05 | Phase 4 | Complete |
+| TTS-06 | Phase 4 | Complete |
+| TTS-07 | Phase 4 | Complete |
+| TTS-08 | Phase 4 | Complete |
+| TTS-09 | Phase 4 | Complete |
+| OUT-03 | Phase 4 | Complete |
 | OUT-01 | Phase 5 | Pending |
 | OUT-02 | Phase 5 | Pending |
 | OUT-04 | Phase 5 | Pending |
@@ -115,4 +115,4 @@
 
 ---
 *Requirements defined: 2026-04-09*
-*Last updated: 2026-04-10 after completing Phase 02*
+*Last updated: 2026-04-11 after completing Phase 04*
