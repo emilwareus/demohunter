@@ -14,8 +14,8 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Repository and Scaffolding** - Create the monorepo, config layer, scaffold flow, and no-audio sample path.
 - [x] **Phase 2: Tour Authoring SDK** - Define the `.tour.ts` authoring model and helper APIs on top of Playwright.
-- [ ] **Phase 3: Playwright Generation Engine** - Implement two-pass execution, recording, overlays, and base local output writing.
-- [ ] **Phase 4: OpenAI Narration and Cache** - Add provider-backed narration, cache behavior, subtitles, and offline regeneration rules.
+- [x] **Phase 3: Playwright Generation Engine** - Implement two-pass execution, recording, overlays, and base local output writing.
+- [x] **Phase 4: OpenAI Narration and Cache** - Add provider-backed narration, cache behavior, subtitles, and offline regeneration rules.
 - [ ] **Phase 5: Portable Output Contract** - Finalize the manifest schema, checksums, poster generation, and portable artifact layout.
 - [ ] **Phase 6: OSS Readiness and Agent Skill** - Ship examples, docs, skill docs, CI, and launch polish.
 
@@ -64,10 +64,10 @@ Plans:
 **Plans**: 4 plans
 
 Plans:
-- [ ] 03-01: Build the runtime executor and pass-1 timeline capture flow.
-- [ ] 03-02: Build pass-2 recording, screencast integration, and hold-padding timing behavior.
-- [ ] 03-03: Implement local output directory writing and optional `webm` support.
-- [ ] 03-04: Add action and chapter overlays plus generator-focused error handling.
+- [x] 03-01: Build the runtime executor and pass-1 timeline capture flow.
+- [x] 03-02: Build pass-2 recording, screencast integration, and hold-padding timing behavior.
+- [x] 03-03: Implement local output directory writing and optional `webm` support.
+- [x] 03-04: Add action and chapter overlays plus generator-focused error handling.
 
 ### Phase 4: OpenAI Narration and Cache
 **Goal**: Add OpenAI-backed narration synthesis, deterministic cache behavior, subtitle generation, and offline regeneration support.
@@ -80,10 +80,10 @@ Plans:
 **Plans**: 4 plans
 
 Plans:
-- [ ] 04-01: Implement the OpenAI TTS provider interface and request shaping.
-- [ ] 04-02: Implement cache keys, read/write flows, integrity checks, and corrupt-entry recovery.
-- [ ] 04-03: Measure narration duration from cached audio and generate subtitles from narration segments.
-- [ ] 04-04: Wire cache CLI commands and validate offline regeneration behavior.
+- [x] 04-01: Implement the OpenAI TTS provider interface and request shaping.
+- [x] 04-02: Implement cache keys, read/write flows, integrity checks, and corrupt-entry recovery.
+- [x] 04-03: Measure narration duration from cached audio and generate subtitles from narration segments.
+- [x] 04-04: Wire cache CLI commands and validate offline regeneration behavior.
 
 ### Phase 5: Portable Output Contract
 **Goal**: Finalize the versioned `.demohunter/` output contract so OSS output is portable and ready for later cloud ingest.
@@ -125,7 +125,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6
 |-------|----------------|--------|-----------|
 | 1. Repository and Scaffolding | 5/5 | Complete | 2026-04-10 |
 | 2. Tour Authoring SDK | 3/3 | Complete | 2026-04-10 |
-| 3. Playwright Generation Engine | 0/4 | Not started | - |
-| 4. OpenAI Narration and Cache | 0/4 | Not started | - |
+| 3. Playwright Generation Engine | 4/4 | Complete | 2026-04-11 |
+| 4. OpenAI Narration and Cache | 4/4 | Complete | 2026-04-11 |
 | 5. Portable Output Contract | 0/3 | Not started | - |
 | 6. OSS Readiness and Agent Skill | 0/4 | Not started | - |
