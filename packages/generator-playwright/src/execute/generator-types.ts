@@ -55,15 +55,23 @@ export type TourRuntimeEvent =
 export type NarrationRuntimeEvent = Extract<TourRuntimeEvent, { kind: "narrate" }>;
 export type NonNarrationRuntimeEvent = Exclude<TourRuntimeEvent, { kind: "narrate" }>;
 
-export type NarrationDurationResolver = (event: NarrationRuntimeEvent) => number | Promise<number>;
+export type NarrationSegment = {
+  text: string;
+  chapterTitle?: string;
+  durationMs: number;
+  audioPath: string;
+  cacheKey: string;
+};
+
+export type NarrationSegmentResolver = (
+  event: NarrationRuntimeEvent,
+) => NarrationSegment | Promise<NarrationSegment>;
 
 export type CollectedNarration = {
   kind: "narration";
   order: number;
-  text: string;
-  chapterTitle?: string;
-  durationMs: number;
   event: NarrationRuntimeEvent;
+  segment: NarrationSegment;
 };
 
 export type CollectedTimelineEvent = {
@@ -78,5 +86,5 @@ export type CollectedTimelineEntry = CollectedTimelineEvent | CollectedNarration
 
 export type CollectedTimeline = {
   entries: CollectedTimelineEntry[];
-  narrations: CollectedNarration[];
+  narrations: NarrationSegment[];
 };

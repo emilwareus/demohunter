@@ -149,6 +149,7 @@ export async function generateTour(
     return await resolvedDependencies.writeGenerationOutput({
       chapters,
       finalVideo,
+      narrations: timeline.narrations,
       outputDir,
     });
   } catch (error) {

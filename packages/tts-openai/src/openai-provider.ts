@@ -2,7 +2,7 @@ import type {
   NarrationProvider,
   NarrationRequest,
   NarrationSynthesisResult,
-} from "../../tts-core/dist/contracts.js";
+} from "@demohunter/tts-core";
 
 const OPENAI_SPEECH_ENDPOINT = "https://api.openai.com/v1/audio/speech";
 const OPENAI_SUPPORTED_NARRATION_MODELS = [

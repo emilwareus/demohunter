@@ -1,7 +1,9 @@
 import { copyFile, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 
+import type { NarrationSegment } from "../execute/generator-types.js";
 import type { MuxedVideoArtifact } from "../record/mux-video.js";
+import { serializeNarrationSubtitles } from "./subtitles.js";
 
 export type GenerationChapter = {
   title: string;
@@ -11,6 +13,7 @@ export type GenerationChapter = {
 export type WriteGenerationOutputInput = {
   chapters: GenerationChapter[];
   finalVideo: MuxedVideoArtifact;
+  narrations: NarrationSegment[];
   outputDir: string;
 };
 
@@ -21,6 +24,8 @@ type WriteGenerationOutputDependencies = {
 };
 
 export type WriteGenerationOutputResult = {
+  captionsSrtPath: string;
+  captionsVttPath: string;
   chaptersPath: string;
   outputDir: string;
   videoPath: string;
@@ -42,9 +47,12 @@ export async function writeGenerationOutput(
   };
   const videoPath = path.join(input.outputDir, input.finalVideo.fileName);
   const chaptersPath = path.join(input.outputDir, "chapters.json");
+  const captionsSrtPath = path.join(input.outputDir, "captions.srt");
+  const captionsVttPath = path.join(input.outputDir, "captions.vtt");
   const staleVideoPaths = ["video.mp4", "video.webm"]
     .map((fileName) => path.join(input.outputDir, fileName))
     .filter((candidatePath) => path.resolve(candidatePath) !== path.resolve(videoPath));
+  const subtitles = serializeNarrationSubtitles(input.narrations);
 
   await Promise.all(staleVideoPaths.map((candidatePath) => resolvedDependencies.rm(candidatePath, { force: true })));
 
@@ -53,8 +61,14 @@ export async function writeGenerationOutput(
   }
 
   await resolvedDependencies.writeFile(chaptersPath, JSON.stringify(input.chapters, null, 2));
+  await Promise.all([
+    resolvedDependencies.writeFile(captionsSrtPath, subtitles.srt),
+    resolvedDependencies.writeFile(captionsVttPath, subtitles.vtt),
+  ]);
 
   return {
+    captionsSrtPath,
+    captionsVttPath,
     chaptersPath,
     outputDir: input.outputDir,
     videoPath,

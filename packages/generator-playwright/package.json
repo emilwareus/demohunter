@@ -17,6 +17,8 @@
   },
   "dependencies": {
     "@demohunter/sdk": "workspace:*",
+    "@demohunter/tts-core": "workspace:*",
+    "@demohunter/tts-openai": "workspace:*",
     "playwright": ">=1.59"
   }
 }

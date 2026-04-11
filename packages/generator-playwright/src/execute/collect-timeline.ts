@@ -2,13 +2,14 @@ import path from "node:path";
 
 import type { Page } from "playwright";
 
+import { resolveNarrationSegment as defaultResolveNarrationSegment } from "../narration/resolve-narration.js";
 import type { SmokeGenerateInput, SmokeTourModule } from "../smoke-generate.js";
 import { createSmokeTourRuntime } from "../runtime/create-smoke-tour-runtime.js";
 import type {
   CollectedNarration,
   CollectedTimeline,
   CollectedTimelineEntry,
-  NarrationDurationResolver,
+  NarrationSegmentResolver,
   TourRuntimeEvent,
 } from "./generator-types.js";
 
@@ -16,15 +17,13 @@ export type CollectTimelineInput = {
   loadedConfig: SmokeGenerateInput["loadedConfig"];
   page: Page;
   tourFile: SmokeTourModule;
-  resolveNarrationDuration?: NarrationDurationResolver;
+  resolveNarrationSegment?: NarrationSegmentResolver;
 };
-
-const resolveSilentNarrationDuration: NarrationDurationResolver = () => 0;
 
 export async function collectTimeline({
   loadedConfig,
   page,
-  resolveNarrationDuration = resolveSilentNarrationDuration,
+  resolveNarrationSegment = (event) => defaultResolveNarrationSegment({ event, loadedConfig }),
   tourFile,
 }: CollectTimelineInput): Promise<CollectedTimeline> {
   const { config } = loadedConfig;
@@ -61,37 +60,37 @@ export async function collectTimeline({
     }
   }
 
-  return buildCollectedTimeline(events, resolveNarrationDuration);
+  return buildCollectedTimeline(events, resolveNarrationSegment);
 }
 
 async function buildCollectedTimeline(
   events: TourRuntimeEvent[],
-  resolveNarrationDuration: NarrationDurationResolver,
+  resolveNarrationSegment: NarrationSegmentResolver,
 ): Promise<CollectedTimeline> {
   const entries: CollectedTimelineEntry[] = [];
-  const narrations: CollectedNarration[] = [];
+  const narrations: CollectedTimeline["narrations"] = [];
 
   for (const [index, event] of events.entries()) {
     const order = index + 1;
 
     if (event.kind === "narrate") {
-      const durationMs = await resolveNarrationDuration(event);
+      const segment = await resolveNarrationSegment(event);
 
-      if (!Number.isFinite(durationMs) || durationMs < 0) {
-        throw new Error(`Narration duration resolver must return a non-negative finite duration: ${durationMs}`);
+      if (!Number.isFinite(segment.durationMs) || segment.durationMs < 0) {
+        throw new Error(
+          `Narration resolver must return a non-negative finite duration: ${segment.durationMs}`,
+        );
       }
 
       const entry: CollectedNarration = {
-        chapterTitle: event.chapterTitle,
-        durationMs,
         event,
         kind: "narration",
         order,
-        text: event.text,
+        segment,
       };
 
       entries.push(entry);
-      narrations.push(entry);
+      narrations.push(segment);
       continue;
     }
 

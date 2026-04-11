@@ -138,7 +138,7 @@ function createReplayRuntime(args: {
       args.updateReplayPosition();
 
       if (expectedEntry.kind === "narration") {
-        args.updatePendingNarrationWait(expectedEntry.durationMs + args.config.holdPaddingMs);
+        args.updatePendingNarrationWait(expectedEntry.segment.durationMs + args.config.holdPaddingMs);
         return;
       }
 
@@ -172,7 +172,7 @@ function createReplayRuntime(args: {
       );
     }
 
-    await args.replayWait(expectedEntry.durationMs + args.config.holdPaddingMs);
+    await args.replayWait(expectedEntry.segment.durationMs + args.config.holdPaddingMs);
   };
 
   return runtime;
