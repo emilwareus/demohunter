@@ -25,15 +25,35 @@ describe("writeGenerationOutput", () => {
         fileName: "video.webm",
         path: fixture.sourceVideoPath,
       },
+      narrations: [
+        {
+          audioPath: "/tmp/cache/billing.mp3",
+          cacheKey: "billing",
+          chapterTitle: "Billing",
+          durationMs: 1_200,
+          text: "Open the billing workspace.",
+        },
+        {
+          audioPath: "/tmp/cache/invoices.mp3",
+          cacheKey: "invoices",
+          chapterTitle: "Invoices",
+          durationMs: 800,
+          text: "Explain the invoice table.",
+        },
+      ],
       outputDir: fixture.outputDir,
     });
 
     expect(result).toEqual({
+      captionsSrtPath: path.join(fixture.outputDir, "captions.srt"),
+      captionsVttPath: path.join(fixture.outputDir, "captions.vtt"),
       chaptersPath: path.join(fixture.outputDir, "chapters.json"),
       outputDir: fixture.outputDir,
       videoPath: path.join(fixture.outputDir, "video.webm"),
     });
     expect(await readFile(result.videoPath, "utf8")).toBe("webm bytes");
+    expect(await readFile(result.captionsSrtPath, "utf8")).toContain("Open the billing workspace.");
+    expect(await readFile(result.captionsVttPath, "utf8")).toContain("Explain the invoice table.");
     expect(JSON.parse(await readFile(result.chaptersPath, "utf8"))).toEqual([
       { title: "Billing", startMs: 0 },
       { title: "Invoices", startMs: 1400 },
@@ -50,13 +70,17 @@ describe("writeGenerationOutput", () => {
         fileName: "video.mp4",
         path: fixture.sourceVideoPath,
       },
+      narrations: [],
       outputDir: fixture.outputDir,
     });
 
-    expect((await readdir(fixture.outputDir)).sort()).toEqual(["chapters.json", "video.mp4"]);
+    expect((await readdir(fixture.outputDir)).sort()).toEqual([
+      "captions.srt",
+      "captions.vtt",
+      "chapters.json",
+      "video.mp4",
+    ]);
     expect((await readdir(fixture.outputDir)).includes("manifest.json")).toBe(false);
-    expect((await readdir(fixture.outputDir)).includes("captions.srt")).toBe(false);
-    expect((await readdir(fixture.outputDir)).includes("captions.vtt")).toBe(false);
     expect((await readdir(fixture.outputDir)).includes("poster.jpg")).toBe(false);
     expect((await readdir(fixture.outputDir)).includes("audio")).toBe(false);
   });
@@ -72,10 +96,16 @@ describe("writeGenerationOutput", () => {
         fileName: "video.mp4",
         path: fixture.sourceVideoPath,
       },
+      narrations: [],
       outputDir: fixture.outputDir,
     });
 
-    expect((await readdir(fixture.outputDir)).sort()).toEqual(["chapters.json", "video.mp4"]);
+    expect((await readdir(fixture.outputDir)).sort()).toEqual([
+      "captions.srt",
+      "captions.vtt",
+      "chapters.json",
+      "video.mp4",
+    ]);
   });
 });
 

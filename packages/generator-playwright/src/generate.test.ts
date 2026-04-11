@@ -86,6 +86,8 @@ describe("generateTour", () => {
     const writeGenerationOutput = mock(async () => {
       calls.push("write");
       return {
+        captionsSrtPath: "/tmp/project/.demohunter/billing-overview/captions.srt",
+        captionsVttPath: "/tmp/project/.demohunter/billing-overview/captions.vtt",
         outputDir: "/tmp/project/.demohunter/billing-overview",
         videoPath: "/tmp/project/.demohunter/billing-overview/video.mp4",
       };
@@ -131,6 +133,8 @@ describe("generateTour", () => {
     );
 
     expect(result).toEqual({
+      captionsSrtPath: "/tmp/project/.demohunter/billing-overview/captions.srt",
+      captionsVttPath: "/tmp/project/.demohunter/billing-overview/captions.vtt",
       outputDir: "/tmp/project/.demohunter/billing-overview",
       videoPath: "/tmp/project/.demohunter/billing-overview/video.mp4",
     });
@@ -169,6 +173,15 @@ describe("generateTour", () => {
         format: "mp4",
         path: "/tmp/video.mp4",
       },
+      narrations: [
+        {
+          audioPath: "/tmp/project/.demohunter/cache/explain-billing.mp3",
+          cacheKey: "explain-billing",
+          chapterTitle: "Billing",
+          durationMs: 1200,
+          text: "Explain billing",
+        },
+      ],
       outputDir: "/tmp/project/.demohunter/billing-overview",
     });
     expect(showChapterOverlay).toHaveBeenCalledWith({
@@ -212,6 +225,46 @@ describe("generateTour", () => {
         },
       ),
     ).rejects.toBe(navigationError);
+
+    expect(collectTimeline).toHaveBeenCalledTimes(1);
+    expect(replayTimeline).not.toHaveBeenCalled();
+  });
+
+  test("surfaces narration resolution failures before the recorded pass starts", async () => {
+    const narrationError = new Error(
+      'Unable to resolve narration segment "Explain billing" because OPENAI_API_KEY is required.',
+    );
+    const collectTimeline = mock(async () => {
+      throw narrationError;
+    });
+    const replayTimeline = mock(async () => {});
+
+    await expect(
+      generateTour(
+        {
+          loadedConfig: createLoadedConfig("/tmp/project"),
+          tourFile: createTourFile("/tmp/project"),
+        },
+        {
+          collectTimeline,
+          playwright: {
+            chromium: {
+              launch: mock(async () => ({
+                close: mock(async () => {}),
+                newContext: mock(async () => ({
+                  close: mock(async () => {}),
+                  newPage: mock(async () => ({ goto: mock(async () => {}) })),
+                })),
+              })),
+            },
+            firefox: { launch: mock(async () => { throw new Error("unexpected browser"); }) },
+            webkit: { launch: mock(async () => { throw new Error("unexpected browser"); }) },
+          },
+          prepareOutputDir: mock(async () => "/tmp/project/.demohunter/billing-overview"),
+          replayTimeline,
+        },
+      ),
+    ).rejects.toBe(narrationError);
 
     expect(collectTimeline).toHaveBeenCalledTimes(1);
     expect(replayTimeline).not.toHaveBeenCalled();
@@ -323,8 +376,6 @@ function createTimeline(): CollectedTimeline {
         order: 1,
       },
       {
-        chapterTitle: "Billing",
-        durationMs: 1200,
         event: {
           chapterTitle: "Billing",
           kind: "narrate",
@@ -332,7 +383,13 @@ function createTimeline(): CollectedTimeline {
         },
         kind: "narration",
         order: 2,
-        text: "Explain billing",
+        segment: {
+          audioPath: "/tmp/project/.demohunter/cache/explain-billing.mp3",
+          cacheKey: "explain-billing",
+          chapterTitle: "Billing",
+          durationMs: 1200,
+          text: "Explain billing",
+        },
       },
       {
         event: {
@@ -349,14 +406,9 @@ function createTimeline(): CollectedTimeline {
     narrations: [
       {
         chapterTitle: "Billing",
+        audioPath: "/tmp/project/.demohunter/cache/explain-billing.mp3",
+        cacheKey: "explain-billing",
         durationMs: 1200,
-        event: {
-          chapterTitle: "Billing",
-          kind: "narrate",
-          text: "Explain billing",
-        },
-        kind: "narration",
-        order: 2,
         text: "Explain billing",
       },
     ],

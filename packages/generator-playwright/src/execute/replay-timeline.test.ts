@@ -72,8 +72,6 @@ describe("replayTimeline", () => {
       timeline: {
         entries: [
           {
-            chapterTitle: undefined,
-            durationMs: 1200,
             event: {
               chapterTitle: undefined,
               kind: "narrate",
@@ -81,7 +79,13 @@ describe("replayTimeline", () => {
             },
             kind: "narration",
             order: 1,
-            text: "Narrated step",
+            segment: {
+              audioPath: "/tmp/workspace/.demohunter/cache/narrated-step.mp3",
+              cacheKey: "narrated-step",
+              chapterTitle: undefined,
+              durationMs: 1200,
+              text: "Narrated step",
+            },
           },
         ],
         narrations: [],
@@ -180,8 +184,6 @@ describe("replayTimeline", () => {
               order: 1,
             },
             {
-              chapterTitle: undefined,
-              durationMs: 200,
               event: {
                 chapterTitle: undefined,
                 kind: "narrate",
@@ -189,7 +191,13 @@ describe("replayTimeline", () => {
               },
               kind: "narration",
               order: 2,
-              text: "Finish cleanup",
+              segment: {
+                audioPath: "/tmp/workspace/.demohunter/cache/finish-cleanup.mp3",
+                cacheKey: "finish-cleanup",
+                chapterTitle: undefined,
+                durationMs: 200,
+                text: "Finish cleanup",
+              },
             },
             {
               event: {
@@ -270,8 +278,6 @@ function createTimeline(projectRoot: string): CollectedTimeline {
         order: 2,
       },
       {
-        chapterTitle: "Billing",
-        durationMs: 1200,
         event: {
           chapterTitle: "Billing",
           kind: "narrate",
@@ -279,7 +285,13 @@ function createTimeline(projectRoot: string): CollectedTimeline {
         },
         kind: "narration",
         order: 3,
-        text: "Explain the invoice screen",
+        segment: {
+          audioPath: path.join(projectRoot, ".demohunter", "cache", "narration.mp3"),
+          cacheKey: "narration",
+          chapterTitle: "Billing",
+          durationMs: 1200,
+          text: "Explain the invoice screen",
+        },
       },
       {
         event: {
@@ -294,14 +306,9 @@ function createTimeline(projectRoot: string): CollectedTimeline {
     narrations: [
       {
         chapterTitle: "Billing",
+        audioPath: path.join(projectRoot, ".demohunter", "cache", "narration.mp3"),
+        cacheKey: "narration",
         durationMs: 1200,
-        event: {
-          chapterTitle: "Billing",
-          kind: "narrate",
-          text: "Explain the invoice screen",
-        },
-        kind: "narration",
-        order: 3,
         text: "Explain the invoice screen",
       },
     ],

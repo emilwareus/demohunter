@@ -4,7 +4,8 @@ import type {
   CollectedNarration,
   CollectedTimeline,
   CollectedTimelineEntry,
-  NarrationDurationResolver,
+  NarrationSegment,
+  NarrationSegmentResolver,
   TourRuntimeEvent,
 } from "../execute/generator-types.js";
 import {
@@ -17,7 +18,8 @@ const assertTourRuntimeEvent = <T extends TourRuntimeEvent>(event: T): T => even
 const assertCollectedNarration = <T extends CollectedNarration>(entry: T): T => entry;
 const assertCollectedTimelineEntry = <T extends CollectedTimelineEntry>(entry: T): T => entry;
 const assertCollectedTimeline = <T extends CollectedTimeline>(timeline: T): T => timeline;
-const assertNarrationDurationResolver = <T extends NarrationDurationResolver>(resolver: T): T => resolver;
+const assertNarrationSegment = <T extends NarrationSegment>(segment: T): T => segment;
+const assertNarrationSegmentResolver = <T extends NarrationSegmentResolver>(resolver: T): T => resolver;
 
 describe("createSmokeTourRuntime", () => {
   test("records chapter markers and runs steps inline", async () => {
@@ -119,9 +121,14 @@ describe("createSmokeTourRuntime", () => {
       outputDir: "/tmp/demohunter-output",
       title: "Billing",
     });
-    const narration = assertCollectedNarration({
+    const segment = assertNarrationSegment({
+      audioPath: "/tmp/demohunter-output/cache/describe-invoice.mp3",
+      cacheKey: "describe-invoice",
       chapterTitle: "Billing",
       durationMs: 1200,
+      text: "Describe the invoice",
+    });
+    const narration = assertCollectedNarration({
       event: {
         chapterTitle: "Billing",
         kind: "narrate",
@@ -130,7 +137,7 @@ describe("createSmokeTourRuntime", () => {
       },
       kind: "narration",
       order: 3,
-      text: "Describe the invoice",
+      segment,
     });
     const entries = [
       assertCollectedTimelineEntry({
@@ -140,13 +147,13 @@ describe("createSmokeTourRuntime", () => {
       }),
       narration,
     ];
-    const resolveNarrationDuration = assertNarrationDurationResolver(async () => 1200);
+    const resolveNarrationSegment = assertNarrationSegmentResolver(async () => segment);
     const timeline = assertCollectedTimeline({
       entries,
-      narrations: [narration],
+      narrations: [segment],
     });
 
-    const durationMs = await resolveNarrationDuration(narration.event);
+    const resolvedSegment = await resolveNarrationSegment(narration.event);
 
     expect(TOUR_RUNTIME_EVENT_KINDS).toEqual([
       "chapter",
@@ -160,12 +167,12 @@ describe("createSmokeTourRuntime", () => {
     ]);
     expect(COLLECTED_TIMELINE_ENTRY_KINDS).toEqual(["event", "narration"]);
     expect(timeline.entries).toHaveLength(2);
-    expect(timeline.narrations).toEqual([narration]);
+    expect(timeline.narrations).toEqual([segment]);
     expect(timeline.entries[0]).toEqual({
       event: chapterEvent,
       kind: "event",
       order: 1,
     });
-    expect(durationMs).toBe(1200);
+    expect(resolvedSegment.durationMs).toBe(1200);
   });
 });

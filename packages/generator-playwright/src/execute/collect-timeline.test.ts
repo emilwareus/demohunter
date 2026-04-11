@@ -15,7 +15,13 @@ describe("collectTimeline", () => {
     };
     const calls: string[] = [];
     const contexts: object[] = [];
-    const resolveNarrationDuration = mock(async () => 1200);
+    const resolveNarrationSegment = mock(async () => ({
+      audioPath: "/tmp/workspace/.demohunter/cache/narration.mp3",
+      cacheKey: "cache-key",
+      chapterTitle: "Billing",
+      durationMs: 1200,
+      text: "Explain the invoice screen",
+    }));
     const setup = mock(async (context) => {
       calls.push(`setup:${context.page === page}`);
       contexts.push(context as object);
@@ -49,7 +55,7 @@ describe("collectTimeline", () => {
     const timeline = await collectTimeline({
       loadedConfig: createLoadedConfig("/tmp/workspace"),
       page: page as never,
-      resolveNarrationDuration,
+      resolveNarrationSegment,
       tourFile: {
         path: "/tmp/workspace/demos/billing.tour.ts",
         tour: {
@@ -63,7 +69,7 @@ describe("collectTimeline", () => {
     });
 
     expect(page.goto).toHaveBeenCalledWith("http://localhost:3000/");
-    expect(resolveNarrationDuration).toHaveBeenCalledWith({
+    expect(resolveNarrationSegment).toHaveBeenCalledWith({
       chapterTitle: "Billing",
       kind: "narrate",
       text: "Explain the invoice screen",
@@ -99,8 +105,6 @@ describe("collectTimeline", () => {
           order: 2,
         },
         {
-          chapterTitle: "Billing",
-          durationMs: 1200,
           event: {
             chapterTitle: "Billing",
             kind: "narrate",
@@ -109,7 +113,13 @@ describe("collectTimeline", () => {
           },
           kind: "narration",
           order: 3,
-          text: "Explain the invoice screen",
+          segment: {
+            audioPath: "/tmp/workspace/.demohunter/cache/narration.mp3",
+            cacheKey: "cache-key",
+            chapterTitle: "Billing",
+            durationMs: 1200,
+            text: "Explain the invoice screen",
+          },
         },
         {
           event: {
@@ -162,56 +172,47 @@ describe("collectTimeline", () => {
       narrations: [
         {
           chapterTitle: "Billing",
+          audioPath: "/tmp/workspace/.demohunter/cache/narration.mp3",
+          cacheKey: "cache-key",
           durationMs: 1200,
-          event: {
-            chapterTitle: "Billing",
-            kind: "narrate",
-            text: "Explain the invoice screen",
-            voice: "marin",
-          },
-          kind: "narration",
-          order: 3,
           text: "Explain the invoice screen",
         },
       ],
     });
   });
 
-  test("uses a deterministic local 0ms narration duration when no resolver is provided", async () => {
+  test("fails clearly when uncached narration requires OPENAI_API_KEY", async () => {
     const page = {
       goto: mock(async () => {}),
     };
 
-    const timeline = await collectTimeline({
-      loadedConfig: createLoadedConfig("/tmp/workspace"),
-      page: page as never,
-      tourFile: {
-        path: "/tmp/workspace/demos/billing.tour.ts",
-        tour: {
-          id: "billing-overview",
-          title: "Billing overview",
-          run: async ({ narrate }) => {
-            await narrate("Silent pass 1 narration");
-          },
-        },
-      },
-    });
+    const originalApiKey = process.env.OPENAI_API_KEY;
+    delete process.env.OPENAI_API_KEY;
 
-    expect(page.goto).toHaveBeenCalledWith("http://localhost:3000/");
-    expect(timeline.narrations).toEqual([
-      {
-        chapterTitle: undefined,
-        durationMs: 0,
-        event: {
-          chapterTitle: undefined,
-          kind: "narrate",
-          text: "Silent pass 1 narration",
-        },
-        kind: "narration",
-        order: 1,
-        text: "Silent pass 1 narration",
-      },
-    ]);
+    try {
+      await expect(
+        collectTimeline({
+          loadedConfig: createLoadedConfig("/tmp/workspace"),
+          page: page as never,
+          tourFile: {
+            path: "/tmp/workspace/demos/billing.tour.ts",
+            tour: {
+              id: "billing-overview",
+              title: "Billing overview",
+              run: async ({ narrate }) => {
+                await narrate("Resolve real narration");
+              },
+            },
+          },
+        }),
+      ).rejects.toThrow(/OPENAI_API_KEY/);
+    } finally {
+      if (originalApiKey === undefined) {
+        delete process.env.OPENAI_API_KEY;
+      } else {
+        process.env.OPENAI_API_KEY = originalApiKey;
+      }
+    }
   });
 
   test("still runs teardown when the tour fails and rethrows the primary error", async () => {
