@@ -90,6 +90,78 @@ describe("generateCommand", () => {
       `Tour file has invalid teardown export; expected a function when provided: ${path.join(cwd, "demos/invalid-teardown.tour.ts")}`,
     );
   });
+
+  test("turns missing Playwright browser runtime errors into a first-run install hint", async () => {
+    const cwd = await makeTempProject();
+
+    await expect(
+      generateCommand(cwd, "demos/sample.tour.ts", {
+        importModule: (href) => import(href),
+        generateTour: async () => {
+          throw new Error(
+            "browserType.launch: Executable doesn't exist at /tmp/ms-playwright/chromium/chrome\nPlease run bun x playwright install chromium",
+          );
+        },
+        loadConfig: async () => makeLoadedConfig(cwd),
+        log: () => {},
+      }),
+    ).rejects.toThrow(
+      'Playwright could not launch the local browser runtime for DemoHunter. Run "bun x playwright install chromium" and retry.',
+    );
+  });
+
+  test("turns missing ffmpeg binaries into an actionable prerequisite error", async () => {
+    const cwd = await makeTempProject();
+
+    await expect(
+      generateCommand(cwd, "demos/sample.tour.ts", {
+        importModule: (href) => import(href),
+        generateTour: async () => {
+          throw new Error("ffmpeg failed: spawn ffmpeg ENOENT");
+        },
+        loadConfig: async () => makeLoadedConfig(cwd),
+        log: () => {},
+      }),
+    ).rejects.toThrow(
+      'DemoHunter could not find ffmpeg/ffprobe on your PATH. Install ffmpeg, then confirm "ffmpeg -version" and "ffprobe -version" both work before retrying.',
+    );
+  });
+
+  test("turns missing uncached narration credentials into an export hint", async () => {
+    const cwd = await makeTempProject();
+
+    await expect(
+      generateCommand(cwd, "demos/sample.tour.ts", {
+        importModule: (href) => import(href),
+        generateTour: async () => {
+          throw new Error(
+            'Unable to resolve narration segment "Explain billing" because OPENAI_API_KEY is required.',
+          );
+        },
+        loadConfig: async () => makeLoadedConfig(cwd),
+        log: () => {},
+      }),
+    ).rejects.toThrow(
+      'Narration requires uncached OpenAI speech, but OPENAI_API_KEY is not set. Export OPENAI_API_KEY and retry, or rerun after the narration cache has already been populated.',
+    );
+  });
+
+  test("turns unreachable baseURL navigation failures into an app-readiness hint", async () => {
+    const cwd = await makeTempProject();
+
+    await expect(
+      generateCommand(cwd, "demos/sample.tour.ts", {
+        importModule: (href) => import(href),
+        generateTour: async () => {
+          throw new Error("page.goto: net::ERR_CONNECTION_REFUSED http://127.0.0.1:4173/");
+        },
+        loadConfig: async () => makeLoadedConfig(cwd),
+        log: () => {},
+      }),
+    ).rejects.toThrow(
+      'DemoHunter could not reach baseURL http://127.0.0.1:4173/. Start your app yourself, confirm that URL is reachable, and then rerun "demohunter generate".',
+    );
+  });
 });
 
 async function makeTempProject(): Promise<string> {
