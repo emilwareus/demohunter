@@ -76,9 +76,21 @@ describe("generation engine contract", () => {
       expect(captionsSrt).not.toContain("Payment History");
       expect(manifest.playback.durationMs).toBeGreaterThan(0);
       expect(manifest.artifacts.poster.captureTimestampMs).toBe(1_000);
+      expect(manifest.manifestVersion).toBe(1);
+      expect(manifest.artifacts.videos.mp4.path).toBe("video.mp4");
       expect(manifest.artifacts.poster.path).toBe("poster.jpg");
       expect(manifest.artifacts.audio).toHaveLength(NARRATION_TEXTS.length);
       expect(manifest.artifacts.audio.every((artifact) => artifact.path.startsWith("audio/"))).toBe(true);
+      const artifactPaths = collectManifestArtifactPaths(manifest);
+      expect(artifactPaths.every((artifactPath) => !artifactPath.startsWith("/"))).toBe(true);
+      expect(artifactPaths.every((artifactPath) => !artifactPath.includes(cwd))).toBe(true);
+      expect(
+        manifest.timeline.narrations.every(
+          (narration, index, narrations) =>
+            narration.endMs === narration.startMs + narration.durationMs &&
+            (index === 0 || narration.startMs >= narrations[index - 1]!.endMs),
+        ),
+      ).toBe(true);
       expect((await readdir(outputDir)).sort()).toEqual([
         "audio",
         "captions.srt",
@@ -424,4 +436,18 @@ function createExpectedVtt(): string {
     "00:00:01.850 --> 00:00:02.750",
     NARRATION_TEXTS[2],
   ].join("\n");
+}
+
+function collectManifestArtifactPaths(
+  manifest: ReturnType<typeof parsePortableOutputManifest>,
+): string[] {
+  return [
+    manifest.artifacts.videos.mp4.path,
+    manifest.artifacts.videos.webm?.path,
+    manifest.artifacts.poster.path,
+    manifest.artifacts.captions.srt.path,
+    manifest.artifacts.captions.vtt.path,
+    manifest.artifacts.chapters.path,
+    ...manifest.artifacts.audio.map((artifact) => artifact.path),
+  ].filter((artifactPath): artifactPath is string => artifactPath !== undefined);
 }
