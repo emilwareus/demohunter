@@ -1,0 +1,48 @@
+# DemoHunter Troubleshooting
+
+## Missing `OPENAI_API_KEY`
+
+DemoHunter only needs `OPENAI_API_KEY` when a generate run requires uncached narration.
+
+- If the narration is already cached, generation can run offline.
+- If a new narration segment is needed, set `OPENAI_API_KEY` in the environment and rerun the command.
+
+## App Not Reachable
+
+DemoHunter expects the app at `demohunter.config.ts` `baseURL` to already be running.
+
+- Start the local app yourself.
+- Verify the configured URL in a browser or with `curl`.
+- Fix the route or server port instead of adding bootstrap logic to the tour.
+
+## Missing Playwright Browser
+
+If browser launch fails, install the required Playwright browser runtime for the project environment:
+
+```bash
+bun x playwright install chromium
+```
+
+Use the repo's documented browser install variant if it differs.
+
+## Missing `ffmpeg`
+
+Video muxing and poster generation depend on `ffmpeg`. Install it on the machine and rerun generation.
+
+## Invalid Tour Module
+
+The tour file must default export an object with:
+
+- string `id`
+- string `title`
+- function `run`
+
+If the CLI reports an invalid export, compare the file against [../assets/tour.template.ts](../assets/tour.template.ts) and remove invented helper layers.
+
+## Drift Between Docs And Code
+
+When in doubt:
+
+- inspect the current SDK surface in `packages/sdk/src/tour.ts` and `packages/sdk/src/runtime-types.ts`
+- inspect the current CLI surface in `packages/cli/src/bin/demohunter.ts`
+- re-run the repo checks from [cli.md](cli.md)
