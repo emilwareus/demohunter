@@ -3,6 +3,7 @@ import { mkdtemp, mkdir, readFile, readdir, rm, writeFile } from "node:fs/promis
 import os from "node:os";
 import path from "node:path";
 
+import { parsePortableOutputManifest } from "@demohunter/manifest";
 import { writeGenerationOutput } from "./write-generation-output.js";
 
 const tempRoots: string[] = [];
@@ -36,7 +37,7 @@ describe("writeGenerationOutput", () => {
       },
       recordedNarrations: [
         {
-          audioPath: "/tmp/cache/billing.mp3",
+          audioPath: fixture.sourceBillingAudioPath,
           cacheKey: "billing",
           chapterTitle: "Billing",
           durationMs: 1_200,
@@ -45,7 +46,7 @@ describe("writeGenerationOutput", () => {
           text: "Open the billing workspace.",
         },
         {
-          audioPath: "/tmp/cache/invoices.mp3",
+          audioPath: fixture.sourceInvoicesAudioPath,
           cacheKey: "invoices",
           chapterTitle: "Invoices",
           durationMs: 800,
@@ -55,7 +56,20 @@ describe("writeGenerationOutput", () => {
         },
       ],
       outputDir: fixture.outputDir,
+    }, {
+      capturePoster: async ({ outputDir }) => {
+        const posterPath = path.join(outputDir, "poster.jpg");
+        await writeFile(posterPath, "poster bytes");
+        return {
+          captureTimestampMs: 1_000,
+          posterPath,
+          videoDurationMs: 2_000,
+        };
+      },
     });
+    const manifest = parsePortableOutputManifest(
+      JSON.parse(await readFile(path.join(fixture.outputDir, "manifest.json"), "utf8")),
+    );
 
     expect(result).toEqual({
       captionsSrtPath: path.join(fixture.outputDir, "captions.srt"),
@@ -64,10 +78,30 @@ describe("writeGenerationOutput", () => {
       outputDir: fixture.outputDir,
       videoPath: path.join(fixture.outputDir, "video.mp4"),
     });
+    expect((await readdir(fixture.outputDir)).sort()).toEqual([
+      "audio",
+      "captions.srt",
+      "captions.vtt",
+      "chapters.json",
+      "manifest.json",
+      "poster.jpg",
+      "video.mp4",
+      "video.webm",
+    ]);
+    expect((await readdir(path.join(fixture.outputDir, "audio"))).sort()).toEqual([
+      "billing.mp3",
+      "invoices.mp3",
+    ]);
     expect(await readFile(result.videoPath, "utf8")).toBe("mp4 bytes");
     expect(await readFile(path.join(fixture.outputDir, "video.webm"), "utf8")).toBe("webm bytes");
     expect(await readFile(result.captionsSrtPath, "utf8")).toContain("Open the billing workspace.");
     expect(await readFile(result.captionsVttPath, "utf8")).toContain("Explain the invoice table.");
+    expect(manifest.playback.durationMs).toBe(2_000);
+    expect(manifest.artifacts.poster.captureTimestampMs).toBe(1_000);
+    expect(manifest.artifacts.audio.map((artifact) => artifact.path).sort()).toEqual([
+      "audio/billing.mp3",
+      "audio/invoices.mp3",
+    ]);
     expect(JSON.parse(await readFile(result.chaptersPath, "utf8"))).toEqual([
       { title: "Billing", startMs: 0 },
       { title: "Invoices", startMs: 1400 },
@@ -90,16 +124,26 @@ describe("writeGenerationOutput", () => {
       },
       recordedNarrations: [],
       outputDir: fixture.outputDir,
+    }, {
+      capturePoster: async ({ outputDir }) => {
+        const posterPath = path.join(outputDir, "poster.jpg");
+        await writeFile(posterPath, "poster bytes");
+        return {
+          captureTimestampMs: 999,
+          posterPath,
+          videoDurationMs: 999,
+        };
+      },
     });
 
     expect((await readdir(fixture.outputDir)).sort()).toEqual([
       "captions.srt",
       "captions.vtt",
       "chapters.json",
+      "manifest.json",
+      "poster.jpg",
       "video.mp4",
     ]);
-    expect((await readdir(fixture.outputDir)).includes("manifest.json")).toBe(false);
-    expect((await readdir(fixture.outputDir)).includes("poster.jpg")).toBe(false);
     expect((await readdir(fixture.outputDir)).includes("audio")).toBe(false);
   });
 
@@ -120,12 +164,24 @@ describe("writeGenerationOutput", () => {
       },
       recordedNarrations: [],
       outputDir: fixture.outputDir,
+    }, {
+      capturePoster: async ({ outputDir }) => {
+        const posterPath = path.join(outputDir, "poster.jpg");
+        await writeFile(posterPath, "poster bytes");
+        return {
+          captureTimestampMs: 250,
+          posterPath,
+          videoDurationMs: 500,
+        };
+      },
     });
 
     expect((await readdir(fixture.outputDir)).sort()).toEqual([
       "captions.srt",
       "captions.vtt",
       "chapters.json",
+      "manifest.json",
+      "poster.jpg",
       "video.mp4",
     ]);
   });
@@ -133,6 +189,8 @@ describe("writeGenerationOutput", () => {
 
 async function makeFixture(): Promise<{
   outputDir: string;
+  sourceBillingAudioPath: string;
+  sourceInvoicesAudioPath: string;
   sourceMp4Path: string;
   sourceWebmPath: string;
 }> {
@@ -141,13 +199,25 @@ async function makeFixture(): Promise<{
 
   const outputDir = path.join(tempRoot, ".demohunter", "billing-overview");
   const sourceDir = path.join(tempRoot, "recording");
+  const cacheDir = path.join(tempRoot, "cache");
   await mkdir(outputDir, { recursive: true });
   await mkdir(sourceDir, { recursive: true });
+  await mkdir(cacheDir, { recursive: true });
 
   const sourceMp4Path = path.join(sourceDir, "video.mp4");
   const sourceWebmPath = path.join(sourceDir, "video.webm");
+  const sourceBillingAudioPath = path.join(cacheDir, "billing.mp3");
+  const sourceInvoicesAudioPath = path.join(cacheDir, "invoices.mp3");
   await writeFile(sourceMp4Path, "mp4 bytes");
   await writeFile(sourceWebmPath, "webm bytes");
+  await writeFile(sourceBillingAudioPath, "billing bytes");
+  await writeFile(sourceInvoicesAudioPath, "invoices bytes");
 
-  return { outputDir, sourceMp4Path, sourceWebmPath };
+  return {
+    outputDir,
+    sourceBillingAudioPath,
+    sourceInvoicesAudioPath,
+    sourceMp4Path,
+    sourceWebmPath,
+  };
 }

@@ -4,6 +4,7 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
+import { parsePortableOutputManifest } from "../../packages/manifest/src/index.js";
 import { createNarrationRequest, resolveNarrationFromCache } from "../../packages/tts-core/src/index.js";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
@@ -52,26 +53,42 @@ describe("generation engine contract", () => {
       const chaptersPath = path.join(outputDir, "chapters.json");
       const captionsSrtPath = path.join(outputDir, "captions.srt");
       const captionsVttPath = path.join(outputDir, "captions.vtt");
+      const manifestPath = path.join(outputDir, "manifest.json");
+      const posterPath = path.join(outputDir, "poster.jpg");
       const videoPath = path.join(outputDir, "video.mp4");
+      const audioDir = path.join(outputDir, "audio");
       const chapters = JSON.parse(await readFile(chaptersPath, "utf8")) as Array<{
         startMs: number;
         title: string;
       }>;
       const captionsSrt = await readFile(captionsSrtPath, "utf8");
       const captionsVtt = await readFile(captionsVttPath, "utf8");
+      const manifest = parsePortableOutputManifest(
+        JSON.parse(await readFile(manifestPath, "utf8")),
+      );
 
       await access(videoPath);
+      await access(posterPath);
       expect(chapters.map((chapter) => chapter.title)).toEqual(["Workspace Overview", "Payment History"]);
       expect(captionsSrt).toBe(createExpectedSrt());
       expect(captionsVtt).toBe(createExpectedVtt());
       expect(captionsSrt).not.toContain("Workspace Overview");
       expect(captionsSrt).not.toContain("Payment History");
+      expect(manifest.playback.durationMs).toBeGreaterThan(0);
+      expect(manifest.artifacts.poster.captureTimestampMs).toBe(1_000);
+      expect(manifest.artifacts.poster.path).toBe("poster.jpg");
+      expect(manifest.artifacts.audio).toHaveLength(NARRATION_TEXTS.length);
+      expect(manifest.artifacts.audio.every((artifact) => artifact.path.startsWith("audio/"))).toBe(true);
       expect((await readdir(outputDir)).sort()).toEqual([
+        "audio",
         "captions.srt",
         "captions.vtt",
         "chapters.json",
+        "manifest.json",
+        "poster.jpg",
         "video.mp4",
       ]);
+      expect((await readdir(audioDir)).length).toBe(NARRATION_TEXTS.length);
 
       const rerunResult = await runCli(cwd, ["generate", tourPath], unsetNarrationEnv());
       expect(rerunResult.exitCode).toBe(0);

@@ -1,10 +1,16 @@
 import { copyFile, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 
+import {
+  createPortableArtifactDescriptor,
+  parsePortableOutputManifest,
+} from "@demohunter/manifest";
 import type {
   PortableVideoOutputs,
   RecordedNarration,
 } from "../execute/generator-types.js";
+import { capturePoster } from "./capture-poster.js";
+import { exportAudio } from "./export-audio.js";
 import { serializeNarrationSubtitles } from "./subtitles.js";
 
 export type GenerationChapter = {
@@ -22,7 +28,11 @@ export type WriteGenerationOutputInput = {
 };
 
 type WriteGenerationOutputDependencies = {
+  capturePoster: typeof capturePoster;
   copyFile: typeof copyFile;
+  createPortableArtifactDescriptor: typeof createPortableArtifactDescriptor;
+  exportAudio: typeof exportAudio;
+  parsePortableOutputManifest: typeof parsePortableOutputManifest;
   rm: typeof rm;
   writeFile: typeof writeFile;
 };
@@ -36,7 +46,11 @@ export type WriteGenerationOutputResult = {
 };
 
 const defaultDependencies: WriteGenerationOutputDependencies = {
+  capturePoster,
   copyFile,
+  createPortableArtifactDescriptor,
+  exportAudio,
+  parsePortableOutputManifest,
   rm,
   writeFile,
 };
@@ -53,6 +67,7 @@ export async function writeGenerationOutput(
   const chaptersPath = path.join(input.outputDir, "chapters.json");
   const captionsSrtPath = path.join(input.outputDir, "captions.srt");
   const captionsVttPath = path.join(input.outputDir, "captions.vtt");
+  const manifestPath = path.join(input.outputDir, "manifest.json");
   const videoArtifacts = [input.videos.mp4, input.videos.webm].filter((artifact) => artifact !== undefined);
   const expectedVideoPaths = new Set(
     videoArtifacts.map((artifact) => path.resolve(path.join(input.outputDir, artifact.fileName))),
@@ -79,6 +94,87 @@ export async function writeGenerationOutput(
     resolvedDependencies.writeFile(captionsSrtPath, subtitles.srt),
     resolvedDependencies.writeFile(captionsVttPath, subtitles.vtt),
   ]);
+  const exportedAudio = await resolvedDependencies.exportAudio(input.outputDir, input.recordedNarrations);
+  const poster = await resolvedDependencies.capturePoster({
+    outputDir: input.outputDir,
+    videoPath,
+  });
+  const manifest = resolvedDependencies.parsePortableOutputManifest({
+    manifestVersion: 1,
+    tour: {
+      id: input.tourId,
+      title: input.tourTitle,
+    },
+    playback: {
+      durationMs: poster.videoDurationMs,
+    },
+    artifacts: {
+      videos: {
+        mp4: await resolvedDependencies.createPortableArtifactDescriptor({
+          filePath: videoPath,
+          mediaType: "video/mp4",
+          outputDir: input.outputDir,
+        }),
+        ...(input.videos.webm === undefined
+          ? {}
+          : {
+              webm: await resolvedDependencies.createPortableArtifactDescriptor({
+                filePath: path.join(input.outputDir, input.videos.webm.fileName),
+                mediaType: "video/webm",
+                outputDir: input.outputDir,
+              }),
+            }),
+      },
+      poster: {
+        ...(await resolvedDependencies.createPortableArtifactDescriptor({
+          filePath: poster.posterPath,
+          mediaType: "image/jpeg",
+          outputDir: input.outputDir,
+        })),
+        captureTimestampMs: poster.captureTimestampMs,
+      },
+      captions: {
+        srt: await resolvedDependencies.createPortableArtifactDescriptor({
+          filePath: captionsSrtPath,
+          mediaType: "text/plain",
+          outputDir: input.outputDir,
+        }),
+        vtt: await resolvedDependencies.createPortableArtifactDescriptor({
+          filePath: captionsVttPath,
+          mediaType: "text/vtt",
+          outputDir: input.outputDir,
+        }),
+      },
+      chapters: await resolvedDependencies.createPortableArtifactDescriptor({
+        filePath: chaptersPath,
+        mediaType: "application/json",
+        outputDir: input.outputDir,
+      }),
+      audio: await Promise.all(
+        exportedAudio.map(async (artifact) => ({
+          ...(await resolvedDependencies.createPortableArtifactDescriptor({
+            filePath: artifact.outputPath,
+            mediaType: detectAudioMediaType(artifact.outputPath),
+            outputDir: input.outputDir,
+          })),
+          cacheKey: artifact.cacheKey,
+          durationMs: artifact.durationMs,
+        })),
+      ),
+    },
+    timeline: {
+      chapters: input.chapters,
+      narrations: input.recordedNarrations.map((narration) => ({
+        cacheKey: narration.cacheKey,
+        chapterTitle: narration.chapterTitle,
+        durationMs: narration.durationMs,
+        endMs: narration.endMs,
+        startMs: narration.startMs,
+        text: narration.text,
+      })),
+    },
+  });
+  await resolvedDependencies.writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
 
   return {
     captionsSrtPath,
@@ -87,4 +183,23 @@ export async function writeGenerationOutput(
     outputDir: input.outputDir,
     videoPath: path.join(input.outputDir, "video.mp4"),
   };
+}
+
+function detectAudioMediaType(filePath: string): string {
+  const extension = path.extname(filePath).toLowerCase();
+
+  switch (extension) {
+    case ".mp3":
+      return "audio/mpeg";
+    case ".wav":
+      return "audio/wav";
+    case ".ogg":
+      return "audio/ogg";
+    case ".m4a":
+      return "audio/mp4";
+    case ".webm":
+      return "audio/webm";
+    default:
+      return "application/octet-stream";
+  }
 }

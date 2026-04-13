@@ -29,6 +29,7 @@
       "name": "@demohunter/generator-playwright",
       "version": "0.0.0",
       "dependencies": {
+        "@demohunter/manifest": "workspace:*",
         "@demohunter/sdk": "workspace:*",
         "@demohunter/tts-core": "workspace:*",
         "@demohunter/tts-openai": "workspace:*",
