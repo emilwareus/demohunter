@@ -1,10 +1,18 @@
 import { describe, expect, test } from "bun:test";
-import { access, readFile } from "node:fs/promises";
+import { access, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const skillRoot = path.join(repoRoot, "skills", "demohunter");
+const cliSourcePath = path.join(repoRoot, "packages", "cli", "src", "bin", "demohunter.ts");
+const markdownFiles = [
+  path.join(skillRoot, "SKILL.md"),
+  path.join(skillRoot, "references", "authoring.md"),
+  path.join(skillRoot, "references", "cli.md"),
+  path.join(skillRoot, "references", "troubleshooting.md"),
+] as const;
 
 const requiredFiles = [
   path.join(skillRoot, "SKILL.md"),
@@ -30,5 +38,93 @@ describe("demohunter skill bundle", () => {
     expect(templateSource).toContain("chapter(");
     expect(templateSource).toContain("step(");
     expect(templateSource).toContain("narrate(");
+    expect(templateSource).not.toContain("replace-with-tour-id");
+    expect(templateSource).not.toContain("Replace visible heading");
+
+    await expect(typecheckTemplate(templatePath)).resolves.toBeUndefined();
+  });
+
+  test("keeps markdown links and documented CLI commands aligned with the repo", async () => {
+    const cliSource = await readFile(cliSourcePath, "utf8");
+    const documentedCommands = [
+      "demohunter init",
+      "demohunter generate <tour-file>",
+      "demohunter cache list",
+      "demohunter cache prune",
+      "demohunter cache clear",
+    ] as const;
+
+    expect(cliSource).toContain('case "init"');
+    expect(cliSource).toContain('case "generate"');
+    expect(cliSource).toContain('case "cache"');
+
+    for (const markdownPath of markdownFiles) {
+      const markdown = await readFile(markdownPath, "utf8");
+
+      for (const command of documentedCommands) {
+        if (markdownPath.endsWith("cli.md")) {
+          expect(markdown).toContain(command);
+        }
+      }
+
+      for (const linkPath of collectRelativeMarkdownLinks(markdown)) {
+        await expect(access(path.resolve(path.dirname(markdownPath), linkPath))).resolves.toBeNull();
+      }
+    }
   });
 });
+
+function collectRelativeMarkdownLinks(markdown: string): string[] {
+  const matches = markdown.matchAll(/\[[^\]]+\]\((?!https?:|#)([^)]+)\)/g);
+  return [...new Set(Array.from(matches, (match) => match[1]!.split("#")[0]!.trim()).filter(Boolean))];
+}
+
+async function typecheckTemplate(templatePath: string): Promise<void> {
+  const tempDir = await mkdtemp(path.join(os.tmpdir(), "demohunter-skill-contract-"));
+
+  try {
+    const tsconfigPath = path.join(tempDir, "tsconfig.json");
+    await writeFile(
+      tsconfigPath,
+      `${JSON.stringify(
+        {
+          compilerOptions: {
+            noEmit: true,
+            target: "ESNext",
+            module: "NodeNext",
+            moduleResolution: "NodeNext",
+            lib: ["ESNext"],
+            types: ["node"],
+            typeRoots: [path.join(repoRoot, "node_modules", "@types")],
+            skipLibCheck: true,
+            baseUrl: repoRoot,
+            paths: {
+              "@demohunter/sdk": ["packages/sdk/src/index.ts"],
+            },
+          },
+          files: [templatePath],
+        },
+        null,
+        2,
+      )}\n`,
+    );
+
+    const processResult = Bun.spawn({
+      cmd: [process.execPath, "x", "tsc", "-p", tsconfigPath],
+      cwd: repoRoot,
+      stdout: "pipe",
+      stderr: "pipe",
+    });
+    const [exitCode, stdout, stderr] = await Promise.all([
+      processResult.exited,
+      new Response(processResult.stdout).text(),
+      new Response(processResult.stderr).text(),
+    ]);
+
+    if (exitCode !== 0) {
+      throw new Error(stderr || stdout || "Template typecheck failed.");
+    }
+  } finally {
+    await rm(tempDir, { force: true, recursive: true });
+  }
+}
