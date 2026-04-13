@@ -7,6 +7,40 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const cliEntryPoint = path.join(repoRoot, "packages/cli/src/bin/demohunter.ts");
 const authoringFixturePath = path.join(repoRoot, "tests/fixtures/tours/phase-02-authoring.tour.ts");
+const authoredNoNarrationFixture = `import { defineTour } from "@demohunter/sdk";
+
+export default defineTour({
+  id: "phase-02-authoring",
+  title: "Phase 2 authoring contract",
+  async setup({ page }) {
+    await page.getByLabel("Email").fill("demo@demohunter.dev");
+    await page.getByLabel("Password").fill("demo-password");
+    await page.getByRole("button", { name: "Sign in" }).click();
+    await page.getByRole("heading", { name: "Workspace home" }).waitFor();
+  },
+  async run({ page, chapter, step, waitForStable, highlight, snapshot, assertVisible }) {
+    await chapter("Workspace Settings", { id: "workspace-settings" });
+
+    await step("Open the settings panel", async () => {
+      const openSettingsButton = page.getByRole("button", { name: "Open settings" });
+      await highlight(openSettingsButton, {
+        name: "open-settings-button",
+        paddingPx: 12,
+      });
+      await openSettingsButton.click();
+      await waitForStable({ state: "load", timeoutMs: 1_000 });
+      await assertVisible(page.getByRole("heading", { name: "Workspace Settings" }), {
+        timeoutMs: 1_000,
+      });
+      await snapshot({ name: "workspace-settings-open" });
+    });
+  },
+  async teardown({ page }) {
+    await page.getByRole("button", { name: "Sign out" }).click();
+    await page.getByRole("button", { name: "Sign in" }).waitFor();
+  },
+});
+`;
 const tempRoots: string[] = [];
 
 afterEach(async () => {
@@ -24,7 +58,7 @@ describe("authoring sdk contract", () => {
       await writeTempRepoConfig(cwd);
       await writeTempRepoSite(cwd);
       await mkdir(path.join(cwd, "demos"), { recursive: true });
-      await cp(authoringFixturePath, path.join(cwd, tourPath));
+      await writeFile(path.join(cwd, tourPath), authoredNoNarrationFixture);
 
       const installResult = await spawnCommand([process.execPath, "install"], cwd);
       expect(installResult.exitCode).toBe(0);
@@ -43,6 +77,9 @@ describe("authoring sdk contract", () => {
       await access(videoPath);
       await access(path.join(outputDir, "captions.srt"));
       await access(path.join(outputDir, "captions.vtt"));
+      await access(path.join(outputDir, "manifest.json"));
+      await access(path.join(outputDir, "poster.jpg"));
+      await expect(access(path.join(outputDir, "audio"))).rejects.toThrow();
       expect(chapters).toHaveLength(1);
       expect(chapters[0]?.title).toBe("Workspace Settings");
       expect(chapters[0]?.startMs).toBeGreaterThanOrEqual(0);
@@ -50,6 +87,8 @@ describe("authoring sdk contract", () => {
         "captions.srt",
         "captions.vtt",
         "chapters.json",
+        "manifest.json",
+        "poster.jpg",
         "video.mp4",
       ]);
     },
