@@ -93,12 +93,13 @@ Plans:
   1. Every successful run produces the full portable output set, including poster, manifest, subtitles, chapters, and audio files.
   2. Manifest data is versioned, Zod-validated, and contains checksums for generated artifacts.
   3. A future cloud service could ingest `.demohunter/<tour-id>/` without needing the source repo.
-**Plans**: 3 plans
+**Plans**: 4 plans
 
 Plans:
 - [ ] 05-01-PLAN.md — Define the versioned manifest package, checksum helpers, and relative-path guards in `@demohunter/manifest`.
-- [ ] 05-02-PLAN.md — Upgrade the generator to emit baseline mp4 output, poster/audio artifacts, and a validated portable manifest.
-- [ ] 05-03-PLAN.md — Prove the portable output contract through source CLI, built CLI, and full regression verification.
+- [ ] 05-02-PLAN.md — Promote the generator runtime to baseline mp4 output and replay-safe narration timing inputs.
+- [ ] 05-03-PLAN.md — Add poster/audio export helpers and write the validated portable manifest from final artifacts.
+- [ ] 05-04-PLAN.md — Prove the portable output contract through source CLI, built CLI, and full regression verification.
 
 ### Phase 6: OSS Readiness and Agent Skill
 **Goal**: Make DemoHunter usable as a public OSS project through examples, docs, agent skill docs, CI, and launch polish.
@@ -127,5 +128,5 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6
 | 2. Tour Authoring SDK | 3/3 | Complete | 2026-04-10 |
 | 3. Playwright Generation Engine | 4/4 | Complete | 2026-04-11 |
 | 4. OpenAI Narration and Cache | 4/4 | Complete | 2026-04-11 |
-| 5. Portable Output Contract | 0/3 | Not started | - |
+| 5. Portable Output Contract | 0/4 | Not started | - |
 | 6. OSS Readiness and Agent Skill | 0/4 | Not started | - |

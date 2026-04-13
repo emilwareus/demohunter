@@ -49,7 +49,7 @@ None — discussion stayed within phase scope.
 
 Phase 5 should treat `@demohunter/manifest` as the authoritative home of the external output contract, because that package already exists as the intended manifest boundary while the current generator writer still emits only the selected final video, `chapters.json`, and subtitle files; it does not yet export narration audio, capture `poster.jpg`, or write `manifest.json`. [VERIFIED: codebase grep]
 
-The most important planning constraint is timing fidelity. `generateTour()` already records replay-time chapter starts from pass 2, but subtitle serialization currently concatenates narration durations back-to-back and does not encode replay gaps, hold padding, or chapter-overlay time. [VERIFIED: codebase grep] Therefore the planner should not build the portable manifest from pass-one narration order alone; it should add replay-measured narration timing to the pass-two orchestration and use that richer timeline for ingest-safe manifest metadata. [VERIFIED: codebase grep]
+The most important planning constraint is timing fidelity. `generateTour()` already records replay-time chapter starts from pass 2, but subtitle serialization currently concatenates narration durations back-to-back and does not encode replay gaps, hold padding, or chapter-overlay time. [VERIFIED: codebase grep] The planning direction for Phase 5 is now closed: keep `captions.srt` and `captions.vtt` behavior unchanged from Phase 4, and add replay-measured narration timing to the manifest timeline instead of rewriting subtitle semantics. [VERIFIED: codebase grep]
 
 Cloud docs already assume upload of `.demohunter/<tour-id>/` with video, captions, chapters, manifest, poster, and `audio/`, and they call out “manifest ingestion” plus reusable narration segments in a timeline manifest as future hosted behavior. [VERIFIED: codebase grep] **Primary recommendation:** write all final artifacts first, hash the actual exported files inside `.demohunter/<tour-id>/`, validate a strict versioned manifest with Zod, and keep every manifest reference relative to the tour output root. [VERIFIED: codebase grep] [CITED: https://nodejs.org/api/path.html]
 
@@ -235,11 +235,11 @@ await replayTimeline({
 **How to avoid:** Convert every artifact path back to output-root-relative form with `path.relative()`, then reject any empty, absolute, or escaping result. [CITED: https://nodejs.org/api/path.html]
 **Warning signs:** `manifest.json` changes when the same tour is generated from a different absolute repo location. [VERIFIED: .planning/phases/05-portable-output-contract/05-CONTEXT.md]
 
-### Pitfall 4: Leaving the Video-Artifact Contract Ambiguous
-**What goes wrong:** Tests, manifest schema, and runtime behavior disagree on whether the contract is “one selected video file” or “always mp4 plus optional webm.” [VERIFIED: codebase grep] [VERIFIED: .planning/REQUIREMENTS.md]
-**Why it happens:** Phase 3 intentionally emits only the selected final video artifact, but OUT-01 and Phase 1 docs can be read as `video.mp4` plus optional `video.webm`. [VERIFIED: codebase grep]
-**How to avoid:** Resolve the ambiguity in planning before implementation and encode the answer in manifest schema, writer behavior, and e2e assertions together. [VERIFIED: codebase grep]
-**Warning signs:** A manifest row marks `video.mp4` as required while a `record.format = "webm"` run still passes source tests. [VERIFIED: codebase grep]
+### Pitfall 4: Letting the Video-Artifact Contract Drift From the Resolved Phase 5 Rule
+**What goes wrong:** Tests, manifest schema, and runtime behavior disagree on the closed contract that every successful run emits `video.mp4`, with `video.webm` present only when configured. [VERIFIED: codebase grep] [VERIFIED: .planning/REQUIREMENTS.md]
+**Why it happens:** Phase 3 intentionally emitted only the selected final video artifact, so Phase 5 must update runtime behavior and assertions together rather than partially. [VERIFIED: codebase grep]
+**How to avoid:** Encode the resolved rule consistently in `muxVideo()`, the manifest schema, the output writer, and e2e assertions: required `artifacts.videos.mp4`, optional `artifacts.videos.webm`, and no placeholder files. [VERIFIED: codebase grep]
+**Warning signs:** A `record.format = "webm"` run lacks `video.mp4`, or a non-webm run leaves a stale `video.webm` while the manifest still claims the optional artifact is absent. [VERIFIED: codebase grep]
 
 ### Pitfall 5: Poster Capture Drifts Across Reruns
 **What goes wrong:** Two successful runs of the same tour produce different `poster.jpg` outputs, which makes the portable contract unstable and breaks checksum expectations. [VERIFIED: .planning/phases/05-portable-output-contract/05-CONTEXT.md]
@@ -329,17 +329,15 @@ export function toPortablePath(outputDir: string, artifactPath: string): string 
 |---|-------|---------|---------------|
 | A1 | A fixed poster capture timestamp of `1000ms` is a reasonable default if the planner wants a concrete constant now. [ASSUMED] | Architecture Patterns / Common Pitfalls | Low-to-medium. The contract remains deterministic either way, but tests and docs must agree on the chosen constant. |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
-1. **Does Phase 5 preserve the current one-of video output model or change to always-on `video.mp4` plus optional `video.webm`?**
-   - What we know: current code and Phase 3 tests remove the stale alternate video and keep only the selected final artifact, while OUT-01 and product docs can be read as `video.mp4` plus optional `video.webm`. [VERIFIED: codebase grep] [VERIFIED: .planning/REQUIREMENTS.md]
-   - What's unclear: whether “optional `video.webm`” means an additional artifact or only an alternate chosen by config.
-   - Recommendation: resolve this before plan breakdown, because it affects `RecordFormat`, `muxVideo()`, manifest schema, and every e2e artifact assertion. [VERIFIED: codebase grep]
+1. **Video artifact contract**
+   - Chosen answer: every successful Phase 5 generation writes `video.mp4`, and `video.webm` is emitted only when `record.format === "webm"`. The manifest models this as required `artifacts.videos.mp4` plus optional `artifacts.videos.webm`, with no placeholder object or stale file retention. [VERIFIED: .planning/phases/05-portable-output-contract/05-CONTEXT.md] [VERIFIED: .planning/REQUIREMENTS.md]
+   - Planning consequence: `muxVideo()`, `writeGenerationOutput()`, the manifest schema, and e2e contract tests must all enforce the same baseline-mp4-plus-optional-webm rule.
 
-2. **Should Phase 5 correct subtitle timing to replay-relative values, or only add replay-safe timing inside the manifest?**
-   - What we know: current subtitle files are derived from narration segments only, and their timing is sequential duration accumulation rather than replay-measured media timing. [VERIFIED: codebase grep]
-   - What's unclear: whether phase scope includes changing the already-completed OUT-03 subtitle behavior or only enriching the portable manifest for future ingest.
-   - Recommendation: at minimum add replay-measured narration timing to the manifest in Phase 5; change `captions.srt` and `captions.vtt` only if the planner explicitly chooses to tighten the subtitle contract now. [VERIFIED: codebase grep]
+2. **Subtitle timing compatibility**
+   - Chosen answer: keep `captions.srt` and `captions.vtt` semantics unchanged from Phase 4, and add replay-safe narration `startMs` / `endMs` timing only to `manifest.json`. [VERIFIED: codebase grep]
+   - Planning consequence: `generateTour()` records replay-measured narration timing during pass 2 for manifest metadata, while subtitle generation remains backward-compatible and OUT-03 behavior is not redefined in Phase 5.
 
 ## Environment Availability
 
@@ -432,7 +430,7 @@ export function toPortablePath(outputDir: string, artifactPath: string): string 
 
 **Confidence breakdown:**
 - Standard stack: HIGH - package seams, runtime tools, and external versions were directly verified in the repo, npm registry, and local environment. [VERIFIED: codebase grep] [VERIFIED: npm registry] [VERIFIED: local environment probe]
-- Architecture: MEDIUM - the core writer/timing seams are verified, but the exact video-artifact contract and whether subtitle timing should change remain unresolved. [VERIFIED: codebase grep]
+- Architecture: MEDIUM - the core writer/timing seams are verified, and the planning record now resolves the video contract to baseline mp4 plus optional webm while keeping captions unchanged and adding replay-safe manifest timing. [VERIFIED: codebase grep]
 - Pitfalls: HIGH - the main failure modes are directly visible in current code paths and locked phase constraints. [VERIFIED: codebase grep]
 
 **Research date:** 2026-04-13  
