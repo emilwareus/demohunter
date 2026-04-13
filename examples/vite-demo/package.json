@@ -1,0 +1,10 @@
+{
+  "name": "@examples/vite-demo",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1 --port 3200 --strictPort",
+    "build": "vite build",
+    "generate": "bun x demohunter generate demos/vite-demo.tour.ts"
+  }
+}
