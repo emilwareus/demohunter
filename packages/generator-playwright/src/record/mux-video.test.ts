@@ -15,6 +15,7 @@ describe("muxVideo", () => {
   test("converts a temporary screencast into a final mp4 via the injected ffmpeg command", async () => {
     const fixture = await makeFixture();
     const commands: Array<{ command: string; args: string[] }> = [];
+    await writeFile(path.join(fixture.outputDir, "video.webm"), "stale webm output");
 
     const result = await muxVideo(
       {
@@ -33,9 +34,11 @@ describe("muxVideo", () => {
     );
 
     expect(result).toEqual({
-      format: "mp4",
-      fileName: "video.mp4",
-      path: path.join(fixture.outputDir, "video.mp4"),
+      mp4: {
+        format: "mp4",
+        fileName: "video.mp4",
+        path: path.join(fixture.outputDir, "video.mp4"),
+      },
     });
     expect(commands).toHaveLength(1);
     expect(commands[0]).toEqual({
@@ -51,11 +54,11 @@ describe("muxVideo", () => {
         path.join(fixture.outputDir, "video.mp4"),
       ],
     });
-    expect(await readFile(result.path, "utf8")).toBe("mp4 output");
+    expect(await readFile(result.mp4.path, "utf8")).toBe("mp4 output");
     expect(await readdir(fixture.outputDir)).toEqual(["video.mp4"]);
   });
 
-  test("emits only video.webm when the resolved record format is webm", async () => {
+  test("always emits video.mp4 and adds video.webm only when the resolved record format is webm", async () => {
     const fixture = await makeFixture();
     const commands: Array<{ command: string; args: string[] }> = [];
 
@@ -68,18 +71,28 @@ describe("muxVideo", () => {
       {
         runCommand: async (command, args) => {
           commands.push({ command, args });
+          const outputPath = args[args.length - 1];
+          await writeFile(outputPath, "mp4 output");
         },
       },
     );
 
     expect(result).toEqual({
-      format: "webm",
-      fileName: "video.webm",
-      path: path.join(fixture.outputDir, "video.webm"),
+      mp4: {
+        format: "mp4",
+        fileName: "video.mp4",
+        path: path.join(fixture.outputDir, "video.mp4"),
+      },
+      webm: {
+        format: "webm",
+        fileName: "video.webm",
+        path: path.join(fixture.outputDir, "video.webm"),
+      },
     });
-    expect(commands).toHaveLength(0);
-    expect(await readFile(result.path, "utf8")).toBe("temporary webm");
-    expect(await readdir(fixture.outputDir)).toEqual(["video.webm"]);
+    expect(commands).toHaveLength(1);
+    expect(await readFile(result.mp4.path, "utf8")).toBe("mp4 output");
+    expect(await readFile(result.webm!.path, "utf8")).toBe("temporary webm");
+    expect((await readdir(fixture.outputDir)).sort()).toEqual(["video.mp4", "video.webm"]);
   });
 });
 

@@ -63,6 +63,19 @@ export type NarrationSegment = {
   cacheKey: string;
 };
 
+export type PortableVideoOutputs = {
+  mp4: {
+    fileName: "video.mp4";
+    format: "mp4";
+    path: string;
+  };
+  webm?: {
+    fileName: "video.webm";
+    format: "webm";
+    path: string;
+  };
+};
+
 export type NarrationSegmentResolver = (
   event: NarrationRuntimeEvent,
 ) => NarrationSegment | Promise<NarrationSegment>;

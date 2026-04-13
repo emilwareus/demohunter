@@ -1,8 +1,9 @@
 import { spawn } from "node:child_process";
-import { copyFile } from "node:fs/promises";
+import { copyFile, rm } from "node:fs/promises";
 import path from "node:path";
 
 import type { RecordFormat } from "@demohunter/sdk";
+import type { PortableVideoOutputs } from "../execute/generator-types.js";
 
 export type MuxVideoInput = {
   outputDir: string;
@@ -10,47 +11,33 @@ export type MuxVideoInput = {
   tempScreencastPath: string;
 };
 
-export type MuxedVideoArtifact = {
-  format: RecordFormat;
-  fileName: "video.mp4" | "video.webm";
-  path: string;
-};
-
 type RunCommand = (command: string, args: string[]) => Promise<void>;
 
 export type MuxVideoDependencies = {
   copyFile: typeof copyFile;
   ffmpegCommand: string;
+  rm: typeof rm;
   runCommand: RunCommand;
 };
 
 const defaultDependencies: MuxVideoDependencies = {
   copyFile,
   ffmpegCommand: "ffmpeg",
+  rm,
   runCommand: runProcess,
 };
 
 export async function muxVideo(
   input: MuxVideoInput,
   dependencies: Partial<MuxVideoDependencies> = {},
-): Promise<MuxedVideoArtifact> {
+): Promise<PortableVideoOutputs> {
   const resolvedDependencies = {
     ...defaultDependencies,
     ...dependencies,
   };
+  const mp4Path = path.join(input.outputDir, "video.mp4");
+  const webmPath = path.join(input.outputDir, "video.webm");
 
-  if (input.recordFormat === "webm") {
-    const outputPath = path.join(input.outputDir, "video.webm");
-    await resolvedDependencies.copyFile(input.tempScreencastPath, outputPath);
-
-    return {
-      format: "webm",
-      fileName: "video.webm",
-      path: outputPath,
-    };
-  }
-
-  const outputPath = path.join(input.outputDir, "video.mp4");
   await resolvedDependencies.runCommand(resolvedDependencies.ffmpegCommand, [
     "-y",
     "-i",
@@ -59,13 +46,34 @@ export async function muxVideo(
     "libx264",
     "-pix_fmt",
     "yuv420p",
-    outputPath,
+    mp4Path,
   ]);
 
+  if (input.recordFormat === "webm") {
+    await resolvedDependencies.copyFile(input.tempScreencastPath, webmPath);
+
+    return {
+      mp4: {
+        fileName: "video.mp4",
+        format: "mp4",
+        path: mp4Path,
+      },
+      webm: {
+        fileName: "video.webm",
+        format: "webm",
+        path: webmPath,
+      },
+    };
+  }
+
+  await resolvedDependencies.rm(webmPath, { force: true });
+
   return {
-    format: "mp4",
-    fileName: "video.mp4",
-    path: outputPath,
+    mp4: {
+      fileName: "video.mp4",
+      format: "mp4",
+      path: mp4Path,
+    },
   };
 }
 
