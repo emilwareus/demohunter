@@ -16,7 +16,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 2: Tour Authoring SDK** - Define the `.tour.ts` authoring model and helper APIs on top of Playwright.
 - [x] **Phase 3: Playwright Generation Engine** - Implement two-pass execution, recording, overlays, and base local output writing.
 - [x] **Phase 4: OpenAI Narration and Cache** - Add provider-backed narration, cache behavior, subtitles, and offline regeneration rules.
-- [ ] **Phase 5: Portable Output Contract** - Finalize the manifest schema, checksums, poster generation, and portable artifact layout.
+- [x] **Phase 5: Portable Output Contract** - Finalize the manifest schema, checksums, poster generation, and portable artifact layout. (completed 2026-04-13)
 - [ ] **Phase 6: OSS Readiness and Agent Skill** - Ship examples, docs, skill docs, CI, and launch polish.
 
 ## Phase Details
@@ -96,10 +96,10 @@ Plans:
 **Plans**: 4 plans
 
 Plans:
-- [ ] 05-01-PLAN.md — Define the versioned manifest package, checksum helpers, and relative-path guards in `@demohunter/manifest`.
-- [ ] 05-02-PLAN.md — Promote the generator runtime to baseline mp4 output and replay-safe narration timing inputs.
-- [ ] 05-03-PLAN.md — Add poster/audio export helpers and write the validated portable manifest from final artifacts.
-- [ ] 05-04-PLAN.md — Prove the portable output contract through source CLI, built CLI, and full regression verification.
+- [x] 05-01-PLAN.md — Define the versioned manifest package, checksum helpers, and relative-path guards in `@demohunter/manifest`.
+- [x] 05-02-PLAN.md — Promote the generator runtime to baseline mp4 output and replay-safe narration timing inputs.
+- [x] 05-03-PLAN.md — Add poster/audio export helpers and write the validated portable manifest from final artifacts.
+- [x] 05-04-PLAN.md — Prove the portable output contract through source CLI, built CLI, and full regression verification.
 
 ### Phase 6: OSS Readiness and Agent Skill
 **Goal**: Make DemoHunter usable as a public OSS project through examples, docs, agent skill docs, CI, and launch polish.
@@ -128,5 +128,5 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6
 | 2. Tour Authoring SDK | 3/3 | Complete | 2026-04-10 |
 | 3. Playwright Generation Engine | 4/4 | Complete | 2026-04-11 |
 | 4. OpenAI Narration and Cache | 4/4 | Complete | 2026-04-11 |
-| 5. Portable Output Contract | 0/4 | Not started | - |
+| 5. Portable Output Contract | 4/4 | Complete | 2026-04-13 |
 | 6. OSS Readiness and Agent Skill | 0/4 | Not started | - |

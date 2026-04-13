@@ -42,10 +42,10 @@
 
 ### Output Contract
 
-- [ ] **OUT-01**: Every successful generation writes `video.mp4`, optional `video.webm`, `poster.jpg`, `captions.srt`, `captions.vtt`, `chapters.json`, `manifest.json`, and cached audio files into `.demohunter/<tour-id>/`.
-- [ ] **OUT-02**: DemoHunter defines a versioned Zod manifest schema that describes generated files and includes checksums.
+- [x] **OUT-01**: Every successful generation writes `video.mp4`, optional `video.webm`, `poster.jpg`, `captions.srt`, `captions.vtt`, `chapters.json`, `manifest.json`, and cached audio files into `.demohunter/<tour-id>/`.
+- [x] **OUT-02**: DemoHunter defines a versioned Zod manifest schema that describes generated files and includes checksums.
 - [x] **OUT-03**: Subtitle files are generated from narration segments only.
-- [ ] **OUT-04**: The generated output contract is portable enough for a later cloud product to ingest without access to the original repo.
+- [x] **OUT-04**: The generated output contract is portable enough for a later cloud product to ingest without access to the original repo.
 
 ### OSS Readiness
 
@@ -101,9 +101,9 @@
 | TTS-08 | Phase 4 | Complete |
 | TTS-09 | Phase 4 | Complete |
 | OUT-03 | Phase 4 | Complete |
-| OUT-01 | Phase 5 | Pending |
-| OUT-02 | Phase 5 | Pending |
-| OUT-04 | Phase 5 | Pending |
+| OUT-01 | Phase 5 | Complete |
+| OUT-02 | Phase 5 | Complete |
+| OUT-04 | Phase 5 | Complete |
 | OSS-01 | Phase 6 | Pending |
 | OSS-02 | Phase 6 | Pending |
 | OSS-03 | Phase 6 | Pending |
@@ -115,4 +115,4 @@
 
 ---
 *Requirements defined: 2026-04-09*
-*Last updated: 2026-04-11 after completing Phase 04*
+*Last updated: 2026-04-13 after completing Phase 05*
