@@ -4,6 +4,8 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
+import { parsePortableOutputManifest } from "../../packages/manifest/src/index.js";
+
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const builtCliEntryPoint = path.join(repoRoot, "packages/cli/dist/bin/demohunter.js");
 const narrationFixturePath = path.join(repoRoot, "tests/fixtures/tours/phase-04-narration.tour.ts");
@@ -40,11 +42,15 @@ describe("built cli bin contract", () => {
       await access(path.join(outputDir, "chapters.json"));
       await access(path.join(outputDir, "captions.srt"));
       await access(path.join(outputDir, "captions.vtt"));
-      await expect(access(path.join(outputDir, "manifest.json"))).rejects.toThrow();
+      await access(path.join(outputDir, "manifest.json"));
+      await access(path.join(outputDir, "poster.jpg"));
+      await expect(access(path.join(outputDir, "audio"))).rejects.toThrow();
       expect((await readdir(outputDir)).sort()).toEqual([
         "captions.srt",
         "captions.vtt",
         "chapters.json",
+        "manifest.json",
+        "poster.jpg",
         "video.mp4",
       ]);
     },
@@ -61,7 +67,7 @@ describe("built cli bin contract", () => {
       const preloadPath = await writeOpenAIMockPreload(cwd);
 
       await writeGenerationPackageJson(cwd);
-      await writeGenerationConfig(cwd, { ttsFormat: "wav" });
+      await writeGenerationConfig(cwd, { recordFormat: "webm", ttsFormat: "wav" });
       await writeGenerationSite(cwd);
       await mkdir(path.join(cwd, "demos"), { recursive: true });
       await cp(narrationFixturePath, path.join(cwd, tourPath));
@@ -82,19 +88,35 @@ describe("built cli bin contract", () => {
         title: string;
       }>;
       const captionsSrt = await readFile(path.join(outputDir, "captions.srt"), "utf8");
+      const manifest = parsePortableOutputManifest(
+        JSON.parse(await readFile(path.join(outputDir, "manifest.json"), "utf8")),
+      );
 
       await access(path.join(outputDir, "video.mp4"));
+      await access(path.join(outputDir, "video.webm"));
+      await access(path.join(outputDir, "manifest.json"));
+      await access(path.join(outputDir, "poster.jpg"));
       await access(path.join(outputDir, "captions.srt"));
       await access(path.join(outputDir, "captions.vtt"));
       await expect(access(path.join(cwd, ".demohunter/phase-04-narration.recording.webm"))).rejects.toThrow();
       expect(chapters.map((chapter) => chapter.title)).toEqual(["Workspace Overview", "Payment History"]);
       expect(captionsSrt).toContain("The billing workspace keeps invoices, exports, and credits together.");
+      expect(manifest.artifacts.videos.mp4.path).toBe("video.mp4");
+      expect(manifest.artifacts.videos.webm?.path).toBe("video.webm");
+      expect(manifest.artifacts.audio.every((artifact) => artifact.path.endsWith(".wav"))).toBe(true);
+      expect(manifest.artifacts.audio.every((artifact) => !artifact.path.startsWith("/"))).toBe(true);
+      expect(manifest.artifacts.audio.every((artifact) => !artifact.path.includes(cwd))).toBe(true);
       expect((await readdir(outputDir)).sort()).toEqual([
+        "audio",
         "captions.srt",
         "captions.vtt",
         "chapters.json",
+        "manifest.json",
+        "poster.jpg",
         "video.mp4",
+        "video.webm",
       ]);
+      expect((await readdir(path.join(outputDir, "audio"))).every((fileName) => fileName.endsWith(".wav"))).toBe(true);
 
       const cacheList = await spawnCommand([process.execPath, builtCliEntryPoint, "cache", "list"], cwd);
       expect(cacheList.exitCode).toBe(0);
@@ -185,16 +207,19 @@ async function writeGenerationPackageJson(cwd: string): Promise<void> {
 
 async function writeGenerationConfig(
   cwd: string,
-  options: { ttsFormat?: "wav" } = {},
+  options: { recordFormat?: "webm"; ttsFormat?: "wav" } = {},
 ): Promise<void> {
   const sitePath = path.join(cwd, "site", "index.html");
+  const recordBlock = options.recordFormat === undefined
+    ? ""
+    : `  record: { format: ${JSON.stringify(options.recordFormat)} },\n`;
   const ttsBlock = options.ttsFormat === undefined ? "" : `  tts: { format: ${JSON.stringify(options.ttsFormat)} },\n`;
 
   await writeFile(
     path.join(cwd, "demohunter.config.ts"),
     `export default {
   baseURL: ${JSON.stringify(pathToFileURL(sitePath).href)},
-${ttsBlock}};
+${recordBlock}${ttsBlock}};
 `,
   );
 }

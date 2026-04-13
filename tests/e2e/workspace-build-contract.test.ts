@@ -18,6 +18,7 @@ describe("workspace build contract", () => {
     const builtEntryPoints = [
       "packages/sdk/dist/index.js",
       "packages/generator-playwright/dist/index.js",
+      "packages/manifest/dist/index.js",
       "packages/create-demohunter/dist/index.js",
       "packages/cli/dist/bin/demohunter.js",
     ];
@@ -29,6 +30,7 @@ describe("workspace build contract", () => {
     const exportProbe = await runBunEval(`
       const sdk = await import(${JSON.stringify(pathToFileURL(path.join(repoRoot, "packages/sdk/dist/index.js")).href)});
       const generator = await import(${JSON.stringify(pathToFileURL(path.join(repoRoot, "packages/generator-playwright/dist/index.js")).href)});
+      const manifest = await import(${JSON.stringify(pathToFileURL(path.join(repoRoot, "packages/manifest/dist/index.js")).href)});
       const scaffold = await import(${JSON.stringify(pathToFileURL(path.join(repoRoot, "packages/create-demohunter/dist/index.js")).href)});
       const cli = await import(${JSON.stringify(pathToFileURL(path.join(repoRoot, "packages/cli/dist/bin/demohunter.js")).href)});
       console.log(JSON.stringify({
@@ -38,6 +40,10 @@ describe("workspace build contract", () => {
         },
         generator: {
           smokeGenerate: typeof generator.smokeGenerate,
+        },
+        manifest: {
+          createPortableArtifactDescriptor: typeof manifest.createPortableArtifactDescriptor,
+          parsePortableOutputManifest: typeof manifest.parsePortableOutputManifest,
         },
         scaffold: {
           scaffoldStarter: typeof scaffold.scaffoldStarter,
@@ -51,6 +57,7 @@ describe("workspace build contract", () => {
     const exports = JSON.parse(exportProbe.stdout.trim()) as {
       sdk: Record<string, string>;
       generator: Record<string, string>;
+      manifest: Record<string, string>;
       scaffold: Record<string, string>;
       cli: Record<string, string>;
     };
@@ -63,6 +70,10 @@ describe("workspace build contract", () => {
     });
     expect(exports.generator).toEqual({
       smokeGenerate: "function",
+    });
+    expect(exports.manifest).toEqual({
+      createPortableArtifactDescriptor: "function",
+      parsePortableOutputManifest: "function",
     });
     expect(exports.scaffold).toEqual({
       scaffoldStarter: "function",
