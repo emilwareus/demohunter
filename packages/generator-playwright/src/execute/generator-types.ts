@@ -76,6 +76,11 @@ export type PortableVideoOutputs = {
   };
 };
 
+export type RecordedNarration = NarrationSegment & {
+  startMs: number;
+  endMs: number;
+};
+
 export type NarrationSegmentResolver = (
   event: NarrationRuntimeEvent,
 ) => NarrationSegment | Promise<NarrationSegment>;

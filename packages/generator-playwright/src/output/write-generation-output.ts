@@ -1,8 +1,10 @@
 import { copyFile, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 
-import type { NarrationSegment } from "../execute/generator-types.js";
-import type { MuxedVideoArtifact } from "../record/mux-video.js";
+import type {
+  PortableVideoOutputs,
+  RecordedNarration,
+} from "../execute/generator-types.js";
 import { serializeNarrationSubtitles } from "./subtitles.js";
 
 export type GenerationChapter = {
@@ -11,9 +13,11 @@ export type GenerationChapter = {
 };
 
 export type WriteGenerationOutputInput = {
+  tourId: string;
+  tourTitle: string;
+  videos: PortableVideoOutputs;
   chapters: GenerationChapter[];
-  finalVideo: MuxedVideoArtifact;
-  narrations: NarrationSegment[];
+  recordedNarrations: RecordedNarration[];
   outputDir: string;
 };
 
@@ -45,20 +49,30 @@ export async function writeGenerationOutput(
     ...defaultDependencies,
     ...dependencies,
   };
-  const videoPath = path.join(input.outputDir, input.finalVideo.fileName);
+  const videoPath = path.join(input.outputDir, input.videos.mp4.fileName);
   const chaptersPath = path.join(input.outputDir, "chapters.json");
   const captionsSrtPath = path.join(input.outputDir, "captions.srt");
   const captionsVttPath = path.join(input.outputDir, "captions.vtt");
+  const videoArtifacts = [input.videos.mp4, input.videos.webm].filter((artifact) => artifact !== undefined);
+  const expectedVideoPaths = new Set(
+    videoArtifacts.map((artifact) => path.resolve(path.join(input.outputDir, artifact.fileName))),
+  );
   const staleVideoPaths = ["video.mp4", "video.webm"]
     .map((fileName) => path.join(input.outputDir, fileName))
-    .filter((candidatePath) => path.resolve(candidatePath) !== path.resolve(videoPath));
-  const subtitles = serializeNarrationSubtitles(input.narrations);
+    .filter((candidatePath) => !expectedVideoPaths.has(path.resolve(candidatePath)));
+  const subtitles = serializeNarrationSubtitles(input.recordedNarrations);
 
   await Promise.all(staleVideoPaths.map((candidatePath) => resolvedDependencies.rm(candidatePath, { force: true })));
 
-  if (path.resolve(input.finalVideo.path) !== path.resolve(videoPath)) {
-    await resolvedDependencies.copyFile(input.finalVideo.path, videoPath);
-  }
+  await Promise.all(
+    videoArtifacts.map(async (artifact) => {
+      const destinationPath = path.join(input.outputDir, artifact.fileName);
+
+      if (path.resolve(artifact.path) !== path.resolve(destinationPath)) {
+        await resolvedDependencies.copyFile(artifact.path, destinationPath);
+      }
+    }),
+  );
 
   await resolvedDependencies.writeFile(chaptersPath, JSON.stringify(input.chapters, null, 2));
   await Promise.all([
@@ -71,6 +85,6 @@ export async function writeGenerationOutput(
     captionsVttPath,
     chaptersPath,
     outputDir: input.outputDir,
-    videoPath,
+    videoPath: path.join(input.outputDir, "video.mp4"),
   };
 }

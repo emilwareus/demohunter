@@ -16,21 +16,32 @@ describe("writeGenerationOutput", () => {
     const fixture = await makeFixture();
 
     const result = await writeGenerationOutput({
+      tourId: "billing-overview",
+      tourTitle: "Billing overview",
       chapters: [
         { title: "Billing", startMs: 0 },
         { title: "Invoices", startMs: 1400 },
       ],
-      finalVideo: {
-        format: "webm",
-        fileName: "video.webm",
-        path: fixture.sourceVideoPath,
+      videos: {
+        mp4: {
+          format: "mp4",
+          fileName: "video.mp4",
+          path: fixture.sourceMp4Path,
+        },
+        webm: {
+          format: "webm",
+          fileName: "video.webm",
+          path: fixture.sourceWebmPath,
+        },
       },
-      narrations: [
+      recordedNarrations: [
         {
           audioPath: "/tmp/cache/billing.mp3",
           cacheKey: "billing",
           chapterTitle: "Billing",
           durationMs: 1_200,
+          endMs: 1_200,
+          startMs: 0,
           text: "Open the billing workspace.",
         },
         {
@@ -38,6 +49,8 @@ describe("writeGenerationOutput", () => {
           cacheKey: "invoices",
           chapterTitle: "Invoices",
           durationMs: 800,
+          endMs: 2_000,
+          startMs: 1_200,
           text: "Explain the invoice table.",
         },
       ],
@@ -49,9 +62,10 @@ describe("writeGenerationOutput", () => {
       captionsVttPath: path.join(fixture.outputDir, "captions.vtt"),
       chaptersPath: path.join(fixture.outputDir, "chapters.json"),
       outputDir: fixture.outputDir,
-      videoPath: path.join(fixture.outputDir, "video.webm"),
+      videoPath: path.join(fixture.outputDir, "video.mp4"),
     });
-    expect(await readFile(result.videoPath, "utf8")).toBe("webm bytes");
+    expect(await readFile(result.videoPath, "utf8")).toBe("mp4 bytes");
+    expect(await readFile(path.join(fixture.outputDir, "video.webm"), "utf8")).toBe("webm bytes");
     expect(await readFile(result.captionsSrtPath, "utf8")).toContain("Open the billing workspace.");
     expect(await readFile(result.captionsVttPath, "utf8")).toContain("Explain the invoice table.");
     expect(JSON.parse(await readFile(result.chaptersPath, "utf8"))).toEqual([
@@ -64,13 +78,17 @@ describe("writeGenerationOutput", () => {
     const fixture = await makeFixture();
 
     await writeGenerationOutput({
+      tourId: "billing-overview",
+      tourTitle: "Billing overview",
       chapters: [{ title: "Billing", startMs: 0 }],
-      finalVideo: {
-        format: "mp4",
-        fileName: "video.mp4",
-        path: fixture.sourceVideoPath,
+      videos: {
+        mp4: {
+          format: "mp4",
+          fileName: "video.mp4",
+          path: fixture.sourceMp4Path,
+        },
       },
-      narrations: [],
+      recordedNarrations: [],
       outputDir: fixture.outputDir,
     });
 
@@ -90,13 +108,17 @@ describe("writeGenerationOutput", () => {
     await writeFile(path.join(fixture.outputDir, "video.webm"), "stale webm bytes");
 
     await writeGenerationOutput({
+      tourId: "billing-overview",
+      tourTitle: "Billing overview",
       chapters: [{ title: "Billing", startMs: 100 }],
-      finalVideo: {
-        format: "mp4",
-        fileName: "video.mp4",
-        path: fixture.sourceVideoPath,
+      videos: {
+        mp4: {
+          format: "mp4",
+          fileName: "video.mp4",
+          path: fixture.sourceMp4Path,
+        },
       },
-      narrations: [],
+      recordedNarrations: [],
       outputDir: fixture.outputDir,
     });
 
@@ -109,7 +131,11 @@ describe("writeGenerationOutput", () => {
   });
 });
 
-async function makeFixture(): Promise<{ outputDir: string; sourceVideoPath: string }> {
+async function makeFixture(): Promise<{
+  outputDir: string;
+  sourceMp4Path: string;
+  sourceWebmPath: string;
+}> {
   const tempRoot = await mkdtemp(path.join(os.tmpdir(), "demohunter-write-output-"));
   tempRoots.push(tempRoot);
 
@@ -118,8 +144,10 @@ async function makeFixture(): Promise<{ outputDir: string; sourceVideoPath: stri
   await mkdir(outputDir, { recursive: true });
   await mkdir(sourceDir, { recursive: true });
 
-  const sourceVideoPath = path.join(sourceDir, "video.webm");
-  await writeFile(sourceVideoPath, "webm bytes");
+  const sourceMp4Path = path.join(sourceDir, "video.mp4");
+  const sourceWebmPath = path.join(sourceDir, "video.webm");
+  await writeFile(sourceMp4Path, "mp4 bytes");
+  await writeFile(sourceWebmPath, "webm bytes");
 
-  return { outputDir, sourceVideoPath };
+  return { outputDir, sourceMp4Path, sourceWebmPath };
 }

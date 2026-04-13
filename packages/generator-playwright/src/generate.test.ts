@@ -55,6 +55,14 @@ describe("generateTour", () => {
       );
       onMatchedEvent?.(
         {
+          chapterTitle: "Billing",
+          kind: "narrate",
+          text: "Explain billing",
+        },
+        2,
+      );
+      onMatchedEvent?.(
+        {
           chapterTitle: "Invoices",
           id: "invoices",
           kind: "chapter",
@@ -78,9 +86,11 @@ describe("generateTour", () => {
     const muxVideo = mock(async () => {
       calls.push("mux");
       return {
-        fileName: "video.mp4" as const,
-        format: "mp4" as const,
-        path: "/tmp/video.mp4",
+        mp4: {
+          fileName: "video.mp4" as const,
+          format: "mp4" as const,
+          path: "/tmp/video.mp4",
+        },
       };
     });
     const writeGenerationOutput = mock(async () => {
@@ -95,7 +105,7 @@ describe("generateTour", () => {
     const showChapterOverlay = mock(async () => {
       calls.push("show-chapter-overlay");
     });
-    const timestamps = [1_000, 1_100, 2_750];
+    const timestamps = [1_000, 1_100, 1_250, 2_750];
     const now = mock(() => {
       const next = timestamps.shift();
       return next ?? 2_750;
@@ -168,20 +178,26 @@ describe("generateTour", () => {
         { startMs: 100, title: "Billing" },
         { startMs: 1750, title: "Invoices" },
       ],
-      finalVideo: {
-        fileName: "video.mp4",
-        format: "mp4",
-        path: "/tmp/video.mp4",
-      },
-      narrations: [
+      recordedNarrations: [
         {
           audioPath: "/tmp/project/.demohunter/cache/explain-billing.mp3",
           cacheKey: "explain-billing",
           chapterTitle: "Billing",
           durationMs: 1200,
+          endMs: 1450,
+          startMs: 250,
           text: "Explain billing",
         },
       ],
+      tourId: "billing-overview",
+      tourTitle: "Billing overview",
+      videos: {
+        mp4: {
+          fileName: "video.mp4",
+          format: "mp4",
+          path: "/tmp/video.mp4",
+        },
+      },
       outputDir: "/tmp/project/.demohunter/billing-overview",
     });
     expect(showChapterOverlay).toHaveBeenCalledWith({
@@ -189,7 +205,7 @@ describe("generateTour", () => {
       page: passTwoPage,
       title: "Billing",
     });
-    expect(now).toHaveBeenCalledTimes(3);
+    expect(now).toHaveBeenCalledTimes(4);
   });
 
   test("fails directly when pass 1 navigation fails instead of retrying readiness checks", async () => {

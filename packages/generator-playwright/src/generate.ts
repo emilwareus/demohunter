@@ -6,7 +6,10 @@ import * as playwright from "playwright";
 import type { BrowserType } from "playwright";
 
 import { collectTimeline } from "./execute/collect-timeline.js";
-import type { CollectedTimeline } from "./execute/generator-types.js";
+import type {
+  CollectedTimeline,
+  RecordedNarration,
+} from "./execute/generator-types.js";
 import { replayTimeline } from "./execute/replay-timeline.js";
 import { prepareOutputDir as prepareOutputDirHelper } from "./output/prepare-output-dir.js";
 import { writeGenerationOutput } from "./output/write-generation-output.js";
@@ -79,6 +82,7 @@ export async function generateTour(
   let passTwoContext: Awaited<ReturnType<typeof browser.newContext>> | undefined;
   let primaryError: unknown;
   const chapters: GenerationChapter[] = [];
+  const recordedNarrations: RecordedNarration[] = [];
 
   try {
     passOneContext = await browser.newContext({
@@ -112,14 +116,30 @@ export async function generateTour(
     try {
       await resolvedDependencies.replayTimeline({
         loadedConfig,
-        onMatchedEvent: (event) => {
-          if (event.kind !== "chapter") {
+        onMatchedEvent: (event, index) => {
+          if (event.kind === "chapter") {
+            chapters.push({
+              startMs: Math.max(0, resolvedDependencies.now() - recordingStartedAt),
+              title: event.title,
+            });
             return;
           }
 
-          chapters.push({
-            startMs: Math.max(0, resolvedDependencies.now() - recordingStartedAt),
-            title: event.title,
+          if (event.kind !== "narrate") {
+            return;
+          }
+
+          const matchedEntry = timeline.entries[index - 1];
+
+          if (matchedEntry?.kind !== "narration") {
+            return;
+          }
+
+          const startMs = Math.max(0, resolvedDependencies.now() - recordingStartedAt);
+          recordedNarrations.push({
+            ...matchedEntry.segment,
+            endMs: startMs + matchedEntry.segment.durationMs,
+            startMs,
           });
         },
         page: passTwoPage,
@@ -140,16 +160,18 @@ export async function generateTour(
       primaryError,
     });
 
-    const finalVideo = await resolvedDependencies.muxVideo({
+    const videos = await resolvedDependencies.muxVideo({
       outputDir,
       recordFormat: config.record.format,
       tempScreencastPath,
     });
 
     return await resolvedDependencies.writeGenerationOutput({
+      tourId: tourFile.tour.id,
+      tourTitle: tourFile.tour.title,
       chapters,
-      finalVideo,
-      narrations: timeline.narrations,
+      recordedNarrations,
+      videos,
       outputDir,
     });
   } catch (error) {
