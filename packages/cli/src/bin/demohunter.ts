@@ -1,5 +1,6 @@
-#!/usr/bin/env node
+#!/usr/bin/env bun
 
+import { realpathSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -65,8 +66,24 @@ async function main(): Promise<void> {
   }
 }
 
-function isExecutedAsEntrypoint(): boolean {
-  return Boolean(process.argv[1]) && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
+export function isExecutedAsEntrypoint(
+  argvPath = process.argv[1],
+  entryUrl = import.meta.url,
+  resolveRealPath: (filePath: string) => string = resolveRealBinPath,
+): boolean {
+  if (!argvPath) {
+    return false;
+  }
+
+  return resolveRealPath(path.resolve(argvPath)) === resolveRealPath(fileURLToPath(entryUrl));
+}
+
+function resolveRealBinPath(filePath: string): string {
+  try {
+    return realpathSync.native(filePath);
+  } catch {
+    return path.resolve(filePath);
+  }
 }
 
 if (isExecutedAsEntrypoint()) {

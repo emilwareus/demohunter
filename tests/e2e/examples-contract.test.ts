@@ -70,6 +70,12 @@ describe("example app contract", () => {
           }),
         );
 
+        if (generateResult.exitCode !== 0) {
+          throw new Error(
+            `Example generation failed for ${example.name}.\nSTDOUT:\n${generateResult.stdout}\nSTDERR:\n${generateResult.stderr}`,
+          );
+        }
+
         expect(generateResult.exitCode).toBe(0);
 
         const demoDir = path.join(outputRoot, example.tourId);

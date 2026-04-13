@@ -1,6 +1,6 @@
 import { describe, expect, mock, test } from "bun:test";
 
-import { runCli } from "./demohunter.js";
+import { isExecutedAsEntrypoint, runCli } from "./demohunter.js";
 
 describe("runCli", () => {
   test("dispatches init with the force flag", async () => {
@@ -79,5 +79,18 @@ describe("runCli", () => {
         initCommand: async () => {},
       }),
     ).rejects.toThrow("Usage: demohunter <init|generate|cache> [options]");
+  });
+
+  test("treats the workspace .bin symlink as the same entrypoint as the real dist file", () => {
+    const realBinPath = "/repo/packages/cli/dist/bin/demohunter.js";
+    const symlinkBinPath = "/repo/examples/nextjs-demo/node_modules/.bin/demohunter";
+
+    expect(
+      isExecutedAsEntrypoint(
+        symlinkBinPath,
+        `file://${realBinPath}`,
+        (filePath) => (filePath === symlinkBinPath ? realBinPath : filePath),
+      ),
+    ).toBe(true);
   });
 });

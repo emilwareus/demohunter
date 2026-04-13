@@ -41,7 +41,7 @@ type GenerateTourDependencies = {
   muxVideo: typeof muxVideo;
   now: () => number;
   playwright: BrowserTypeMap;
-  prepareOutputDir: (tourId: string, projectRoot: string) => Promise<string>;
+  prepareOutputDir: (tourId: string, outputRoot: string) => Promise<string>;
   replayTimeline: typeof replayTimeline;
   showChapterOverlay: typeof showChapterOverlay;
   startScreencast: typeof startScreencast;
@@ -54,10 +54,7 @@ const defaultDependencies: GenerateTourDependencies = {
   muxVideo,
   now: () => Date.now(),
   playwright,
-  prepareOutputDir: (tourId, projectRoot) =>
-    prepareOutputDirHelper(tourId, {
-      cwd: () => projectRoot,
-    }),
+  prepareOutputDir: (tourId, outputRoot) => prepareOutputDirHelper(tourId, outputRoot),
   replayTimeline,
   showChapterOverlay,
   startScreencast,
@@ -74,7 +71,7 @@ export async function generateTour(
     ...dependencies,
   };
   const { config } = loadedConfig;
-  const outputDir = await resolvedDependencies.prepareOutputDir(tourFile.tour.id, loadedConfig.projectRoot);
+  const outputDir = await resolvedDependencies.prepareOutputDir(tourFile.tour.id, config.outputDir);
   const tempScreencastPath = path.join(path.dirname(outputDir), `${tourFile.tour.id}.recording.webm`);
   const browserType = resolvedDependencies.playwright[config.browser];
   const browser = await browserType.launch();

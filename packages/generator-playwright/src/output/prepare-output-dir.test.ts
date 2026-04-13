@@ -12,14 +12,12 @@ afterEach(async () => {
 });
 
 describe("prepareOutputDir", () => {
-  test("creates .demohunter/<tour-id> under the current working directory", async () => {
-    const cwd = await makeTempRoot();
+  test("creates <output-root>/<tour-id>", async () => {
+    const outputRoot = path.join(await makeTempRoot(), ".demohunter");
 
-    const outputDir = await prepareOutputDir("billing-overview", {
-      cwd: () => cwd,
-    });
+    const outputDir = await prepareOutputDir("billing-overview", outputRoot);
 
-    expect(outputDir).toBe(path.join(cwd, ".demohunter", "billing-overview"));
+    expect(outputDir).toBe(path.join(outputRoot, "billing-overview"));
     expect((await stat(outputDir)).isDirectory()).toBe(true);
   });
 
