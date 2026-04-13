@@ -96,9 +96,9 @@ Plans:
 **Plans**: 3 plans
 
 Plans:
-- [ ] 05-01: Define the manifest schema, versioning rules, and checksum generation.
-- [ ] 05-02: Finalize output layout and poster generation for portable artifacts.
-- [ ] 05-03: Validate portability assumptions against the deferred cloud ingestion contract.
+- [ ] 05-01-PLAN.md — Define the versioned manifest package, checksum helpers, and relative-path guards in `@demohunter/manifest`.
+- [ ] 05-02-PLAN.md — Upgrade the generator to emit baseline mp4 output, poster/audio artifacts, and a validated portable manifest.
+- [ ] 05-03-PLAN.md — Prove the portable output contract through source CLI, built CLI, and full regression verification.
 
 ### Phase 6: OSS Readiness and Agent Skill
 **Goal**: Make DemoHunter usable as a public OSS project through examples, docs, agent skill docs, CI, and launch polish.
