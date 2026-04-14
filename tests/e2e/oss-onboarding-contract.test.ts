@@ -55,12 +55,13 @@ describe("oss onboarding contract", () => {
     });
     const unreachable = await runCli(unreachableCwd, ["generate", "demos/sample.tour.ts"]);
     expect(unreachable.exitCode).toBe(1);
-    expect(unreachable.stderr).toContain("DemoHunter could not reach baseURL http://127.0.0.1:4173/");
+    expect(unreachable.stderr).toContain("DemoHunter could not reach baseURL http://127.0.0.1:4173.");
     expect(unreachable.stderr).toContain('rerun "demohunter generate"');
 
     const missingKeyCwd = await writeProject({
-      config: 'export default { baseURL: "file:///tmp/demohunter-onboarding.html" };\n',
+      config: 'export default { baseURL: new URL("./site/index.html", import.meta.url).href };\n',
       tour: 'export default { id: "sample-smoke", title: "Sample", async run({ narrate }) { await narrate("Fresh narration"); } };\n',
+      site: "<!doctype html><html><body><main><h1>Local site</h1></main></body></html>\n",
     });
     const missingKey = await runCli(missingKeyCwd, ["generate", "demos/sample.tour.ts"]);
     expect(missingKey.exitCode).toBe(1);
@@ -75,9 +76,13 @@ async function makeTempProject(): Promise<string> {
   return tempRoot;
 }
 
-async function writeProject(input: { config: string; tour: string }): Promise<string> {
+async function writeProject(input: { config: string; tour: string; site?: string }): Promise<string> {
   const cwd = await makeTempProject();
   await mkdir(path.join(cwd, "demos"), { recursive: true });
+  if (input.site !== undefined) {
+    await mkdir(path.join(cwd, "site"), { recursive: true });
+    await writeFile(path.join(cwd, "site", "index.html"), input.site);
+  }
   await writeFile(path.join(cwd, "demohunter.config.ts"), input.config);
   await writeFile(path.join(cwd, "demos", "sample.tour.ts"), input.tour);
   return cwd;

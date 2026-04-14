@@ -57,7 +57,7 @@ describe("generateCommand", () => {
         log: () => {},
       }),
     ).rejects.toThrow(
-      `Tour file must default export an object with string id/title and a run function: ${path.join(cwd, "demos/invalid.tour.ts")}`,
+      `Tour file must default export an object with string id/title and a run function: ${path.join(cwd, "demos/invalid.tour.ts")}. Export a default tour like { id: "product-overview", title: "Product overview", async run(runtime) {} }.`,
     );
   });
 
@@ -72,7 +72,7 @@ describe("generateCommand", () => {
         log: () => {},
       }),
     ).rejects.toThrow(
-      `Tour file has invalid setup export; expected a function when provided: ${path.join(cwd, "demos/invalid-setup.tour.ts")}`,
+      `Tour file has invalid setup export; expected a function when provided: ${path.join(cwd, "demos/invalid-setup.tour.ts")}. Keep setup as async setup(runtime) {} or remove it.`,
     );
   });
 
@@ -87,7 +87,7 @@ describe("generateCommand", () => {
         log: () => {},
       }),
     ).rejects.toThrow(
-      `Tour file has invalid teardown export; expected a function when provided: ${path.join(cwd, "demos/invalid-teardown.tour.ts")}`,
+      `Tour file has invalid teardown export; expected a function when provided: ${path.join(cwd, "demos/invalid-teardown.tour.ts")}. Keep teardown as async teardown(runtime) {} or remove it.`,
     );
   });
 
@@ -148,6 +148,13 @@ describe("generateCommand", () => {
 
   test("turns unreachable baseURL navigation failures into an app-readiness hint", async () => {
     const cwd = await makeTempProject();
+    const loadedConfig = {
+      ...makeLoadedConfig(cwd),
+      config: {
+        ...makeLoadedConfig(cwd).config,
+        baseURL: "http://127.0.0.1:4173/",
+      },
+    };
 
     await expect(
       generateCommand(cwd, "demos/sample.tour.ts", {
@@ -155,7 +162,7 @@ describe("generateCommand", () => {
         generateTour: async () => {
           throw new Error("page.goto: net::ERR_CONNECTION_REFUSED http://127.0.0.1:4173/");
         },
-        loadConfig: async () => makeLoadedConfig(cwd),
+        loadConfig: async () => loadedConfig,
         log: () => {},
       }),
     ).rejects.toThrow(
