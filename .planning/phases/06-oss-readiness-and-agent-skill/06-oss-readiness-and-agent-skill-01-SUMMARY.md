@@ -1,122 +1,127 @@
 ---
 phase: 06-oss-readiness-and-agent-skill
 plan: 01
-subsystem: examples
-tags: [nextjs, vite, playwright, consumer-path, e2e]
+subsystem: testing
+tags: [oss, examples, nextjs, vite, bun, playwright]
 requires:
-  - phase: 05-portable-output-contract
-    provides: portable-output contract and built CLI verification path
+  - phase: 01-oss-core
+    provides: local CLI, SDK, and generator contracts consumed by the example apps
 provides:
-  - Next.js example app with real DemoHunter config and tour
-  - Vite example app with real DemoHunter config and tour
-  - Consumer-root example generation contract test
-affects: [phase-06-plan-02, phase-06-plan-03, oss-onboarding, examples]
+  - Next.js example app wired into the Bun workspace
+  - Vite example app wired into the Bun workspace
+  - End-to-end consumer-root contract coverage for both examples
+affects: [oss-readiness, example apps, cli, generator-playwright]
 tech-stack:
-  added: [next, vite]
-  patterns: [workspace consumer examples, consumer-root generation verification]
+  added: [next, react, react-dom, vite]
+  patterns: [workspace consumer examples, consumer-root CLI verification, configurable output roots]
 key-files:
-  created:
-    - examples/nextjs-demo/package.json
-    - examples/nextjs-demo/app/page.tsx
-    - examples/nextjs-demo/demohunter.config.ts
-    - examples/nextjs-demo/demos/nextjs-demo.tour.ts
-    - examples/vite-demo/package.json
-    - examples/vite-demo/index.html
-    - examples/vite-demo/src/main.ts
-    - examples/vite-demo/src/App.tsx
-    - examples/vite-demo/demohunter.config.ts
-    - examples/vite-demo/demos/vite-demo.tour.ts
-    - tests/e2e/examples-contract.test.ts
+  created: [tests/e2e/examples-contract.test.ts]
   modified:
-    - package.json
-    - bun.lock
-    - packages/cli/src/bin/demohunter.ts
-    - packages/cli/src/bin/demohunter.test.ts
-    - packages/generator-playwright/src/generate.ts
-    - packages/generator-playwright/src/output/prepare-output-dir.ts
-    - packages/generator-playwright/src/output/prepare-output-dir.test.ts
+    [
+      package.json,
+      bun.lock,
+      examples/nextjs-demo/package.json,
+      examples/nextjs-demo/app/page.tsx,
+      examples/nextjs-demo/demohunter.config.ts,
+      examples/nextjs-demo/demos/nextjs-demo.tour.ts,
+      examples/vite-demo/package.json,
+      examples/vite-demo/src/App.tsx,
+      examples/vite-demo/demohunter.config.ts,
+      examples/vite-demo/demos/vite-demo.tour.ts,
+      packages/cli/src/bin/demohunter.ts,
+      packages/generator-playwright/src/generate.ts,
+      packages/generator-playwright/src/output/prepare-output-dir.ts,
+    ]
 key-decisions:
-  - "Keep both example apps intentionally thin and deterministic instead of turning them into showcase apps."
-  - "Run example generation from each example root through the real package script so the test proves consumer adoption rather than internal package access."
-  - "Harden the CLI entrypoint for Bun workspace symlinks so `bun x demohunter` works from example roots."
+  - "Keep the example apps thin and deterministic by using static sections plus hash navigation instead of hydration-sensitive UI state."
+  - "Run example generation from each example root through its package script so the test exercises the real workspace consumer path."
+  - "Honor configured output roots in the generator so examples can isolate generated artifacts during contract tests."
 patterns-established:
-  - "Consumer example configs may override output/cache roots via env vars for temp-dir based e2e verification."
-  - "Example tours should prefer replay-safe navigation and selector waits over brittle pass-specific timing helpers."
+  - "Workspace examples can consume DemoHunter through workspace dependencies without prepublishing packages."
+  - "Consumer-path tests should prime narration cache data and run without live OpenAI dependencies."
 requirements-completed: [OSS-01]
-duration: 38min
+duration: 4h 44m
 completed: 2026-04-13
 ---
 
-# Phase 6: OSS Readiness and Agent Skill Summary
+# Phase 06 Plan 01: Example consumer paths for Next.js and Vite Summary
 
-**Next.js and Vite consumer examples now generate portable DemoHunter output from their own project roots through the real CLI path.**
+**Two thin workspace example apps plus consumer-root generation coverage for the real DemoHunter CLI/runtime path**
 
 ## Performance
 
-- **Duration:** 38 min
-- **Started:** 2026-04-13T18:49:00Z
-- **Completed:** 2026-04-13T19:27:07Z
+- **Duration:** 4h 44m
+- **Started:** 2026-04-13T14:43:04Z
+- **Completed:** 2026-04-13T19:26:52Z
 - **Tasks:** 2
-- **Files modified:** 18
+- **Files modified:** 21
 
 ## Accomplishments
-- Added two thin workspace examples, one Next.js and one Vite, each with a real `demohunter.config.ts` and `.tour.ts`.
-- Added a consumer-root end-to-end contract test that boots each example app and verifies portable output under a temp output directory.
-- Fixed the real CLI consumer path and output-dir handling issues that surfaced only when the examples were executed like external users would run them.
+- Added real `examples/nextjs-demo` and `examples/vite-demo` workspace consumers with `demohunter.config.ts` and one `.tour.ts` each.
+- Proved both examples generate portable output from their own project roots through `tests/e2e/examples-contract.test.ts`.
+- Fixed the consumer-root execution path so the workspace CLI bin runs under Bun and generated output honors configured output roots.
 
 ## Task Commits
 
 Each task was committed atomically:
 
-1. **Task 1: Add thin workspace examples for Next.js and Vite** - `592046e` and `93b175c` (test/feat)
-2. **Task 2: Prove both example apps generate DemoHunter output end to end** - `b01f0f6` and `5d75fd8` (test/feat)
+1. **Task 1: Add thin workspace examples for Next.js and Vite**
+2. `592046e` `test(06-01): add failing example consumer app contracts`
+3. `93b175c` `feat(06-01): implement Next.js and Vite workspace examples`
+4. **Task 2: Prove both example apps generate DemoHunter output end to end**
+5. `b01f0f6` `test(06-01): add failing consumer example generation contract`
+6. `5d75fd8` `feat(06-01): verify example generation from consumer roots`
 
 ## Files Created/Modified
-- `examples/nextjs-demo/app/page.tsx` - deterministic Next.js example app content and selectors
-- `examples/nextjs-demo/demohunter.config.ts` - example config with env-overridable output/cache roots
-- `examples/nextjs-demo/demos/nextjs-demo.tour.ts` - replay-safe Next.js example tour
-- `examples/vite-demo/src/App.tsx` - deterministic Vite example app content and selectors
-- `examples/vite-demo/demohunter.config.ts` - example config with env-overridable output/cache roots
-- `examples/vite-demo/demos/vite-demo.tour.ts` - replay-safe Vite example tour
-- `tests/e2e/examples-contract.test.ts` - consumer-root generation verification for both examples
-- `packages/cli/src/bin/demohunter.ts` - hardened CLI entrypoint detection for Bun symlink execution
-- `packages/generator-playwright/src/output/prepare-output-dir.ts` - respects configured output roots during example verification
+- `package.json` and `bun.lock` - Added `examples/*` to the workspace and resolved example framework dependencies.
+- `examples/nextjs-demo/*` - Added the Next.js example app, config, tour, and framework wiring.
+- `examples/vite-demo/*` - Added the Vite example app, config, and tour.
+- `tests/e2e/examples-contract.test.ts` - Starts each example app locally, primes narration cache data, runs generation from the example root, and asserts portable output exists.
+- `packages/cli/src/bin/demohunter.ts` and `packages/cli/src/bin/demohunter.test.ts` - Kept the workspace `.bin` consumer path executable through Bun symlinks.
+- `packages/generator-playwright/src/generate.ts` and `packages/generator-playwright/src/output/prepare-output-dir.ts` - Fixed output directory resolution so configured output roots are respected.
 
 ## Decisions Made
-
-- Kept the example apps static and selector-driven to minimize CI flake and maintenance burden.
-- Verified the examples through their own package scripts so the proof matches public OSS adoption.
-- Allowed env-based output/cache overrides in the examples because temp-root verification is the cleanest way to keep example tests isolated.
+- Used static example sections plus hash-based navigation to avoid replay drift from framework hydration while keeping selectors obvious and deterministic.
+- Kept the example contract test offline by priming narration cache entries instead of mocking OpenAI at runtime.
+- Exercised `bun run generate` from each example root rather than calling the CLI entrypoint from the repo root, because that is the public consumer path OSS-01 needs to prove.
 
 ## Deviations from Plan
 
 ### Auto-fixed Issues
 
-**1. Consumer-root CLI execution initially failed through Bun workspace symlinks**
+**1. [Rule 1 - Bug] Fixed the workspace CLI bin entrypoint check for symlinked consumer installs**
 - **Found during:** Task 2
-- **Issue:** `bun x demohunter` from example roots did not reliably treat the workspace bin symlink as the actual CLI entrypoint.
-- **Fix:** Hardened entrypoint detection in `packages/cli/src/bin/demohunter.ts` and added a focused test for the symlink case.
+- **Issue:** `bun x demohunter ...` from an example root silently skipped the CLI entrypoint because the bin compared the symlink path to the real dist path.
+- **Fix:** Switched the bin to Bun, resolved real paths before the entrypoint check, and added a regression test for the symlinked `.bin` path.
 - **Files modified:** `packages/cli/src/bin/demohunter.ts`, `packages/cli/src/bin/demohunter.test.ts`
-- **Verification:** `bun test tests/e2e/examples-contract.test.ts`
+- **Verification:** `bun test tests/e2e/examples-contract.test.ts`, `bun run verify`
 - **Committed in:** `5d75fd8`
 
-**2. Example verification needed isolated output/cache roots**
+**2. [Rule 1 - Bug] Fixed generator output path handling for configured output roots**
 - **Found during:** Task 2
-- **Issue:** Consumer-path e2e needed temp-root isolation instead of writing into example-local `.demohunter/` paths.
-- **Fix:** Example configs now accept `DEMOHUNTER_EXAMPLE_OUTPUT_DIR` and `DEMOHUNTER_EXAMPLE_CACHE_DIR`; output-dir handling was tightened for the temp-root path.
-- **Files modified:** `examples/nextjs-demo/demohunter.config.ts`, `examples/vite-demo/demohunter.config.ts`, `packages/generator-playwright/src/output/prepare-output-dir.ts`
-- **Verification:** `bun test tests/e2e/examples-contract.test.ts`
+- **Issue:** The generator always wrote to `cwd/.demohunter/<tour-id>` and ignored `config.outputDir`, which broke isolated example output roots.
+- **Fix:** Updated output preparation to accept the resolved output root from config and added coverage for the new behavior.
+- **Files modified:** `packages/generator-playwright/src/generate.ts`, `packages/generator-playwright/src/output/prepare-output-dir.ts`, `packages/generator-playwright/src/output/prepare-output-dir.test.ts`
+- **Verification:** `bun test tests/e2e/examples-contract.test.ts`, `bun run verify`
+- **Committed in:** `5d75fd8`
+
+**3. [Rule 1 - Bug] Reworked example tours to avoid replay divergence from hydration-sensitive interactions**
+- **Found during:** Task 2
+- **Issue:** The original example tours used client-side interactions that replayed inconsistently between collection and recording passes.
+- **Fix:** Simplified the example UIs and tours to use deterministic sections and hash navigation while keeping framework-native example apps and stable selectors.
+- **Files modified:** `examples/nextjs-demo/app/page.tsx`, `examples/nextjs-demo/demos/nextjs-demo.tour.ts`, `examples/vite-demo/src/App.tsx`, `examples/vite-demo/demos/vite-demo.tour.ts`
+- **Verification:** `bun test tests/e2e/examples-contract.test.ts`, `bun run --cwd examples/nextjs-demo build`, `bun run --cwd examples/vite-demo build`, `bun run verify`
 - **Committed in:** `5d75fd8`
 
 ---
 
-**Total deviations:** 2 auto-fixed
-**Impact on plan:** Both fixes were required to make the consumer examples prove a real public adoption path instead of only an internal test harness path.
+**Total deviations:** 3 auto-fixed (3 bug fixes)
+**Impact on plan:** All deviations were correctness fixes required to make the new consumer-path examples actually execute and verify as planned. No scope creep beyond OSS-01.
 
 ## Issues Encountered
 
-- The first examples contract run exposed real consumer-path gaps rather than example-app issues: CLI symlink execution and temp-root output handling.
-- Example tours also needed replay-safe simplification so the e2e contract stayed deterministic across both generation passes.
+- `next dev` mutates `next-env.d.ts` and `tsconfig.json` during example verification. Those files were restored to the intended committed state after verification so the task commit only contains intentional source changes.
+- Bun CLI flag ordering differs from the plan examples on this machine (`bun run --cwd ...` and `bun x --cwd ...` are the working forms), but that did not require product code changes.
 
 ## User Setup Required
 
@@ -124,8 +129,13 @@ None - no external service configuration required.
 
 ## Next Phase Readiness
 
-Phase 6 now has real public examples to reference in the companion skill and onboarding docs.
-The next wave can build the `skills/demohunter` bundle against concrete example and CLI flows instead of hypothetical usage.
+- OSS-01 is now backed by real example apps and automated consumer-path coverage.
+- The next phase can build agent-skill/docs work on top of concrete example file paths and proven example commands.
+
+## Self-Check: PASSED
+
+- Summary file exists at `.planning/phases/06-oss-readiness-and-agent-skill/06-oss-readiness-and-agent-skill-01-SUMMARY.md`
+- Verified task commits exist: `592046e`, `93b175c`, `b01f0f6`, `5d75fd8`
 
 ---
 *Phase: 06-oss-readiness-and-agent-skill*
