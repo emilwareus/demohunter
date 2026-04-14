@@ -97,7 +97,7 @@ function improveGenerateError(input: {
 
   if (message.includes("Could not find demohunter.config.ts")) {
     return new Error(
-      `${message}. Run "bun x demohunter init" in a fresh project directory, or add demohunter.config.ts before rerunning "demohunter generate".`,
+      `${message}. Run "demohunter init" from an installed DemoHunter CLI, or add demohunter.config.ts before rerunning "demohunter generate".`,
       { cause: input.error },
     );
   }
@@ -144,7 +144,6 @@ function improveGenerateError(input: {
 
 function isBaseUrlReachabilityError(message: string): boolean {
   return (
-    message.includes("page.goto:") ||
     message.includes("ERR_CONNECTION_REFUSED") ||
     message.includes("ERR_CONNECTION_TIMED_OUT") ||
     message.includes("ERR_CONNECTION_RESET") ||

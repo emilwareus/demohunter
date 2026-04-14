@@ -169,6 +169,21 @@ describe("generateCommand", () => {
       'DemoHunter could not reach baseURL http://127.0.0.1:4173/. Start your app yourself, confirm that URL is reachable, and then rerun "demohunter generate".',
     );
   });
+
+  test("preserves generic page.goto timeouts instead of relabeling them as baseURL outages", async () => {
+    const cwd = await makeTempProject();
+
+    await expect(
+      generateCommand(cwd, "demos/sample.tour.ts", {
+        importModule: (href) => import(href),
+        generateTour: async () => {
+          throw new Error("page.goto: Timeout 30000ms exceeded.");
+        },
+        loadConfig: async () => makeLoadedConfig(cwd),
+        log: () => {},
+      }),
+    ).rejects.toThrow("page.goto: Timeout 30000ms exceeded.");
+  });
 });
 
 async function makeTempProject(): Promise<string> {

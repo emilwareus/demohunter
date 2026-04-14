@@ -54,12 +54,13 @@ Both example projects keep DemoHunter usage close to a real consumer app:
 - the tour file lives under `demos/*.tour.ts`
 - generated assets land under that example's `.demohunter/`
 
-## Start In A New Project
+## Start From The Included Starter
 
-Inside a new or empty project directory:
+Today the repo-local starter path is the supported bootstrap flow. From this checkout:
 
 ```bash
-bun x demohunter init
+bun run --cwd packages/cli build
+node packages/cli/dist/bin/demohunter.js init
 ```
 
 That creates:
@@ -71,8 +72,10 @@ That creates:
 If the sample tour does not use narration, generation works without `OPENAI_API_KEY`:
 
 ```bash
-bun x demohunter generate demos/sample.tour.ts
+node packages/cli/dist/bin/demohunter.js generate demos/sample.tour.ts
 ```
+
+If you want to move that starter into your own app repo, copy the generated `demohunter.config.ts`, `demos/`, and sample site files after you have decided how you want to consume DemoHunter there.
 
 ## Tour Authoring Shape
 

@@ -42,5 +42,11 @@ jobs:
       - name: Install Playwright Chromium runtime
         run: bun x playwright install --with-deps chromium
 
+      - name: Build Next.js example
+        run: bun run --cwd examples/nextjs-demo build
+
+      - name: Build Vite example
+        run: bun run --cwd examples/vite-demo build
+
       - name: Run deterministic OSS verification
         run: bun run verify

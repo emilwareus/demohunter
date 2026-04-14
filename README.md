@@ -36,7 +36,7 @@ bun x playwright install chromium
 
 ## Quickstart
 
-Generate from an existing example app:
+Generate from an included example app:
 
 ```bash
 bun run --cwd examples/vite-demo dev
@@ -48,11 +48,12 @@ In a second terminal:
 bun run --cwd examples/vite-demo generate
 ```
 
-Or scaffold a starter repo in a fresh project directory:
+To try the starter scaffold today, stay inside this repo checkout and use the local CLI entrypoint or copy the generated files into your own app repo after wiring DemoHunter in as a dependency:
 
 ```bash
-bun x demohunter init
-bun x demohunter generate demos/sample.tour.ts
+bun run --cwd packages/cli build
+node packages/cli/dist/bin/demohunter.js init
+node packages/cli/dist/bin/demohunter.js generate demos/sample.tour.ts
 ```
 
 ## Repo Examples
@@ -60,7 +61,7 @@ bun x demohunter generate demos/sample.tour.ts
 - `examples/vite-demo`
 - `examples/nextjs-demo`
 
-Each example keeps app startup inside the app itself and uses `bun x demohunter generate ...` from the example root, which is the real OSS adoption path.
+Each example keeps app startup inside the app itself and uses the real CLI from the example root, which is the runnable OSS adoption path in this repo today.
 
 ## Agent Skill
 

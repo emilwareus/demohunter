@@ -24,8 +24,10 @@ describe("oss onboarding contract", () => {
     expect(readme).toContain("examples/vite-demo");
     expect(readme).toContain("skills/demohunter");
     expect(readme).toContain("does not start your app for you");
+    expect(readme).toContain("node packages/cli/dist/bin/demohunter.js init");
     expect(gettingStarted).toContain("Start your app yourself before generation.");
-    expect(gettingStarted).toContain("bun x demohunter init");
+    expect(gettingStarted).toContain("repo-local starter path is the supported bootstrap flow");
+    expect(gettingStarted).toContain("node packages/cli/dist/bin/demohunter.js init");
     expect(gettingStarted).toContain("bun run --cwd examples/nextjs-demo generate");
     expect(troubleshooting).toContain("OPENAI_API_KEY");
     expect(troubleshooting).toContain("ffmpeg");
@@ -39,6 +41,8 @@ describe("oss onboarding contract", () => {
     expect(workflow).toContain("push:");
     expect(workflow).toContain("apt-get install -y ffmpeg");
     expect(workflow).toContain("bun x playwright install --with-deps chromium");
+    expect(workflow).toContain("bun run --cwd examples/nextjs-demo build");
+    expect(workflow).toContain("bun run --cwd examples/vite-demo build");
     expect(workflow).toContain("bun run verify");
     expect(workflow).not.toContain("OPENAI_API_KEY:");
     expect(workflow).not.toContain("DEMOHUNTER_RUN_LIVE_OPENAI_TESTS: \"1\"");
@@ -49,7 +53,7 @@ describe("oss onboarding contract", () => {
     const missingConfig = await runCli(missingConfigCwd, ["generate", "demos/sample.tour.ts"]);
     expect(missingConfig.exitCode).toBe(1);
     expect(missingConfig.stderr).toContain("Could not find demohunter.config.ts");
-    expect(missingConfig.stderr).toContain('Run "bun x demohunter init"');
+    expect(missingConfig.stderr).toContain('Run "demohunter init" from an installed DemoHunter CLI');
 
     const invalidTourCwd = await writeProject({
       config: 'export default { baseURL: "http://127.0.0.1:4173" };\n',
