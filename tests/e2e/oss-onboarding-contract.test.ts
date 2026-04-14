@@ -32,6 +32,18 @@ describe("oss onboarding contract", () => {
     expect(troubleshooting).toContain("ERR_CONNECTION_REFUSED");
   });
 
+  test("keeps the public CI contract aligned with the deterministic OSS verification path", async () => {
+    const workflow = await readFile(path.join(repoRoot, ".github/workflows/ci.yml"), "utf8");
+
+    expect(workflow).toContain("pull_request:");
+    expect(workflow).toContain("push:");
+    expect(workflow).toContain("apt-get install -y ffmpeg");
+    expect(workflow).toContain("bun x playwright install --with-deps chromium");
+    expect(workflow).toContain("bun run verify");
+    expect(workflow).not.toContain("OPENAI_API_KEY:");
+    expect(workflow).not.toContain("DEMOHUNTER_RUN_LIVE_OPENAI_TESTS: \"1\"");
+  });
+
   test("surfaces actionable source-cli guidance for first-run blockers", async () => {
     const missingConfigCwd = await makeTempProject();
     const missingConfig = await runCli(missingConfigCwd, ["generate", "demos/sample.tour.ts"]);
