@@ -4,6 +4,8 @@ DemoHunter is an open-source TypeScript CLI and SDK for turning Playwright-style
 
 It generates portable output in `.demohunter/<tour-id>/` and uses OpenAI text-to-speech only when narration is not already cached locally.
 
+Released under the [MIT License](LICENSE).
+
 ## What DemoHunter Does
 
 - Runs locally with Bun and Playwright.
@@ -72,7 +74,13 @@ bun test tests/skills/demohunter-skill-contract.test.ts
 bun run verify
 ```
 
+GitHub Actions runs the same default `bun run verify` path on pushes to `main` and pull requests after provisioning `ffmpeg` and Playwright Chromium on a fresh runner.
+
 ## Docs
 
 - [`docs/getting-started.md`](docs/getting-started.md)
 - [`docs/troubleshooting.md`](docs/troubleshooting.md)
+
+## License
+
+DemoHunter is available under the [MIT License](LICENSE).
