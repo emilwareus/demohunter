@@ -1,27 +1,18 @@
 ---
 phase: 06-oss-readiness-and-agent-skill
-verified: 2026-04-14T05:01:08Z
-status: human_needed
+verified: 2026-04-14T08:28:00+02:00
+status: passed
 score: 3/3 must-haves verified
-overrides_applied: 0
-human_verification:
-  - test: "Fresh-user onboarding walkthrough"
-    expected: "A first-time OSS user can follow README.md and docs/getting-started.md from a clean checkout, choose the right repo-local path, and reach generated output without maintainer help."
-    why_human: "Docs clarity, sequencing, and ambiguity around public adoption are usability judgments that structural tests cannot fully verify."
-  - test: "CLI error-message clarity"
-    expected: "When Playwright, ffmpeg, or OPENAI_API_KEY are missing, the reported guidance is immediately understandable and points to the next action without confusion."
-    why_human: "The tests prove message presence, but whether the wording is actually clear to a new user is a human judgment."
-  - test: "Agent skill usability in a real client"
-    expected: "Using only skills/demohunter, a Codex or Claude user can create or update a valid .tour.ts file while staying Playwright-native."
-    why_human: "The contract tests verify paths and type safety, not real agent behavior across clients."
+overrides_applied: 1
+human_verification: []
 ---
 
 # Phase 6: OSS Readiness and Agent Skill Verification Report
 
 **Phase Goal:** Make DemoHunter usable as a public OSS project through examples, docs, agent skill docs, CI, and launch polish.
-**Verified:** 2026-04-14T05:01:08Z
-**Status:** human_needed
-**Re-verification:** No — initial verification
+**Verified:** 2026-04-14T08:28:00+02:00
+**Status:** passed
+**Re-verification:** Yes — human-UAT gate waived by user on 2026-04-14
 
 ## Goal Achievement
 
@@ -97,29 +88,13 @@ No blocker or warning anti-patterns were found in the Phase 06 files reviewed. P
 
 ### Human Verification Required
 
-### 1. Fresh-User Onboarding Walkthrough
-
-**Test:** Follow `README.md` and `docs/getting-started.md` from a clean checkout on a machine without repo context.
-**Expected:** A new OSS user picks the repo-local example or starter path correctly, understands the product boundary, and reaches generated output without maintainer help.
-**Why human:** This is a comprehension and ergonomics check; automated tests only prove that commands and files exist and run.
-
-### 2. CLI Error-Message Clarity
-
-**Test:** Intentionally trigger missing-browser, missing-ffmpeg, and missing-`OPENAI_API_KEY` failures and read the resulting CLI guidance as a first-time user.
-**Expected:** The next action is obvious without needing to inspect source code or surrounding tests.
-**Why human:** The tests prove message coverage, but clarity and usefulness are human-judgment properties.
-
-### 3. Agent Skill Usability In A Real Client
-
-**Test:** Install or reference `skills/demohunter` in a real Codex or Claude session and ask the agent to create or update a tour.
-**Expected:** The agent stays Playwright-native, uses the shipped template/rules, and produces a valid `.tour.ts` plus repo-local verification steps.
-**Why human:** Structural checks do not prove how real clients interpret and follow the markdown skill bundle.
+None. The remaining usability-only checks were waived by user instruction on 2026-04-14.
 
 ### Gaps Summary
 
-No programmatic gaps were found against the Phase 06 roadmap contract or plan frontmatter must-haves. Automated verification shows the examples, skill bundle, onboarding docs, CLI error handling, CI workflow, and license are present, substantive, wired, and passing the repo’s advertised verification path. Remaining work is human-only validation of UX clarity for first-time OSS adopters and real client behavior for the shipped agent skill.
+No programmatic gaps were found against the Phase 06 roadmap contract or plan frontmatter must-haves. Automated verification shows the examples, skill bundle, onboarding docs, CLI error handling, CI workflow, and license are present, substantive, wired, and passing the repo’s advertised verification path. The remaining usability-only human checks were waived by user instruction on 2026-04-14.
 
 ---
 
-_Verified: 2026-04-14T05:01:08Z_
+_Verified: 2026-04-14T08:28:00+02:00_
 _Verifier: Claude (gsd-verifier)_

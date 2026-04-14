@@ -17,7 +17,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 3: Playwright Generation Engine** - Implement two-pass execution, recording, overlays, and base local output writing.
 - [x] **Phase 4: OpenAI Narration and Cache** - Add provider-backed narration, cache behavior, subtitles, and offline regeneration rules.
 - [x] **Phase 5: Portable Output Contract** - Finalize the manifest schema, checksums, poster generation, and portable artifact layout. (completed 2026-04-13)
-- [ ] **Phase 6: OSS Readiness and Agent Skill** - Ship examples, docs, skill docs, CI, and launch polish.
+- [x] **Phase 6: OSS Readiness and Agent Skill** - Ship examples, docs, skill docs, CI, and launch polish. (completed 2026-04-14; human UAT waived by user)
 
 ## Phase Details
 
@@ -112,10 +112,10 @@ Plans:
 **Plans**: 4 plans
 
 Plans:
-- [ ] 06-01: Create example projects and verify their demo flows.
-- [ ] 06-02: Write and package the companion markdown skill docs plus script templates.
-- [ ] 06-03: Improve docs, errors, and onboarding guidance for OSS users.
-- [ ] 06-04: Add CI and choose the OSS license for launch readiness.
+- [x] 06-01: Create example projects and verify their demo flows.
+- [x] 06-02: Write and package the companion markdown skill docs plus script templates.
+- [x] 06-03: Improve docs, errors, and onboarding guidance for OSS users.
+- [x] 06-04: Add CI and choose the OSS license for launch readiness.
 
 ## Progress
 
@@ -129,4 +129,4 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6
 | 3. Playwright Generation Engine | 4/4 | Complete | 2026-04-11 |
 | 4. OpenAI Narration and Cache | 4/4 | Complete | 2026-04-11 |
 | 5. Portable Output Contract | 4/4 | Complete | 2026-04-13 |
-| 6. OSS Readiness and Agent Skill | 0/4 | Not started | - |
+| 6. OSS Readiness and Agent Skill | 4/4 | Complete | 2026-04-14 |

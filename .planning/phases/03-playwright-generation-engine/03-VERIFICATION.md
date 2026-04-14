@@ -1,24 +1,18 @@
 ---
 phase: 03-playwright-generation-engine
-verified: 2026-04-11T00:03:27Z
-status: human_needed
+verified: 2026-04-14T08:28:00+02:00
+status: passed
 score: 9/9 must-haves verified
-overrides_applied: 0
-human_verification:
-  - test: "Inspect overlay rendering in a generated Phase 3 video"
-    expected: "With `record.showActions` and `record.showChapters` enabled, action annotations and chapter labels appear briefly, remain legible, and do not dominate the recording; disabling the flags removes them."
-    why_human: "Automated checks verify wiring, timing, and config gating, but they cannot judge final rendered video appearance."
-  - test: "Run `demohunter generate <tour-file>` against a live HTTP app URL and review the recorded output"
-    expected: "Generation succeeds against a real local dev server or preview URL, emits the expected `.demohunter/<tour-id>/` artifacts, and the recorded flow feels correct without hidden readiness automation."
-    why_human: "Automated coverage proves direct URL handoff, source/dist CLI behavior, and failure propagation, but not the user-perceived recording experience against a live app."
+overrides_applied: 1
+human_verification: []
 ---
 
 # Phase 3: Playwright Generation Engine Verification Report
 
 **Phase Goal:** Execute tours in two passes, record the scripted demo, and write the baseline local artifact set to `.demohunter/`.
-**Verified:** 2026-04-11T00:03:27Z
-**Status:** human_needed
-**Re-verification:** No - initial verification
+**Verified:** 2026-04-14T08:28:00+02:00
+**Status:** passed
+**Re-verification:** Yes - human-UAT gate waived by user on 2026-04-14
 
 ## Goal Achievement
 
@@ -34,7 +28,7 @@ human_verification:
 | 6 | Invalid or unreachable `baseURL` values fail through direct Playwright navigation behavior, not custom readiness automation. | ✓ VERIFIED | `packages/generator-playwright/src/execute/collect-timeline.ts:41` and `packages/generator-playwright/src/execute/replay-timeline.ts:66` call `page.goto(new URL(config.baseURL).href)` directly. `packages/generator-playwright/src/generate.test.ts:182-218` proves a connection-refused error is surfaced without retries and pass 2 is never started. |
 | 7 | Local output is written under `.demohunter/<tour-id>/` relative to the project root/current working directory. | ✓ VERIFIED | `packages/generator-playwright/src/output/prepare-output-dir.ts:16-32` enforces a safe slug and resolves `${cwd}/.demohunter/${tourId}`. `packages/generator-playwright/src/generate.ts:74` uses `loadedConfig.projectRoot` when preparing the output directory. E2E tests assert output under `.demohunter/phase-03-generation` in `tests/e2e/generation-engine-contract.test.ts:35-55` and `tests/e2e/built-cli-bin-contract.test.ts:71-83`. |
 | 8 | DemoHunter outputs `mp4` by default and can optionally generate `webm`, leaving only the selected final video artifact. | ✓ VERIFIED | `packages/sdk/src/config.ts:50-53` sets `format: "mp4"` by default, `packages/cli/src/config/load-config.ts:30-45` merges authored `record.format`, and `packages/generator-playwright/src/record/mux-video.ts:33-69` emits either `video.mp4` or `video.webm`. `tests/e2e/generation-engine-contract.test.ts:86-113` proves rerunning with `webm` removes stale `video.mp4`. |
-| 9 | Action and chapter overlays are wired behind config and stay brief/minimal in implementation. | ✓ VERIFIED | `packages/generator-playwright/src/record/screencast.ts:25-40` only enables Playwright action annotations when `showActions` is true and uses brief defaults (`duration: 500`, `position: "top-right"`). `packages/generator-playwright/src/generate.ts:127-132,190-237` only wraps chapter calls when `showChapters` is true, and `packages/generator-playwright/src/overlays/chapter-overlay.ts:25-59` injects a transient overlay with a short hide timer. Visual acceptance still needs human review. |
+| 9 | Action and chapter overlays are wired behind config and stay brief/minimal in implementation. | ✓ VERIFIED | `packages/generator-playwright/src/record/screencast.ts:25-40` only enables Playwright action annotations when `showActions` is true and uses brief defaults (`duration: 500`, `position: "top-right"`). `packages/generator-playwright/src/generate.ts:127-132,190-237` only wraps chapter calls when `showChapters` is true, and `packages/generator-playwright/src/overlays/chapter-overlay.ts:25-59` injects a transient overlay with a short hide timer. The remaining presentation-only human review was later waived by user instruction on 2026-04-14. |
 
 **Score:** 9/9 truths verified
 
@@ -98,7 +92,7 @@ human_verification:
 | `GEN-03` | `03-02` | During the recorded pass, the tool waits `durationMs + holdPaddingMs` after each narrated action. | ✓ SATISFIED | `packages/generator-playwright/src/execute/replay-timeline.ts:140-175` applies `durationMs + holdPaddingMs`, and `packages/generator-playwright/src/execute/replay-timeline.test.ts:62-103` asserts the exact wait. |
 | `GEN-04` | `03-03`, `03-04` | Generated assets are written to `.demohunter/<tour-id>/` relative to the current working directory. | ✓ SATISFIED | `packages/generator-playwright/src/output/prepare-output-dir.ts:16-32` resolves `${cwd}/.demohunter/${tourId}`, `generateTour()` uses `loadedConfig.projectRoot` at `packages/generator-playwright/src/generate.ts:74`, and e2e tests assert the expected output path. |
 | `GEN-05` | `03-03` | DemoHunter outputs `mp4` by default and can optionally generate `webm`. | ✓ SATISFIED | `packages/sdk/src/config.ts:50-53` defaults to `mp4`, `packages/cli/src/config/load-config.test.ts:108-139` covers defaulting and explicit `webm`, and `tests/e2e/generation-engine-contract.test.ts:86-113` proves the selected artifact is the only final video on rerun. |
-| `GEN-06` | `03-04` | DemoHunter can render action and chapter overlays during generation when enabled in config. | ? NEEDS HUMAN | Code wiring is present in `packages/generator-playwright/src/record/screencast.ts:25-40`, `packages/generator-playwright/src/generate.ts:127-132,190-237`, and `packages/generator-playwright/src/overlays/chapter-overlay.ts:12-63`; unit tests cover gating and timing. Human review is still needed to confirm the actual rendered video overlays look correct. |
+| `GEN-06` | `03-04` | DemoHunter can render action and chapter overlays during generation when enabled in config. | ✓ SATISFIED | Code wiring is present in `packages/generator-playwright/src/record/screencast.ts:25-40`, `packages/generator-playwright/src/generate.ts:127-132,190-237`, and `packages/generator-playwright/src/overlays/chapter-overlay.ts:12-63`; unit tests cover gating and timing; the remaining presentation-only human gate was explicitly waived by user instruction on 2026-04-14. |
 
 Plan requirement union covers `GEN-01` through `GEN-06`, and `REQUIREMENTS.md` maps exactly those six IDs to Phase 3. No orphaned Phase 3 requirements were found.
 
@@ -108,21 +102,11 @@ No blocker or warning anti-patterns were found in the scoped Phase 03 implementa
 
 ### Human Verification Required
 
-### 1. Overlay Appearance
-
-**Test:** Generate a representative tour with `record.showActions: true` and `record.showChapters: true`, then watch the resulting `video.mp4` or `video.webm`.
-**Expected:** Action annotations and chapter labels appear briefly, remain readable, and do not feel like a persistent HUD. Re-running with the flags disabled should remove those overlays.
-**Why human:** The code and unit tests verify overlay injection, timing, and config gating, but they cannot judge the final rendered video appearance.
-
-### 2. Live URL Generation Feel
-
-**Test:** Run `demohunter generate <tour-file>` against a live local dev server or preview URL rather than the file-based e2e fixture.
-**Expected:** The recording follows the authored flow, writes `.demohunter/<tour-id>/video.mp4` plus `chapters.json`, and navigation failures still surface directly without hidden retries.
-**Why human:** Automated tests prove direct URL handoff and failure propagation, but not the user-perceived recording flow against a live app.
+None. The remaining presentation-only checks were waived by user instruction on 2026-04-14.
 
 ### Gaps Summary
 
-No blocking implementation gaps were found. Phase 03 achieves the roadmap goal in code, wiring, and executable checks, but human review is still required for the overlay presentation and real recorded-output experience.
+No blocking implementation gaps were found. Phase 03 achieves the roadmap goal in code, wiring, and executable checks. The remaining presentation-only human review was waived by user instruction on 2026-04-14.
 
 Disconfirmation pass notes:
 - Partial requirement: `GEN-06` is implemented and wired, but the final overlay look-and-feel is inherently human-evaluated.
@@ -131,5 +115,5 @@ Disconfirmation pass notes:
 
 ---
 
-_Verified: 2026-04-11T00:03:27Z_
+_Verified: 2026-04-14T08:28:00+02:00_
 _Verifier: Claude (gsd-verifier)_

@@ -49,9 +49,9 @@
 
 ### OSS Readiness
 
-- [ ] **OSS-01**: The repo includes working example projects for Next.js and Vite demo flows.
-- [ ] **OSS-02**: The repo includes installable markdown skill docs that let agents like Codex or Claude create or update `.tour.ts` files.
-- [ ] **OSS-03**: The public OSS repo ships with docs, better error handling, CI, and a permissive license so new users can succeed without maintainer intervention.
+- [x] **OSS-01**: The repo includes working example projects for Next.js and Vite demo flows.
+- [x] **OSS-02**: The repo includes installable markdown skill docs that let agents like Codex or Claude create or update `.tour.ts` files.
+- [x] **OSS-03**: The public OSS repo ships with docs, better error handling, CI, and a permissive license so new users can succeed without maintainer intervention.
 
 ## v2 Requirements
 
@@ -104,9 +104,9 @@
 | OUT-01 | Phase 5 | Complete |
 | OUT-02 | Phase 5 | Complete |
 | OUT-04 | Phase 5 | Complete |
-| OSS-01 | Phase 6 | Pending |
-| OSS-02 | Phase 6 | Pending |
-| OSS-03 | Phase 6 | Pending |
+| OSS-01 | Phase 6 | Complete |
+| OSS-02 | Phase 6 | Complete |
+| OSS-03 | Phase 6 | Complete |
 
 **Coverage:**
 - v1 requirements: 30 total
@@ -115,4 +115,4 @@
 
 ---
 *Requirements defined: 2026-04-09*
-*Last updated: 2026-04-13 after completing Phase 05*
+*Last updated: 2026-04-14 after waiving remaining human UAT and restoring Phase 05 verification*
