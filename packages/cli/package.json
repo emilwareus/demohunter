@@ -17,10 +17,13 @@
     "@demohunter/generator-playwright": "workspace:*",
     "@demohunter/sdk": "workspace:*",
     "@demohunter/tts-core": "workspace:*",
-    "create-demohunter": "workspace:*"
+    "create-demohunter": "workspace:*",
+    "typescript": "^5.9.3"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
+    "link:global": "bun run build && npm link",
+    "unlink:global": "npm unlink -g demohunter",
     "typecheck": "tsc -p tsconfig.json"
   }
 }

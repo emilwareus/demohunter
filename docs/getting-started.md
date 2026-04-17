@@ -21,6 +21,41 @@ If you want a tool that boots your app or manages Playwright test orchestration,
 4. Install `ffmpeg` and ensure `ffmpeg` and `ffprobe` are on your `PATH`.
 5. Export `OPENAI_API_KEY` only if your tour needs narration that is not already cached.
 
+## Verified First Run
+
+The cleanest first run is the starter smoke demo in a fresh temp directory. It does not need a running app or `OPENAI_API_KEY`.
+
+From the repo root:
+
+```bash
+REPO_ROOT=$(pwd)
+bun run --cwd packages/cli build
+
+tmpdir=$(mktemp -d /tmp/demohunter-demo.XXXXXX)
+cd "$tmpdir"
+
+bun "$REPO_ROOT/packages/cli/dist/bin/demohunter.js" init
+bun "$REPO_ROOT/packages/cli/dist/bin/demohunter.js" generate demos/sample.tour.ts
+```
+
+That creates:
+
+- `demohunter.config.ts`
+- `demos/sample.tour.ts`
+- `demos/sample-site/index.html`
+- `.demohunter/sample-smoke/video.mp4`
+- `.demohunter/sample-smoke/poster.jpg`
+- `.demohunter/sample-smoke/captions.srt`
+- `.demohunter/sample-smoke/captions.vtt`
+- `.demohunter/sample-smoke/chapters.json`
+- `.demohunter/sample-smoke/manifest.json`
+
+If you want to inspect the result immediately:
+
+```bash
+open .demohunter/sample-smoke/video.mp4
+```
+
 ## First Run With The Included Examples
 
 Vite example:
@@ -56,11 +91,11 @@ Both example projects keep DemoHunter usage close to a real consumer app:
 
 ## Start From The Included Starter
 
-Today the repo-local starter path is the supported bootstrap flow. From this checkout:
+If you want the starter files inside your current directory instead of a temp folder, run the same built CLI locally:
 
 ```bash
 bun run --cwd packages/cli build
-node packages/cli/dist/bin/demohunter.js init
+bun packages/cli/dist/bin/demohunter.js init
 ```
 
 That creates:
@@ -72,7 +107,7 @@ That creates:
 If the sample tour does not use narration, generation works without `OPENAI_API_KEY`:
 
 ```bash
-node packages/cli/dist/bin/demohunter.js generate demos/sample.tour.ts
+bun packages/cli/dist/bin/demohunter.js generate demos/sample.tour.ts
 ```
 
 If you want to move that starter into your own app repo, copy the generated `demohunter.config.ts`, `demos/`, and sample site files after you have decided how you want to consume DemoHunter there.

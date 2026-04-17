@@ -106,6 +106,8 @@ describe("built cli bin contract", () => {
       expect(manifest.artifacts.audio.every((artifact) => artifact.path.endsWith(".wav"))).toBe(true);
       expect(manifest.artifacts.audio.every((artifact) => !artifact.path.startsWith("/"))).toBe(true);
       expect(manifest.artifacts.audio.every((artifact) => !artifact.path.includes(cwd))).toBe(true);
+      await expectVideoToContainAudio(path.join(outputDir, "video.mp4"), cwd);
+      await expectVideoToContainAudio(path.join(outputDir, "video.webm"), cwd);
       expect((await readdir(outputDir)).sort()).toEqual([
         "audio",
         "captions.srt",
@@ -179,6 +181,16 @@ async function makeTempProject(): Promise<string> {
   const tempRoot = await realpath(await mkdtemp(path.join(os.tmpdir(), "demohunter-built-bin-")));
   tempRoots.push(tempRoot);
   return tempRoot;
+}
+
+async function expectVideoToContainAudio(videoPath: string, cwd: string): Promise<void> {
+  const probe = await spawnCommand(
+    ["ffprobe", "-v", "error", "-select_streams", "a", "-show_entries", "stream=codec_type", "-of", "csv=p=0", videoPath],
+    cwd,
+  );
+
+  expect(probe.exitCode).toBe(0);
+  expect(probe.stdout.trim()).toContain("audio");
 }
 
 async function listFiles(cwd: string): Promise<string[]> {

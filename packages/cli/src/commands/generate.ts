@@ -1,10 +1,10 @@
 import path from "node:path";
-import { pathToFileURL } from "node:url";
 
 import { generateTour } from "@demohunter/generator-playwright";
 import type { DemoHunterTour } from "@demohunter/sdk";
 
 import { loadConfig } from "../config/load-config.js";
+import { loadAuthoredModule } from "../utils/load-authored-module.js";
 
 type TourModule = {
   default: unknown;
@@ -12,14 +12,14 @@ type TourModule = {
 
 type GenerateDependencies = {
   generateTour: typeof generateTour;
-  importModule: (href: string) => Promise<TourModule>;
+  importModule: (modulePath: string) => Promise<TourModule>;
   loadConfig: typeof loadConfig;
   log: (message: string) => void;
 };
 
 const defaultDependencies: GenerateDependencies = {
   generateTour,
-  importModule: (href) => import(href),
+  importModule: loadAuthoredModule,
   loadConfig,
   log: console.log,
 };
@@ -38,7 +38,7 @@ export async function generateCommand(
 
   try {
     loadedConfig = await resolvedDependencies.loadConfig(cwd);
-    const tourModule = await resolvedDependencies.importModule(pathToFileURL(resolvedTourPath).href);
+    const tourModule = await resolvedDependencies.importModule(resolvedTourPath);
     const result = await resolvedDependencies.generateTour({
       loadedConfig,
       tourFile: {

@@ -4,22 +4,21 @@ export default defineTour({
   id: "nextjs-demo",
   title: "Next.js OSS example",
   async run({ page, chapter, step, narrate, snapshot }) {
-    await chapter("Release Brief", { id: "release-brief" });
+    await chapter("Welcome", { id: "welcome" });
 
-    await step("Open the launch checklist", async () => {
-      await page.goto(new URL("#launch-checklist", page.url()).href);
-      await page.getByRole("heading", { name: "Launch checklist" }).waitFor();
-      await narrate("The Next.js example keeps the release brief on one route with stable selectors.");
-      await snapshot({ name: "launch-checklist" });
+    await step("Greet the viewer", async () => {
+      await page.getByRole("heading", { name: "Hello DemoHunter!" }).waitFor();
+      await narrate("Welcome to DemoHunter. A tiny Next.js page is all we need to show a narrated tour.");
+      await snapshot({ name: "hello" });
     });
 
-    await chapter("QA Sign-off", { id: "qa-sign-off" });
+    await chapter("Finale", { id: "finale" });
 
-    await step("Reveal the QA sign-off panel", async () => {
-      await page.goto(new URL("#qa-signoff", page.url()).href);
-      await page.getByRole("heading", { name: "QA sign-off" }).waitFor();
-      await narrate("A second state change is enough to prove the tour stays grounded in real app behavior.");
-      await snapshot({ name: "qa-signoff" });
+    await step("Reveal the finale", async () => {
+      await page.getByRole("button", { name: "Show the finale" }).click();
+      await page.getByRole("status").getByText("Hope you enjoyed the video!").waitFor();
+      await narrate("One click reveals the finale, proving DemoHunter captures real state changes and narrates them.");
+      await snapshot({ name: "finale" });
     });
   },
 });

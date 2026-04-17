@@ -23,7 +23,6 @@ describe("generateCommand", () => {
     const log = mock(() => {});
 
     await generateCommand(cwd, "demos/sample.tour.ts", {
-      importModule: (href) => import(href),
       generateTour,
       loadConfig: async () => makeLoadedConfig(cwd),
       log,
@@ -51,7 +50,6 @@ describe("generateCommand", () => {
 
     await expect(
       generateCommand(cwd, "demos/invalid.tour.ts", {
-        importModule: (href) => import(href),
         generateTour: async () => ({ outputDir: "", videoPath: "" }),
         loadConfig: async () => makeLoadedConfig(cwd),
         log: () => {},
@@ -66,7 +64,6 @@ describe("generateCommand", () => {
 
     await expect(
       generateCommand(cwd, "demos/invalid-setup.tour.ts", {
-        importModule: (href) => import(href),
         generateTour: async () => ({ outputDir: "", videoPath: "" }),
         loadConfig: async () => makeLoadedConfig(cwd),
         log: () => {},
@@ -81,7 +78,6 @@ describe("generateCommand", () => {
 
     await expect(
       generateCommand(cwd, "demos/invalid-teardown.tour.ts", {
-        importModule: (href) => import(href),
         generateTour: async () => ({ outputDir: "", videoPath: "" }),
         loadConfig: async () => makeLoadedConfig(cwd),
         log: () => {},
@@ -96,7 +92,6 @@ describe("generateCommand", () => {
 
     await expect(
       generateCommand(cwd, "demos/sample.tour.ts", {
-        importModule: (href) => import(href),
         generateTour: async () => {
           throw new Error(
             "browserType.launch: Executable doesn't exist at /tmp/ms-playwright/chromium/chrome\nPlease run bun x playwright install chromium",
@@ -115,7 +110,6 @@ describe("generateCommand", () => {
 
     await expect(
       generateCommand(cwd, "demos/sample.tour.ts", {
-        importModule: (href) => import(href),
         generateTour: async () => {
           throw new Error("ffmpeg failed: spawn ffmpeg ENOENT");
         },
@@ -132,7 +126,6 @@ describe("generateCommand", () => {
 
     await expect(
       generateCommand(cwd, "demos/sample.tour.ts", {
-        importModule: (href) => import(href),
         generateTour: async () => {
           throw new Error(
             'Unable to resolve narration segment "Explain billing" because OPENAI_API_KEY is required.',
@@ -158,7 +151,6 @@ describe("generateCommand", () => {
 
     await expect(
       generateCommand(cwd, "demos/sample.tour.ts", {
-        importModule: (href) => import(href),
         generateTour: async () => {
           throw new Error("page.goto: net::ERR_CONNECTION_REFUSED http://127.0.0.1:4173/");
         },
@@ -175,7 +167,6 @@ describe("generateCommand", () => {
 
     await expect(
       generateCommand(cwd, "demos/sample.tour.ts", {
-        importModule: (href) => import(href),
         generateTour: async () => {
           throw new Error("page.goto: Timeout 30000ms exceeded.");
         },

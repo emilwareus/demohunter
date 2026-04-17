@@ -6,6 +6,43 @@ It generates portable output in `.demohunter/<tour-id>/` and uses OpenAI text-to
 
 Released under the [MIT License](LICENSE).
 
+## How to Try DemoHunter
+
+From the repo root, install dependencies, install the global dev CLI, and generate the starter smoke demo:
+
+```bash
+bun install
+bun x playwright install chromium
+bun run install:global
+
+tmpdir=$(mktemp -d /tmp/demohunter-demo.XXXXXX)
+cd "$tmpdir"
+
+demohunter init
+demohunter generate demos/sample.tour.ts
+open .demohunter/sample-smoke/video.mp4
+```
+
+That first demo does not need a dev server or `OPENAI_API_KEY`.
+
+If you want to try the real Next.js example after that:
+
+```bash
+cd /path/to/demohunter/examples/nextjs-demo
+bun run dev
+```
+
+In another terminal:
+
+```bash
+cd /path/to/demohunter/examples/nextjs-demo
+set -a
+source ../../.env
+set +a
+demohunter generate demos/nextjs-demo.tour.ts
+open .demohunter/nextjs-demo/video.mp4
+```
+
 ## What DemoHunter Does
 
 - Runs locally with Bun and Playwright.
@@ -36,24 +73,39 @@ bun x playwright install chromium
 
 ## Quickstart
 
-Generate from an included example app:
+The fastest deterministic first run is the starter smoke demo. It does not need a dev server or `OPENAI_API_KEY`.
+
+From the repo root:
 
 ```bash
-bun run --cwd examples/vite-demo dev
-```
-
-In a second terminal:
-
-```bash
-bun run --cwd examples/vite-demo generate
-```
-
-To try the starter scaffold today, stay inside this repo checkout and use the local CLI entrypoint or copy the generated files into your own app repo after wiring DemoHunter in as a dependency:
-
-```bash
+REPO_ROOT=$(pwd)
+bun install
+bun x playwright install chromium
 bun run --cwd packages/cli build
-node packages/cli/dist/bin/demohunter.js init
-node packages/cli/dist/bin/demohunter.js generate demos/sample.tour.ts
+
+tmpdir=$(mktemp -d /tmp/demohunter-demo.XXXXXX)
+cd "$tmpdir"
+
+bun "$REPO_ROOT/packages/cli/dist/bin/demohunter.js" init
+bun "$REPO_ROOT/packages/cli/dist/bin/demohunter.js" generate demos/sample.tour.ts
+```
+
+That writes portable output to:
+
+```text
+$tmpdir/.demohunter/sample-smoke/
+  video.mp4
+  poster.jpg
+  captions.srt
+  captions.vtt
+  chapters.json
+  manifest.json
+```
+
+If you want to inspect the output immediately:
+
+```bash
+open .demohunter/sample-smoke/video.mp4
 ```
 
 ## Repo Examples
@@ -62,6 +114,16 @@ node packages/cli/dist/bin/demohunter.js generate demos/sample.tour.ts
 - `examples/nextjs-demo`
 
 Each example keeps app startup inside the app itself and uses the real CLI from the example root, which is the runnable OSS adoption path in this repo today.
+
+If you want a real app-backed run after the smoke test, start the example app in one terminal and generate in another:
+
+```bash
+bun run --cwd examples/vite-demo dev
+```
+
+```bash
+bun run --cwd examples/vite-demo generate
+```
 
 ## Agent Skill
 

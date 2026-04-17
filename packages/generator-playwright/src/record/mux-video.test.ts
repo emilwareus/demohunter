@@ -19,6 +19,7 @@ describe("muxVideo", () => {
 
     const result = await muxVideo(
       {
+        narrations: [],
         outputDir: fixture.outputDir,
         recordFormat: "mp4",
         tempScreencastPath: fixture.tempScreencastPath,
@@ -64,6 +65,7 @@ describe("muxVideo", () => {
 
     const result = await muxVideo(
       {
+        narrations: [],
         outputDir: fixture.outputDir,
         recordFormat: "webm",
         tempScreencastPath: fixture.tempScreencastPath,
@@ -93,6 +95,111 @@ describe("muxVideo", () => {
     expect(await readFile(result.mp4.path, "utf8")).toBe("mp4 output");
     expect(await readFile(result.webm!.path, "utf8")).toBe("temporary webm");
     expect((await readdir(fixture.outputDir)).sort()).toEqual(["video.mp4", "video.webm"]);
+  });
+
+  test("mixes timed narration audio into both mp4 and webm outputs when narration exists", async () => {
+    const fixture = await makeFixture();
+    const commands: Array<{ command: string; args: string[] }> = [];
+
+    const result = await muxVideo(
+      {
+        narrations: [
+          {
+            audioPath: "/tmp/cache/intro.mp3",
+            cacheKey: "intro",
+            chapterTitle: "Intro",
+            durationMs: 800,
+            endMs: 1000,
+            startMs: 200,
+            text: "Intro narration",
+          },
+          {
+            audioPath: "/tmp/cache/outro.mp3",
+            cacheKey: "outro",
+            chapterTitle: "Outro",
+            durationMs: 1200,
+            endMs: 4200,
+            startMs: 3000,
+            text: "Outro narration",
+          },
+        ],
+        outputDir: fixture.outputDir,
+        recordFormat: "webm",
+        tempScreencastPath: fixture.tempScreencastPath,
+      },
+      {
+        ffmpegCommand: "/custom/bin/ffmpeg",
+        runCommand: async (command, args) => {
+          commands.push({ command, args });
+          const outputPath = args[args.length - 1];
+          await writeFile(outputPath, path.basename(outputPath));
+        },
+      },
+    );
+
+    expect(result).toEqual({
+      mp4: {
+        format: "mp4",
+        fileName: "video.mp4",
+        path: path.join(fixture.outputDir, "video.mp4"),
+      },
+      webm: {
+        format: "webm",
+        fileName: "video.webm",
+        path: path.join(fixture.outputDir, "video.webm"),
+      },
+    });
+    expect(commands).toHaveLength(2);
+    expect(commands[0]).toEqual({
+      command: "/custom/bin/ffmpeg",
+      args: [
+        "-y",
+        "-i",
+        fixture.tempScreencastPath,
+        "-i",
+        "/tmp/cache/intro.mp3",
+        "-i",
+        "/tmp/cache/outro.mp3",
+        "-filter_complex",
+        "[1:a]adelay=200:all=true[a0];[2:a]adelay=3000:all=true[a1];[a0][a1]amix=inputs=2:duration=longest:dropout_transition=0[aout]",
+        "-map",
+        "0:v:0",
+        "-map",
+        "[aout]",
+        "-c:v",
+        "libx264",
+        "-pix_fmt",
+        "yuv420p",
+        "-c:a",
+        "aac",
+        path.join(fixture.outputDir, "video.mp4"),
+      ],
+    });
+    expect(commands[1]).toEqual({
+      command: "/custom/bin/ffmpeg",
+      args: [
+        "-y",
+        "-i",
+        fixture.tempScreencastPath,
+        "-i",
+        "/tmp/cache/intro.mp3",
+        "-i",
+        "/tmp/cache/outro.mp3",
+        "-filter_complex",
+        "[1:a]adelay=200:all=true[a0];[2:a]adelay=3000:all=true[a1];[a0][a1]amix=inputs=2:duration=longest:dropout_transition=0[aout]",
+        "-map",
+        "0:v:0",
+        "-map",
+        "[aout]",
+        "-c:v",
+        "copy",
+        "-c:a",
+        "libopus",
+        path.join(fixture.outputDir, "video.webm"),
+      ],
+    });
+    expect(await readFile(result.mp4.path, "utf8")).toBe("video.mp4");
+    expect(await readFile(result.webm!.path, "utf8")).toBe("video.webm");
   });
 });
 

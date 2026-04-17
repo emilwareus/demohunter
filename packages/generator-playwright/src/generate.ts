@@ -158,6 +158,7 @@ export async function generateTour(
     });
 
     const videos = await resolvedDependencies.muxVideo({
+      narrations: recordedNarrations,
       outputDir,
       recordFormat: config.record.format,
       tempScreencastPath,

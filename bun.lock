@@ -50,6 +50,7 @@
         "@demohunter/sdk": "workspace:*",
         "@demohunter/tts-core": "workspace:*",
         "create-demohunter": "workspace:*",
+        "typescript": "^5.9.3",
       },
     },
     "packages/create-demohunter": {

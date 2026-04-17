@@ -101,6 +101,7 @@ describe("generation engine contract", () => {
         "video.mp4",
       ]);
       expect((await readdir(audioDir)).length).toBe(NARRATION_TEXTS.length);
+      await expectVideoToContainAudio(videoPath, cwd);
 
       const rerunResult = await runCli(cwd, ["generate", tourPath], unsetNarrationEnv());
       expect(rerunResult.exitCode).toBe(0);
@@ -347,7 +348,7 @@ async function primeNarrationCache(cwd: string): Promise<void> {
             request: currentRequest,
             output: {
               kind: "bytes",
-              bytes: new Uint8Array([index + 1, index + 2, index + 3, index + 4]),
+              bytes: await createSilentMp3Bytes(NARRATION_DURATIONS_MS[index] ?? 500),
             },
             metadata: {
               provider: currentRequest.provider,
@@ -450,4 +451,48 @@ function collectManifestArtifactPaths(
     manifest.artifacts.chapters.path,
     ...manifest.artifacts.audio.map((artifact) => artifact.path),
   ].filter((artifactPath): artifactPath is string => artifactPath !== undefined);
+}
+
+async function expectVideoToContainAudio(videoPath: string, cwd: string): Promise<void> {
+  const probe = await spawnCommand(
+    ["ffprobe", "-v", "error", "-select_streams", "a", "-show_entries", "stream=codec_type", "-of", "csv=p=0", videoPath],
+    cwd,
+  );
+
+  expect(probe.exitCode).toBe(0);
+  expect(probe.stdout.trim()).toContain("audio");
+}
+
+async function createSilentMp3Bytes(durationMs: number): Promise<Uint8Array> {
+  const processResult = Bun.spawn({
+    cmd: [
+      "ffmpeg",
+      "-v",
+      "error",
+      "-f",
+      "lavfi",
+      "-i",
+      "anullsrc=channel_layout=mono:sample_rate=24000",
+      "-t",
+      `${durationMs / 1000}`,
+      "-q:a",
+      "9",
+      "-f",
+      "mp3",
+      "pipe:1",
+    ],
+    stdout: "pipe",
+    stderr: "pipe",
+  });
+  const [exitCode, bytes, stderr] = await Promise.all([
+    processResult.exited,
+    new Response(processResult.stdout).arrayBuffer(),
+    new Response(processResult.stderr).text(),
+  ]);
+
+  if (exitCode !== 0) {
+    throw new Error(stderr || `ffmpeg failed with exit code ${exitCode}`);
+  }
+
+  return new Uint8Array(bytes);
 }

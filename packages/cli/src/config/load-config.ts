@@ -1,6 +1,5 @@
 import { access } from "node:fs/promises";
 import path from "node:path";
-import { pathToFileURL } from "node:url";
 
 import {
   DEFAULT_DEMOHUNTER_CONFIG,
@@ -11,6 +10,8 @@ import type {
   DemoHunterUserConfig,
   ResolvedDemoHunterConfig,
 } from "@demohunter/sdk";
+
+import { loadAuthoredModule } from "../utils/load-authored-module.js";
 
 export type LoadedConfig = {
   projectRoot: string;
@@ -24,7 +25,7 @@ export async function loadConfig(cwd: string): Promise<LoadedConfig> {
 
   await assertConfigExists(configPath, projectRoot);
 
-  const configModule = await importConfig(configPath);
+  const configModule = await loadAuthoredModule(configPath);
   const authoredConfig = readDefaultExport(configModule.default);
 
   const config: ResolvedDemoHunterConfig = {
@@ -57,12 +58,6 @@ async function assertConfigExists(configPath: string, cwd: string): Promise<void
   } catch {
     throw new Error(`Could not find demohunter.config.ts in ${cwd}`);
   }
-}
-
-async function importConfig(configPath: string): Promise<{ default: unknown }> {
-  const configUrl = pathToFileURL(configPath);
-  configUrl.searchParams.set("t", `${Date.now()}-${Math.random()}`);
-  return import(configUrl.href);
 }
 
 function readDefaultExport(config: unknown): DemoHunterUserConfig {

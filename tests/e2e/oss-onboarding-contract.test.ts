@@ -24,11 +24,13 @@ describe("oss onboarding contract", () => {
     expect(readme).toContain("examples/vite-demo");
     expect(readme).toContain("skills/demohunter");
     expect(readme).toContain("does not start your app for you");
-    expect(readme).toContain("node packages/cli/dist/bin/demohunter.js init");
+    expect(readme).toContain("REPO_ROOT=$(pwd)");
+    expect(readme).toContain('bun "$REPO_ROOT/packages/cli/dist/bin/demohunter.js" init');
     expect(gettingStarted).toContain("Start your app yourself before generation.");
-    expect(gettingStarted).toContain("repo-local starter path is the supported bootstrap flow");
-    expect(gettingStarted).toContain("node packages/cli/dist/bin/demohunter.js init");
+    expect(gettingStarted).toContain("The cleanest first run is the starter smoke demo in a fresh temp directory.");
+    expect(gettingStarted).toContain('bun "$REPO_ROOT/packages/cli/dist/bin/demohunter.js" init');
     expect(gettingStarted).toContain("bun run --cwd examples/nextjs-demo generate");
+    expect(gettingStarted).toContain("bun packages/cli/dist/bin/demohunter.js generate demos/sample.tour.ts");
     expect(troubleshooting).toContain("OPENAI_API_KEY");
     expect(troubleshooting).toContain("ffmpeg");
     expect(troubleshooting).toContain("ERR_CONNECTION_REFUSED");

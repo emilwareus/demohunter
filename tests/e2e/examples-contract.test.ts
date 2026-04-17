@@ -16,12 +16,13 @@ let repoBuildPromise: Promise<void> | undefined;
 const EXAMPLES = [
   {
     baseURL: "http://127.0.0.1:3100",
+    readyText: "Hello DemoHunter!",
     name: "Next.js",
     projectRoot: path.join(repoRoot, "examples", "nextjs-demo"),
     tourId: "nextjs-demo",
     narrationTexts: [
-      "The Next.js example keeps the release brief on one route with stable selectors.",
-      "A second state change is enough to prove the tour stays grounded in real app behavior.",
+      "Welcome to DemoHunter. A tiny Next.js page is all we need to show a narrated tour.",
+      "One click reveals the finale, proving DemoHunter captures real state changes and narrates them.",
     ],
   },
   {
@@ -30,8 +31,8 @@ const EXAMPLES = [
     projectRoot: path.join(repoRoot, "examples", "vite-demo"),
     tourId: "vite-demo",
     narrationTexts: [
-      "The Vite example proves the same workflow against a lightweight client rendered app.",
-      "It stays local only, with selectors chosen for demo generation instead of framework showcase depth.",
+      "Welcome to DemoHunter. A lightweight Vite app is enough to record a narrated tour locally.",
+      "One click reveals the finale, and the portable output lands in dot demohunter, ready to replay.",
     ],
   },
 ] as const;
@@ -59,7 +60,7 @@ describe("example app contract", () => {
         const stopServer = startServer(example.projectRoot);
         serverProcesses.push(stopServer);
 
-        await waitForReady(example.baseURL);
+        await waitForReady(example.baseURL, example.readyText);
 
         const generateResult = await spawnCommand(
           [process.execPath, "run", "generate"],
@@ -93,6 +94,7 @@ describe("example app contract", () => {
         expect(manifest.artifacts.videos.mp4.path).toBe("video.mp4");
         expect(manifest.artifacts.audio).toHaveLength(example.narrationTexts.length);
         expect(chapters).toHaveLength(2);
+        await expectVideoToContainAudio(videoPath);
       },
       60_000,
     );
@@ -131,7 +133,7 @@ async function primeNarrationCache(cacheDir: string, texts: readonly string[]): 
             request: currentRequest,
             output: {
               kind: "bytes",
-              bytes: new Uint8Array([index + 1, index + 2, index + 3, index + 4]),
+              bytes: await createSilentMp3Bytes(650 + index * 175),
             },
             metadata: {
               provider: currentRequest.provider,
@@ -170,14 +172,14 @@ async function stopServer(server: ManagedServer): Promise<void> {
   await server.process.exited;
 }
 
-async function waitForReady(url: string, timeoutMs = 20_000): Promise<void> {
+async function waitForReady(url: string, expectedText?: string, timeoutMs = 20_000): Promise<void> {
   const startedAt = Date.now();
 
   while (Date.now() - startedAt < timeoutMs) {
     try {
       const response = await fetch(url);
 
-      if (response.ok) {
+      if (response.ok && (expectedText === undefined || (await response.text()).includes(expectedText))) {
         return;
       }
     } catch {
@@ -188,6 +190,47 @@ async function waitForReady(url: string, timeoutMs = 20_000): Promise<void> {
   }
 
   throw new Error(`Timed out waiting for example app readiness: ${url}`);
+}
+
+async function expectVideoToContainAudio(videoPath: string): Promise<void> {
+  const result = await spawnCommand(["ffprobe", "-v", "error", "-select_streams", "a", "-show_entries", "stream=codec_type", "-of", "csv=p=0", videoPath], repoRoot);
+
+  expect(result.exitCode).toBe(0);
+  expect(result.stdout.trim()).toContain("audio");
+}
+
+async function createSilentMp3Bytes(durationMs: number): Promise<Uint8Array> {
+  const processResult = Bun.spawn({
+    cmd: [
+      "ffmpeg",
+      "-v",
+      "error",
+      "-f",
+      "lavfi",
+      "-i",
+      "anullsrc=channel_layout=mono:sample_rate=24000",
+      "-t",
+      `${durationMs / 1000}`,
+      "-q:a",
+      "9",
+      "-f",
+      "mp3",
+      "pipe:1",
+    ],
+    stdout: "pipe",
+    stderr: "pipe",
+  });
+  const [exitCode, bytes, stderr] = await Promise.all([
+    processResult.exited,
+    new Response(processResult.stdout).arrayBuffer(),
+    new Response(processResult.stderr).text(),
+  ]);
+
+  if (exitCode !== 0) {
+    throw new Error(stderr || `ffmpeg failed with exit code ${exitCode}`);
+  }
+
+  return new Uint8Array(bytes);
 }
 
 async function runRepoCommand(args: string[]): Promise<void> {

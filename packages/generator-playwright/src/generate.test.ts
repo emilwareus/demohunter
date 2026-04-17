@@ -205,6 +205,22 @@ describe("generateTour", () => {
       page: passTwoPage,
       title: "Billing",
     });
+    expect(muxVideo).toHaveBeenCalledWith({
+      narrations: [
+        {
+          audioPath: "/tmp/project/.demohunter/cache/explain-billing.mp3",
+          cacheKey: "explain-billing",
+          chapterTitle: "Billing",
+          durationMs: 1200,
+          endMs: 1450,
+          startMs: 250,
+          text: "Explain billing",
+        },
+      ],
+      outputDir: "/tmp/project/.demohunter/billing-overview",
+      recordFormat: "mp4",
+      tempScreencastPath: "/tmp/project/.demohunter/billing-overview.recording.webm",
+    });
     expect(now).toHaveBeenCalledTimes(4);
   });
 
