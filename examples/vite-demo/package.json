@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "vite --host 127.0.0.1 --port 3200 --strictPort",
     "build": "vite build",
-    "generate": "demohunter generate demos/vite-demo.tour.ts"
+    "generate": "node node_modules/demohunter/dist/bin/demohunter.js generate demos/vite-demo.tour.ts"
   },
   "dependencies": {
     "demohunter": "workspace:*",
