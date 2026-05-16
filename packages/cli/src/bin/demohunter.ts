@@ -1,24 +1,50 @@
-#!/usr/bin/env bun
+#!/usr/bin/env node
 
-import { realpathSync } from "node:fs";
+import { readFileSync, realpathSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { cacheCommand } from "../commands/cache.js";
 import { generateCommand } from "../commands/generate.js";
 import { initCommand } from "../commands/init.js";
+import { addSkillCommand, parseSkillTargets } from "../commands/skill.js";
 
 type CliDependencies = {
   cacheCommand: typeof cacheCommand;
   initCommand: typeof initCommand;
   generateCommand: typeof generateCommand;
+  addSkillCommand: typeof addSkillCommand;
 };
 
 const defaultDependencies: CliDependencies = {
   cacheCommand,
   initCommand,
   generateCommand,
+  addSkillCommand,
 };
+
+const HELP_TEXT = `demohunter - generate narrated demo videos from Playwright tours
+
+Usage:
+  demohunter <command> [options]
+
+Commands:
+  init                     Scaffold a starter tour, config, and .gitignore entry
+  generate <tour-file>     Run a tour and write portable assets to .demohunter/<tour-id>/
+  cache list               Show cached narration entries
+  cache prune              Remove stale or corrupt cache entries
+  cache clear              Delete every cached narration entry
+  add-skill [--target ...] Install the DemoHunter agent skill into .claude or .codex
+
+add-skill flags:
+  --target <name>          Repeatable. One of: claude, codex, both.
+                           When omitted, installs to both.
+
+Global flags:
+  -h, --help               Print this help text
+  -v, --version            Print the installed version
+
+Docs: https://github.com/emilwareus/demohunter`;
 
 export async function runCli(
   argv: string[],
@@ -26,6 +52,16 @@ export async function runCli(
   dependencies: CliDependencies = defaultDependencies,
 ): Promise<void> {
   const [command, ...rest] = argv;
+
+  if (command === undefined || command === "-h" || command === "--help" || command === "help") {
+    console.log(HELP_TEXT);
+    return;
+  }
+
+  if (command === "-v" || command === "--version") {
+    console.log(readVersion());
+    return;
+  }
 
   switch (command) {
     case "init":
@@ -47,13 +83,82 @@ export async function runCli(
       await dependencies.generateCommand(cwd, tourPath);
       return;
     }
+    case "add-skill": {
+      const targets = parseSkillTargets(extractTargetValues(rest));
+      await dependencies.addSkillCommand(cwd, { targets });
+      return;
+    }
     default:
-      throw new Error("Usage: demohunter <init|generate|cache> [options]");
+      throw new Error(
+        `Unknown command: ${command}. Run "demohunter --help" to see available commands.`,
+      );
   }
 }
 
 function isCacheAction(action: string | undefined): action is "list" | "prune" | "clear" {
   return action === "list" || action === "prune" || action === "clear";
+}
+
+function extractTargetValues(args: readonly string[]): string[] {
+  const values: string[] = [];
+
+  for (let index = 0; index < args.length; index += 1) {
+    const arg = args[index]!;
+
+    if (arg === "--target") {
+      const next = args[index + 1];
+
+      if (next === undefined) {
+        throw new Error("Usage: demohunter add-skill [--target claude|codex|both]");
+      }
+
+      values.push(next);
+      index += 1;
+      continue;
+    }
+
+    if (arg.startsWith("--target=")) {
+      values.push(arg.slice("--target=".length));
+      continue;
+    }
+
+    throw new Error(`Unknown add-skill flag: ${arg}`);
+  }
+
+  return values;
+}
+
+function readVersion(): string {
+  try {
+    const moduleDir = path.dirname(fileURLToPath(import.meta.url));
+    let dir = moduleDir;
+
+    while (true) {
+      const candidate = path.join(dir, "package.json");
+
+      try {
+        const parsed = JSON.parse(readFileSync(candidate, "utf8")) as { name?: string; version?: string };
+
+        if (parsed.name === "demohunter" && typeof parsed.version === "string") {
+          return parsed.version;
+        }
+      } catch {
+        // ignore and keep walking up
+      }
+
+      const parent = path.dirname(dir);
+
+      if (parent === dir) {
+        break;
+      }
+
+      dir = parent;
+    }
+  } catch {
+    // fall through
+  }
+
+  return "unknown";
 }
 
 async function main(): Promise<void> {

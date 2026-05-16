@@ -102,7 +102,7 @@ describe("example app contract", () => {
 });
 
 async function ensureRepoBuilt(): Promise<void> {
-  repoBuildPromise ??= runRepoCommand(["x", "tsc", "-b", "tsconfig.json", "--pretty", "false"]);
+  repoBuildPromise ??= runRepoCommand(["run", "build"]);
   await repoBuildPromise;
 }
 

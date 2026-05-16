@@ -15,12 +15,6 @@
     },
     {
       "path": "./packages/tts-openai"
-    },
-    {
-      "path": "./packages/cli"
-    },
-    {
-      "path": "./packages/create-demohunter"
     }
   ]
 }

@@ -15,16 +15,14 @@ export async function showChapterOverlay({
   title,
 }: ShowChapterOverlayInput): Promise<void> {
   await page.evaluate(
-    ({ durationMs: overlayDurationMs, title: chapterTitle }) => {
-      const scope = globalThis as typeof globalThis & {
-        __demohunterChapterOverlayHideTimer?: ReturnType<typeof setTimeout>;
-      };
+    ({ durationMs: overlayDurationMs, title: chapterTitle, overlayId, overlayTimerKey }) => {
+      const scope = globalThis as typeof globalThis & Record<string, unknown>;
 
-      let overlay = document.getElementById(CHAPTER_OVERLAY_ID);
+      let overlay = document.getElementById(overlayId);
 
       if (overlay === null) {
         overlay = document.createElement("div");
-        overlay.id = CHAPTER_OVERLAY_ID;
+        overlay.id = overlayId;
         overlay.style.position = "fixed";
         overlay.style.top = "24px";
         overlay.style.left = "24px";
@@ -46,18 +44,24 @@ export async function showChapterOverlay({
       overlay.textContent = chapterTitle;
       overlay.style.opacity = "1";
 
-      if (scope[CHAPTER_OVERLAY_TIMER_KEY] !== undefined) {
-        clearTimeout(scope[CHAPTER_OVERLAY_TIMER_KEY]);
+      const existingTimer = scope[overlayTimerKey];
+      if (existingTimer !== undefined) {
+        clearTimeout(existingTimer as ReturnType<typeof setTimeout>);
       }
 
-      scope[CHAPTER_OVERLAY_TIMER_KEY] = setTimeout(() => {
-        const currentOverlay = document.getElementById(CHAPTER_OVERLAY_ID);
+      scope[overlayTimerKey] = setTimeout(() => {
+        const currentOverlay = document.getElementById(overlayId);
 
         if (currentOverlay !== null) {
           currentOverlay.style.opacity = "0";
         }
       }, overlayDurationMs);
     },
-    { durationMs, title },
+    {
+      durationMs,
+      title,
+      overlayId: CHAPTER_OVERLAY_ID,
+      overlayTimerKey: CHAPTER_OVERLAY_TIMER_KEY,
+    },
   );
 }

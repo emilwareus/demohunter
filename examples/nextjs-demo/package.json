@@ -5,10 +5,9 @@
   "scripts": {
     "dev": "next dev --hostname 127.0.0.1 --port 3100",
     "build": "next build",
-    "generate": "bun x demohunter generate demos/nextjs-demo.tour.ts"
+    "generate": "demohunter generate demos/nextjs-demo.tour.ts"
   },
   "dependencies": {
-    "@demohunter/sdk": "workspace:*",
     "demohunter": "workspace:*",
     "next": "^16.2.3",
     "react": "^19.2.5",

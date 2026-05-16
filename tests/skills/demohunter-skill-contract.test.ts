@@ -5,7 +5,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
-const skillRoot = path.join(repoRoot, "skills", "demohunter");
+const skillRoot = path.join(repoRoot, "packages", "cli", "skills", "demohunter");
 const cliSourcePath = path.join(repoRoot, "packages", "cli", "src", "bin", "demohunter.ts");
 const markdownFiles = [
   path.join(skillRoot, "SKILL.md"),
@@ -33,7 +33,7 @@ describe("demohunter skill bundle", () => {
     const templatePath = path.join(skillRoot, "assets", "tour.template.ts");
     const templateSource = await readFile(templatePath, "utf8");
 
-    expect(templateSource).toContain('import { defineTour } from "@demohunter/sdk"');
+    expect(templateSource).toContain('import { defineTour } from "demohunter"');
     expect(templateSource).toContain("export default defineTour({");
     expect(templateSource).toContain("chapter(");
     expect(templateSource).toContain("step(");
@@ -99,7 +99,7 @@ async function typecheckTemplate(templatePath: string): Promise<void> {
             skipLibCheck: true,
             baseUrl: repoRoot,
             paths: {
-              "@demohunter/sdk": ["packages/sdk/src/index.ts"],
+              demohunter: ["packages/cli/src/index.ts"],
             },
           },
           files: [templatePath],

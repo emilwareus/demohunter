@@ -1,151 +1,106 @@
-# Getting Started
+# Getting started
 
-This guide covers the real OSS path for DemoHunter: you run your own app, point DemoHunter at it through `demohunter.config.ts`, and generate portable demo output locally.
+This guide walks through installing DemoHunter, scaffolding a starter tour, and generating your first demo.
 
-## Product Boundary
+## Requirements
 
-DemoHunter stays intentionally narrow:
+- Node.js 20+
+- `ffmpeg` and `ffprobe` on your `PATH`
+- A Playwright Chromium runtime (installed once: `npx playwright install chromium`)
+- `OPENAI_API_KEY` only when generating uncached narration
 
-- Keep normal Playwright logic in your own `setup` and `run` code.
-- Start your app yourself before generation.
-- Handle auth, seeded data, and session state in your own Playwright steps.
-- Use DemoHunter to collect narration timing, record the flow, and write `.demohunter/<tour-id>/`.
+## Install
 
-If you want a tool that boots your app or manages Playwright test orchestration, that is outside the current OSS scope.
-
-## Prerequisites
-
-1. Install Bun.
-2. Install repo dependencies with `bun install`.
-3. Install the Playwright Chromium runtime with `bun x playwright install chromium`.
-4. Install `ffmpeg` and ensure `ffmpeg` and `ffprobe` are on your `PATH`.
-5. Export `OPENAI_API_KEY` only if your tour needs narration that is not already cached.
-
-## Verified First Run
-
-The cleanest first run is the starter smoke demo in a fresh temp directory. It does not need a running app or `OPENAI_API_KEY`.
-
-From the repo root:
-
-```bash
-REPO_ROOT=$(pwd)
-bun run --cwd packages/cli build
-
-tmpdir=$(mktemp -d /tmp/demohunter-demo.XXXXXX)
-cd "$tmpdir"
-
-bun "$REPO_ROOT/packages/cli/dist/bin/demohunter.js" init
-bun "$REPO_ROOT/packages/cli/dist/bin/demohunter.js" generate demos/sample.tour.ts
+```sh
+npm install --save-dev demohunter
+npx playwright install chromium
 ```
 
-That creates:
+DemoHunter ships Playwright as a runtime dependency. You install the browser runtime once per machine.
 
-- `demohunter.config.ts`
-- `demos/sample.tour.ts`
-- `demos/sample-site/index.html`
-- `.demohunter/sample-smoke/video.mp4`
-- `.demohunter/sample-smoke/poster.jpg`
-- `.demohunter/sample-smoke/captions.srt`
-- `.demohunter/sample-smoke/captions.vtt`
-- `.demohunter/sample-smoke/chapters.json`
-- `.demohunter/sample-smoke/manifest.json`
+## Scaffold a starter
 
-If you want to inspect the result immediately:
+From your project root:
 
-```bash
+```sh
+npx demohunter init
+```
+
+This creates:
+
+```
+demohunter.config.ts
+demos/sample.tour.ts
+demos/sample-site/index.html
+```
+
+The first `demohunter generate` run also writes `.demohunter/.gitignore` so generated artifacts stay out of source control without touching your project-level `.gitignore`.
+
+## Generate the starter demo
+
+```sh
+npx demohunter generate demos/sample.tour.ts
 open .demohunter/sample-smoke/video.mp4
 ```
 
-## First Run With The Included Examples
+The starter tour does not call `narrate(...)`, so it runs without `OPENAI_API_KEY` and produces a silent video.
 
-Vite example:
+## Point at your own app
 
-```bash
-bun run --cwd examples/vite-demo dev
-```
+1. Start your app yourself (DemoHunter does not start it for you).
+2. Set `baseURL` in `demohunter.config.ts` to wherever your app is reachable.
+3. Write a tour under `demos/` that exercises one flow. Use normal Playwright (`page.getByRole`, `page.click`, etc.). Add `narrate(...)` for each visible state change you want the viewer to hear.
 
-Then, in another terminal:
+Example:
 
-```bash
-bun run --cwd examples/vite-demo generate
-```
+```ts
+import { defineTour } from "demohunter";
 
-Next.js example:
+export default defineTour({
+  id: "billing-overview",
+  title: "Billing overview",
+  async run({ page, chapter, step, narrate }) {
+    await chapter("Open the workspace");
 
-```bash
-bun run --cwd examples/nextjs-demo dev
+    await step("Land on the dashboard", async () => {
+      await page.goto("/");
+      await page.getByRole("heading", { name: "Workspace" }).waitFor();
+      await narrate("Welcome to the billing workspace. Invoices, exports, and credits all live here.");
+    });
+  },
+});
 ```
 
 Then:
 
-```bash
-bun run --cwd examples/nextjs-demo generate
+```sh
+export OPENAI_API_KEY=sk-...
+npx demohunter generate demos/billing-overview.tour.ts
 ```
 
-Both example projects keep DemoHunter usage close to a real consumer app:
+## Install the agent skill (optional)
 
-- `demohunter.config.ts` lives in the example root
-- the example app owns its own dev server
-- the tour file lives under `demos/*.tour.ts`
-- generated assets land under that example's `.demohunter/`
-
-## Start From The Included Starter
-
-If you want the starter files inside your current directory instead of a temp folder, run the same built CLI locally:
-
-```bash
-bun run --cwd packages/cli build
-bun packages/cli/dist/bin/demohunter.js init
+```sh
+npx demohunter add-skill --target claude
 ```
 
-That creates:
+Targets: `claude`, `codex`, or `both`. When `--target` is omitted, the skill is installed for both. The skill teaches your coding agent how to author and update DemoHunter tours without inventing wrapper abstractions.
 
-- `demohunter.config.ts`
-- `demos/sample.tour.ts`
-- `demos/sample-site/index.html`
+## Repo examples
 
-If the sample tour does not use narration, generation works without `OPENAI_API_KEY`:
+The `examples/` directory contains two runnable consumer apps you can use as a reference:
 
-```bash
-bun packages/cli/dist/bin/demohunter.js generate demos/sample.tour.ts
+```sh
+# Terminal 1
+npm run --prefix examples/nextjs-demo dev
+
+# Terminal 2
+npm run --prefix examples/nextjs-demo generate
 ```
 
-If you want to move that starter into your own app repo, copy the generated `demohunter.config.ts`, `demos/`, and sample site files after you have decided how you want to consume DemoHunter there.
+Same shape for `examples/vite-demo`.
 
-## Tour Authoring Shape
+## Next steps
 
-DemoHunter expects a default export with:
-
-- string `id`
-- string `title`
-- `run(runtime)` function
-- optional `setup(runtime)` and `teardown(runtime)` functions
-
-Keep selectors and flows Playwright-native. If you want agent help authoring tours, use the installable skill in `skills/demohunter/`.
-
-## Output
-
-A successful run writes a portable directory similar to:
-
-```text
-.demohunter/<tour-id>/
-  video.mp4
-  poster.jpg
-  captions.srt
-  captions.vtt
-  chapters.json
-  manifest.json
-  audio/
-```
-
-## Recommended Verification
-
-From the repo root:
-
-```bash
-bun test tests/e2e/examples-contract.test.ts
-bun test tests/e2e/init-generate-smoke.test.ts
-bun run verify
-```
-
-If you hit environment or first-run failures, continue with [`docs/troubleshooting.md`](./troubleshooting.md).
+- [Troubleshooting](./troubleshooting.md) — common first-run blockers.
+- [Agent skill](../packages/cli/skills/demohunter/) — `.tour.ts` authoring rules for AI agents.

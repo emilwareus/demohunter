@@ -2,83 +2,137 @@ import { describe, expect, mock, test } from "bun:test";
 
 import { isExecutedAsEntrypoint, runCli } from "./demohunter.js";
 
+function buildStubs(overrides: Partial<Parameters<typeof runCli>[2]> = {}): Parameters<typeof runCli>[2] {
+  return {
+    cacheCommand: mock(async () => {}),
+    initCommand: mock(async () => {}),
+    generateCommand: mock(async () => {}),
+    addSkillCommand: mock(async () => {}),
+    ...overrides,
+  };
+}
+
 describe("runCli", () => {
   test("dispatches init with the force flag", async () => {
-    const cacheCommand = mock(async () => {});
-    const initCommand = mock(async () => {});
-    const generateCommand = mock(async () => {});
+    const stubs = buildStubs();
 
-    await runCli(["init", "--force"], "/tmp/demo", {
-      cacheCommand,
-      generateCommand,
-      initCommand,
-    });
+    await runCli(["init", "--force"], "/tmp/demo", stubs);
 
-    expect(cacheCommand).not.toHaveBeenCalled();
-    expect(initCommand).toHaveBeenCalledWith("/tmp/demo", { force: true });
-    expect(generateCommand).not.toHaveBeenCalled();
+    expect(stubs.initCommand).toHaveBeenCalledWith("/tmp/demo", { force: true });
+    expect(stubs.cacheCommand).not.toHaveBeenCalled();
+    expect(stubs.generateCommand).not.toHaveBeenCalled();
+    expect(stubs.addSkillCommand).not.toHaveBeenCalled();
   });
 
   test("dispatches generate with the requested tour path", async () => {
-    const cacheCommand = mock(async () => {});
-    const initCommand = mock(async () => {});
-    const generateCommand = mock(async () => {});
+    const stubs = buildStubs();
 
-    await runCli(["generate", "demos/sample.tour.ts"], "/tmp/demo", {
-      cacheCommand,
-      generateCommand,
-      initCommand,
-    });
+    await runCli(["generate", "demos/sample.tour.ts"], "/tmp/demo", stubs);
 
-    expect(cacheCommand).not.toHaveBeenCalled();
-    expect(generateCommand).toHaveBeenCalledWith("/tmp/demo", "demos/sample.tour.ts");
-    expect(initCommand).not.toHaveBeenCalled();
+    expect(stubs.generateCommand).toHaveBeenCalledWith("/tmp/demo", "demos/sample.tour.ts");
   });
 
   test("dispatches cache subcommands with the requested action", async () => {
-    const cacheCommand = mock(async () => {});
-    const initCommand = mock(async () => {});
-    const generateCommand = mock(async () => {});
+    const stubs = buildStubs();
 
-    await runCli(["cache", "prune"], "/tmp/demo", {
-      cacheCommand,
-      generateCommand,
-      initCommand,
-    });
+    await runCli(["cache", "prune"], "/tmp/demo", stubs);
 
-    expect(cacheCommand).toHaveBeenCalledWith("/tmp/demo", { action: "prune" });
-    expect(generateCommand).not.toHaveBeenCalled();
-    expect(initCommand).not.toHaveBeenCalled();
+    expect(stubs.cacheCommand).toHaveBeenCalledWith("/tmp/demo", { action: "prune" });
+  });
+
+  test("dispatches add-skill with the requested target", async () => {
+    const stubs = buildStubs();
+
+    await runCli(["add-skill", "--target", "claude"], "/tmp/demo", stubs);
+
+    expect(stubs.addSkillCommand).toHaveBeenCalledWith("/tmp/demo", { targets: ["claude"] });
+  });
+
+  test("dispatches add-skill to both targets when --target is omitted", async () => {
+    const stubs = buildStubs();
+
+    await runCli(["add-skill"], "/tmp/demo", stubs);
+
+    expect(stubs.addSkillCommand).toHaveBeenCalledWith("/tmp/demo", { targets: ["claude", "codex"] });
+  });
+
+  test("expands --target both into every supported target", async () => {
+    const stubs = buildStubs();
+
+    await runCli(["add-skill", "--target=both"], "/tmp/demo", stubs);
+
+    expect(stubs.addSkillCommand).toHaveBeenCalledWith("/tmp/demo", { targets: ["claude", "codex"] });
   });
 
   test("throws a usage error when generate is missing the tour path", async () => {
-    await expect(
-      runCli(["generate"], "/tmp/demo", {
-        cacheCommand: async () => {},
-        generateCommand: async () => {},
-        initCommand: async () => {},
-      }),
-    ).rejects.toThrow("Usage: demohunter generate <tour-file>");
+    await expect(runCli(["generate"], "/tmp/demo", buildStubs())).rejects.toThrow(
+      "Usage: demohunter generate <tour-file>",
+    );
   });
 
   test("throws a usage error when cache is missing the action", async () => {
-    await expect(
-      runCli(["cache"], "/tmp/demo", {
-        cacheCommand: async () => {},
-        generateCommand: async () => {},
-        initCommand: async () => {},
-      }),
-    ).rejects.toThrow("Usage: demohunter cache <list|prune|clear>");
+    await expect(runCli(["cache"], "/tmp/demo", buildStubs())).rejects.toThrow(
+      "Usage: demohunter cache <list|prune|clear>",
+    );
   });
 
-  test("throws a usage error for unknown commands", async () => {
-    await expect(
-      runCli(["ship-it"], "/tmp/demo", {
-        cacheCommand: async () => {},
-        generateCommand: async () => {},
-        initCommand: async () => {},
-      }),
-    ).rejects.toThrow("Usage: demohunter <init|generate|cache> [options]");
+  test("throws on unknown commands with a hint to --help", async () => {
+    await expect(runCli(["ship-it"], "/tmp/demo", buildStubs())).rejects.toThrow(
+      'Unknown command: ship-it. Run "demohunter --help" to see available commands.',
+    );
+  });
+
+  test("prints help text when called with --help", async () => {
+    const stubs = buildStubs();
+    const logged: string[] = [];
+    const originalLog = console.log;
+    console.log = (message: unknown) => {
+      logged.push(String(message));
+    };
+
+    try {
+      await runCli(["--help"], "/tmp/demo", stubs);
+    } finally {
+      console.log = originalLog;
+    }
+
+    expect(logged.join("\n")).toContain("demohunter <command>");
+    expect(stubs.initCommand).not.toHaveBeenCalled();
+  });
+
+  test("prints help text when called with no arguments", async () => {
+    const stubs = buildStubs();
+    const logged: string[] = [];
+    const originalLog = console.log;
+    console.log = (message: unknown) => {
+      logged.push(String(message));
+    };
+
+    try {
+      await runCli([], "/tmp/demo", stubs);
+    } finally {
+      console.log = originalLog;
+    }
+
+    expect(logged.join("\n")).toContain("demohunter <command>");
+  });
+
+  test("prints a version when called with --version", async () => {
+    const stubs = buildStubs();
+    const logged: string[] = [];
+    const originalLog = console.log;
+    console.log = (message: unknown) => {
+      logged.push(String(message));
+    };
+
+    try {
+      await runCli(["--version"], "/tmp/demo", stubs);
+    } finally {
+      console.log = originalLog;
+    }
+
+    expect(logged).toHaveLength(1);
+    expect(logged[0]).toMatch(/^\d+\.\d+\.\d+/);
   });
 
   test("treats the workspace .bin symlink as the same entrypoint as the real dist file", () => {

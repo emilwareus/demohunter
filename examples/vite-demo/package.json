@@ -5,10 +5,9 @@
   "scripts": {
     "dev": "vite --host 127.0.0.1 --port 3200 --strictPort",
     "build": "vite build",
-    "generate": "bun x demohunter generate demos/vite-demo.tour.ts"
+    "generate": "demohunter generate demos/vite-demo.tour.ts"
   },
   "dependencies": {
-    "@demohunter/sdk": "workspace:*",
     "demohunter": "workspace:*",
     "react": "^19.2.5",
     "react-dom": "^19.2.5"

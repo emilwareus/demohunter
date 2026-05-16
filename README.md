@@ -1,149 +1,99 @@
 # DemoHunter
 
-DemoHunter is an open-source TypeScript CLI and SDK for turning Playwright-style `.tour.ts` files into narrated demo assets on your own machine.
+[![CI](https://github.com/emilwareus/demohunter/actions/workflows/ci.yml/badge.svg)](https://github.com/emilwareus/demohunter/actions/workflows/ci.yml)
+[![npm](https://img.shields.io/npm/v/demohunter.svg)](https://www.npmjs.com/package/demohunter)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-It generates portable output in `.demohunter/<tour-id>/` and uses OpenAI text-to-speech only when narration is not already cached locally.
+Generate narrated demo videos from Playwright tours. Runs locally. Outputs a portable `video.mp4`, captions, and a JSON manifest.
 
-Released under the [MIT License](LICENSE).
+```ts
+import { defineTour } from "demohunter";
 
-## How to Try DemoHunter
-
-From the repo root, install dependencies, install the global dev CLI, and generate the starter smoke demo:
-
-```bash
-bun install
-bun x playwright install chromium
-bun run install:global
-
-tmpdir=$(mktemp -d /tmp/demohunter-demo.XXXXXX)
-cd "$tmpdir"
-
-demohunter init
-demohunter generate demos/sample.tour.ts
-open .demohunter/sample-smoke/video.mp4
+export default defineTour({
+  id: "product-overview",
+  title: "Product overview",
+  async run({ page, chapter, step, narrate }) {
+    await chapter("Welcome");
+    await step("Show the landing page", async () => {
+      await page.goto("/");
+      await narrate("This is the home page of the app.");
+    });
+  },
+});
 ```
 
-That first demo does not need a dev server or `OPENAI_API_KEY`.
+## Install
 
-If you want to try the real Next.js example after that:
-
-```bash
-cd /path/to/demohunter/examples/nextjs-demo
-bun run dev
+```sh
+npm install --save-dev demohunter
+npx playwright install chromium
 ```
 
-In another terminal:
+`ffmpeg` must be on your `PATH`. `OPENAI_API_KEY` is only needed when narration is not already cached.
 
-```bash
-cd /path/to/demohunter/examples/nextjs-demo
-set -a
-source ../../.env
-set +a
-demohunter generate demos/nextjs-demo.tour.ts
-open .demohunter/nextjs-demo/video.mp4
+## Usage
+
+```sh
+npx demohunter init                              # scaffold sample tour + config + .gitignore
+npx demohunter generate demos/sample.tour.ts     # run the tour, write .demohunter/<id>/
+npx demohunter cache list|prune|clear            # manage narration cache
+npx demohunter add-skill --target claude         # install agent skill (also: codex, both)
 ```
 
-## What DemoHunter Does
+## Output
 
-- Runs locally with Bun and Playwright.
-- Lets you keep authoring normal Playwright automation in `.tour.ts` files.
-- Generates demo assets such as `video.mp4`, `poster.jpg`, `captions.srt`, `captions.vtt`, `chapters.json`, and `manifest.json`.
-- Reuses cached narration so repeat runs do not keep calling OpenAI.
+A successful run writes to `.demohunter/<tour-id>/`:
 
-## What DemoHunter Does Not Do
-
-- It does not start your app for you.
-- It does not manage auth, sessions, or bootstrap flows.
-- It does not orchestrate `@playwright/test` suites or wrap your app in a custom runner.
-- It does not require any hosted DemoHunter backend.
-
-## Prerequisites
-
-- Bun
-- Playwright browser runtime for Chromium
-- `ffmpeg` on your system `PATH`
-- `OPENAI_API_KEY` only when a run needs uncached narration
-
-Install repo dependencies and the Playwright browser runtime:
-
-```bash
-bun install
-bun x playwright install chromium
+```
+video.mp4         # narrated demo
+poster.jpg        # cover frame
+captions.srt      # subtitle track
+captions.vtt      # web subtitle track
+chapters.json     # chapter timeline
+manifest.json     # portable index, sha256 checksummed
+audio/            # exported narration clips
 ```
 
-## Quickstart
+## How it works
 
-The fastest deterministic first run is the starter smoke demo. It does not need a dev server or `OPENAI_API_KEY`.
+DemoHunter is a thin layer on top of Playwright. You write your tour like normal browser automation, plus calls to `narrate(...)`, `chapter(...)`, and `step(...)`. Generation runs in two passes:
 
-From the repo root:
+1. Resolve every narration through OpenAI TTS, cache the audio locally, measure real durations.
+2. Replay the tour while recording the screen, hold each narrated step for its real audio length, then mux video + audio + captions.
 
-```bash
-REPO_ROOT=$(pwd)
-bun install
-bun x playwright install chromium
-bun run --cwd packages/cli build
+Identical narration text reuses cached audio — no second API call. Cache lives under `.demohunter/cache/`.
 
-tmpdir=$(mktemp -d /tmp/demohunter-demo.XXXXXX)
-cd "$tmpdir"
+## Config
 
-bun "$REPO_ROOT/packages/cli/dist/bin/demohunter.js" init
-bun "$REPO_ROOT/packages/cli/dist/bin/demohunter.js" generate demos/sample.tour.ts
+`demohunter.config.ts` controls the runtime:
+
+```ts
+import { defineConfig } from "demohunter";
+
+export default defineConfig({
+  baseURL: "http://localhost:3000",
+  // outputDir: ".demohunter",
+  // cacheDir: ".demohunter/cache",
+  // browser: "chromium",
+  // viewport: { width: 1440, height: 900 },
+  // record: { format: "mp4", showActions: true, showChapters: true },
+  // tts: { model: "gpt-4o-mini-tts", voice: "marin", format: "mp3" },
+});
 ```
 
-That writes portable output to:
+## What DemoHunter does *not* do
 
-```text
-$tmpdir/.demohunter/sample-smoke/
-  video.mp4
-  poster.jpg
-  captions.srt
-  captions.vtt
-  chapters.json
-  manifest.json
-```
-
-If you want to inspect the output immediately:
-
-```bash
-open .demohunter/sample-smoke/video.mp4
-```
-
-## Repo Examples
-
-- `examples/vite-demo`
-- `examples/nextjs-demo`
-
-Each example keeps app startup inside the app itself and uses the real CLI from the example root, which is the runnable OSS adoption path in this repo today.
-
-If you want a real app-backed run after the smoke test, start the example app in one terminal and generate in another:
-
-```bash
-bun run --cwd examples/vite-demo dev
-```
-
-```bash
-bun run --cwd examples/vite-demo generate
-```
-
-## Agent Skill
-
-Install the markdown skill from [`skills/demohunter`](skills/demohunter/) if you want Codex or Claude to help create or update `.tour.ts` files without inventing non-Playwright abstractions.
-
-## Verification Commands
-
-```bash
-bun test tests/e2e/examples-contract.test.ts
-bun test tests/skills/demohunter-skill-contract.test.ts
-bun run verify
-```
-
-GitHub Actions runs the same default `bun run verify` path on pushes to `main` and pull requests after provisioning `ffmpeg` and Playwright Chromium on a fresh runner.
+- Start your app for you. Run your dev server in another terminal.
+- Manage auth or session state. Do that in your tour's `setup({ page })` with normal Playwright.
+- Replace `@playwright/test`. DemoHunter is a generator, not a test runner.
 
 ## Docs
 
-- [`docs/getting-started.md`](docs/getting-started.md)
-- [`docs/troubleshooting.md`](docs/troubleshooting.md)
+- [Getting started](docs/getting-started.md)
+- [Troubleshooting](docs/troubleshooting.md)
+- [Examples](examples/) — runnable Next.js and Vite consumer apps
+- [Agent skill](packages/cli/skills/demohunter/) — installable docs for Claude and Codex
 
 ## License
 
-DemoHunter is available under the [MIT License](LICENSE).
+[MIT](LICENSE)

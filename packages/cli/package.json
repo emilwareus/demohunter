@@ -1,7 +1,34 @@
 {
   "name": "demohunter",
-  "version": "0.0.0",
+  "version": "0.1.0",
+  "description": "CLI and SDK for turning Playwright-style tours into narrated demo videos, captions, and a portable manifest, locally.",
+  "license": "MIT",
+  "author": "Emil Wareus",
+  "homepage": "https://github.com/emilwareus/demohunter#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/emilwareus/demohunter.git"
+  },
+  "bugs": {
+    "url": "https://github.com/emilwareus/demohunter/issues"
+  },
+  "keywords": [
+    "playwright",
+    "demo",
+    "screencast",
+    "narration",
+    "text-to-speech",
+    "openai",
+    "video",
+    "ffmpeg",
+    "cli",
+    "captions",
+    "documentation"
+  ],
   "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "bin": {
@@ -13,17 +40,31 @@
       "default": "./dist/index.js"
     }
   },
+  "files": [
+    "dist",
+    "templates",
+    "skills",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
   "dependencies": {
-    "@demohunter/generator-playwright": "workspace:*",
-    "@demohunter/sdk": "workspace:*",
-    "@demohunter/tts-core": "workspace:*",
-    "create-demohunter": "workspace:*",
-    "typescript": "^5.9.3"
+    "playwright": ">=1.59",
+    "typescript": "^5.0.0"
   },
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "build": "tsup",
+    "build:tsc": "tsc -p tsconfig.json",
     "link:global": "bun run build && npm link",
     "unlink:global": "npm unlink -g demohunter",
-    "typecheck": "tsc -p tsconfig.json"
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "prepublishOnly": "bun run build"
+  },
+  "devDependencies": {
+    "tsup": "^8.5.1",
+    "typescript": "^5.9.3"
   }
 }

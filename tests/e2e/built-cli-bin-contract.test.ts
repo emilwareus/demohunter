@@ -207,8 +207,7 @@ async function writeGenerationPackageJson(cwd: string): Promise<void> {
         private: true,
         type: "module",
         dependencies: {
-          "@demohunter/sdk": `file:${path.join(repoRoot, "packages/sdk")}`,
-          playwright: ">=1.59",
+          demohunter: `file:${path.join(repoRoot, "packages/cli")}`,
         },
       },
       null,

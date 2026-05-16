@@ -50,3 +50,7 @@ jobs:
 
       - name: Run deterministic OSS verification
         run: bun run verify
+
+      - name: Dry-run npm publish
+        run: npm publish --dry-run --access public
+        working-directory: packages/cli

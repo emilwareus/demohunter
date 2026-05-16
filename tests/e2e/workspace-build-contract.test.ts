@@ -12,15 +12,17 @@ afterEach(async () => {
 });
 
 describe("workspace build contract", () => {
-  test("builds the workspace and exposes compiled package entrypoints", async () => {
-    await runRepoCommand(["x", "tsc", "-b", "tsconfig.json", "--pretty", "false"]);
+  test("builds the workspace and exposes a single published demohunter package", async () => {
+    await runRepoCommand(["run", "build"]);
 
     const builtEntryPoints = [
-      "packages/sdk/dist/index.js",
-      "packages/generator-playwright/dist/index.js",
-      "packages/manifest/dist/index.js",
-      "packages/create-demohunter/dist/index.js",
+      "packages/cli/dist/index.js",
+      "packages/cli/dist/index.d.ts",
       "packages/cli/dist/bin/demohunter.js",
+      "packages/cli/dist/bin/demohunter.d.ts",
+      "packages/cli/templates/starter/demohunter.config.ts",
+      "packages/cli/templates/starter/demos/sample.tour.ts",
+      "packages/cli/templates/starter/demos/sample-site/index.html",
     ];
 
     for (const relativePath of builtEntryPoints) {
@@ -28,25 +30,13 @@ describe("workspace build contract", () => {
     }
 
     const exportProbe = await runBunEval(`
-      const sdk = await import(${JSON.stringify(pathToFileURL(path.join(repoRoot, "packages/sdk/dist/index.js")).href)});
-      const generator = await import(${JSON.stringify(pathToFileURL(path.join(repoRoot, "packages/generator-playwright/dist/index.js")).href)});
-      const manifest = await import(${JSON.stringify(pathToFileURL(path.join(repoRoot, "packages/manifest/dist/index.js")).href)});
-      const scaffold = await import(${JSON.stringify(pathToFileURL(path.join(repoRoot, "packages/create-demohunter/dist/index.js")).href)});
+      const demohunter = await import(${JSON.stringify(pathToFileURL(path.join(repoRoot, "packages/cli/dist/index.js")).href)});
       const cli = await import(${JSON.stringify(pathToFileURL(path.join(repoRoot, "packages/cli/dist/bin/demohunter.js")).href)});
       console.log(JSON.stringify({
-        sdk: {
-          defineConfig: typeof sdk.defineConfig,
-          defineTour: typeof sdk.defineTour,
-        },
-        generator: {
-          smokeGenerate: typeof generator.smokeGenerate,
-        },
-        manifest: {
-          createPortableArtifactDescriptor: typeof manifest.createPortableArtifactDescriptor,
-          parsePortableOutputManifest: typeof manifest.parsePortableOutputManifest,
-        },
-        scaffold: {
-          scaffoldStarter: typeof scaffold.scaffoldStarter,
+        demohunter: {
+          defineConfig: typeof demohunter.defineConfig,
+          defineTour: typeof demohunter.defineTour,
+          DEFAULT_DEMOHUNTER_CONFIG: typeof demohunter.DEFAULT_DEMOHUNTER_CONFIG,
         },
         cli: {
           runCli: typeof cli.runCli,
@@ -55,34 +45,22 @@ describe("workspace build contract", () => {
     `);
 
     const exports = JSON.parse(exportProbe.stdout.trim()) as {
-      sdk: Record<string, string>;
-      generator: Record<string, string>;
-      manifest: Record<string, string>;
-      scaffold: Record<string, string>;
+      demohunter: Record<string, string>;
       cli: Record<string, string>;
     };
 
-    const sdkDeclarations = await readFile(path.join(repoRoot, "packages/sdk/dist/index.d.ts"), "utf8");
-
-    expect(exports.sdk).toEqual({
+    expect(exports.demohunter).toEqual({
       defineConfig: "function",
       defineTour: "function",
-    });
-    expect(exports.generator).toEqual({
-      smokeGenerate: "function",
-    });
-    expect(exports.manifest).toEqual({
-      createPortableArtifactDescriptor: "function",
-      parsePortableOutputManifest: "function",
-    });
-    expect(exports.scaffold).toEqual({
-      scaffoldStarter: "function",
+      DEFAULT_DEMOHUNTER_CONFIG: "object",
     });
     expect(exports.cli).toEqual({
       runCli: "function",
     });
-    expect(sdkDeclarations).toContain("DemoHunterRunContext");
-    expect(sdkDeclarations).toContain("WaitForStableOptions");
+
+    const declarations = await readFile(path.join(repoRoot, "packages/cli/dist/index.d.ts"), "utf8");
+    expect(declarations).toContain("DemoHunterRunContext");
+    expect(declarations).toContain("WaitForStableOptions");
   });
 });
 

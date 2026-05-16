@@ -7,7 +7,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const cliEntryPoint = path.join(repoRoot, "packages/cli/src/bin/demohunter.ts");
 const authoringFixturePath = path.join(repoRoot, "tests/fixtures/tours/phase-02-authoring.tour.ts");
-const authoredNoNarrationFixture = `import { defineTour } from "@demohunter/sdk";
+const authoredNoNarrationFixture = `import { defineTour } from "demohunter";
 
 export default defineTour({
   id: "phase-02-authoring",
@@ -120,8 +120,7 @@ async function writeTempRepoPackageJson(cwd: string): Promise<void> {
         private: true,
         type: "module",
         dependencies: {
-          "@demohunter/sdk": `file:${path.join(repoRoot, "packages/sdk")}`,
-          playwright: ">=1.59",
+          demohunter: `file:${path.join(repoRoot, "packages/cli")}`,
         },
       },
       null,
