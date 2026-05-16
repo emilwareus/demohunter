@@ -1,9 +1,5 @@
 # DemoHunter
 
-[![CI](https://github.com/emilwareus/demohunter/actions/workflows/ci.yml/badge.svg)](https://github.com/emilwareus/demohunter/actions/workflows/ci.yml)
-[![npm](https://img.shields.io/npm/v/demohunter.svg)](https://www.npmjs.com/package/demohunter)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-
 Generate narrated product demos from Playwright scripts. Local. Self-hosted. One npm package.
 
 ## Install
