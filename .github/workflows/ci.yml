@@ -42,6 +42,9 @@ jobs:
       - name: Install Playwright Chromium runtime
         run: bun x playwright install --with-deps chromium
 
+      - name: Build demohunter (internals + bundle)
+        run: bun run build
+
       - name: Build Next.js example
         run: bun run --cwd examples/nextjs-demo build
 
