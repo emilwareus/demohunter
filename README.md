@@ -4,23 +4,7 @@
 [![npm](https://img.shields.io/npm/v/demohunter.svg)](https://www.npmjs.com/package/demohunter)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-Generate narrated demo videos from Playwright tours. Runs locally. Outputs a portable `video.mp4`, captions, and a JSON manifest.
-
-```ts
-import { defineTour } from "demohunter";
-
-export default defineTour({
-  id: "product-overview",
-  title: "Product overview",
-  async run({ page, chapter, step, narrate }) {
-    await chapter("Welcome");
-    await step("Show the landing page", async () => {
-      await page.goto("/");
-      await narrate("This is the home page of the app.");
-    });
-  },
-});
-```
+Generate narrated product demos from Playwright scripts. Local. Self-hosted. One npm package.
 
 ## Install
 
@@ -29,70 +13,103 @@ npm install --save-dev demohunter
 npx playwright install chromium
 ```
 
-`ffmpeg` must be on your `PATH`. `OPENAI_API_KEY` is only needed when narration is not already cached.
-
-## Usage
+You also need `ffmpeg` on your `PATH` and an `OPENAI_API_KEY` for narration:
 
 ```sh
-npx demohunter init                              # scaffold sample tour + config + .gitignore
-npx demohunter generate demos/sample.tour.ts     # run the tour, write .demohunter/<id>/
-npx demohunter cache list|prune|clear            # manage narration cache
-npx demohunter add-skill --target claude         # install agent skill (also: codex, both)
+export OPENAI_API_KEY=sk-...
 ```
 
-## Output
+## Quick start
 
-A successful run writes to `.demohunter/<tour-id>/`:
+Start your app, then in another terminal:
 
-```
-video.mp4         # narrated demo
-poster.jpg        # cover frame
-captions.srt      # subtitle track
-captions.vtt      # web subtitle track
-chapters.json     # chapter timeline
-manifest.json     # portable index, sha256 checksummed
-audio/            # exported narration clips
+```sh
+npx demohunter init
+# edit demohunter.config.ts and set baseURL to your app
+npx demohunter generate demos/sample.tour.ts
+open .demohunter/sample-smoke/video.mp4
 ```
 
-## How it works
+That's it. `init` scaffolds a starter tour, config, and demo target. `generate` runs your tour, narrates each `narrate(...)` line with OpenAI TTS, records the screen, and writes a portable `video.mp4` with captions.
 
-DemoHunter is a thin layer on top of Playwright. You write your tour like normal browser automation, plus calls to `narrate(...)`, `chapter(...)`, and `step(...)`. Generation runs in two passes:
+## Write your tour
 
-1. Resolve every narration through OpenAI TTS, cache the audio locally, measure real durations.
-2. Replay the tour while recording the screen, hold each narrated step for its real audio length, then mux video + audio + captions.
+```ts
+// demos/product-overview.tour.ts
+import { defineTour } from "demohunter";
 
-Identical narration text reuses cached audio — no second API call. Cache lives under `.demohunter/cache/`.
+export default defineTour({
+  id: "product-overview",
+  title: "Product overview",
+  async run({ page, chapter, step, narrate }) {
+    await chapter("Welcome");
+
+    await step("Open the landing page", async () => {
+      await page.goto("/");
+      await page.getByRole("heading", { name: "Welcome" }).waitFor();
+      await narrate("This is where your customers land. Three things matter here: the headline, the call to action, and trust signals.");
+    });
+
+    await step("Click into pricing", async () => {
+      await page.getByRole("link", { name: "Pricing" }).click();
+      await page.getByRole("heading", { name: "Plans" }).waitFor();
+      await narrate("Three plans, scoped to team size. The yearly toggle saves twenty percent.");
+    });
+  },
+});
+```
+
+```sh
+npx demohunter generate demos/product-overview.tour.ts
+```
 
 ## Config
 
-`demohunter.config.ts` controls the runtime:
-
 ```ts
+// demohunter.config.ts
 import { defineConfig } from "demohunter";
 
 export default defineConfig({
   baseURL: "http://localhost:3000",
-  // outputDir: ".demohunter",
-  // cacheDir: ".demohunter/cache",
-  // browser: "chromium",
+  // tts: { voice: "marin", model: "gpt-4o-mini-tts" },
   // viewport: { width: 1440, height: 900 },
-  // record: { format: "mp4", showActions: true, showChapters: true },
-  // tts: { model: "gpt-4o-mini-tts", voice: "marin", format: "mp3" },
 });
 ```
 
-## What DemoHunter does *not* do
+## Output
 
-- Start your app for you. Run your dev server in another terminal.
-- Manage auth or session state. Do that in your tour's `setup({ page })` with normal Playwright.
-- Replace `@playwright/test`. DemoHunter is a generator, not a test runner.
+Every run writes to `.demohunter/<tour-id>/`:
 
-## Docs
+```
+video.mp4       # narrated demo
+poster.jpg      # cover frame
+captions.srt    # SRT subtitles
+captions.vtt    # WebVTT subtitles
+chapters.json   # chapter timeline
+manifest.json   # portable, checksummed index
+audio/          # per-segment narration clips
+```
 
-- [Getting started](docs/getting-started.md)
-- [Troubleshooting](docs/troubleshooting.md)
-- [Examples](examples/) — runnable Next.js and Vite consumer apps
-- [Agent skill](packages/cli/skills/demohunter/) — installable docs for Claude and Codex
+Identical narration text is cached locally — rerun without re-paying for TTS.
+
+## Agent skill
+
+Teach Claude or Codex to write tours:
+
+```sh
+npx demohunter add-skill                  # installs to both .claude/ and .codex/
+npx demohunter add-skill --target claude  # or just one
+```
+
+## CLI
+
+```sh
+npx demohunter init                       # scaffold starter tour + config
+npx demohunter generate <tour-file>       # run a tour, write output
+npx demohunter cache list|prune|clear     # manage narration cache
+npx demohunter add-skill [--target ...]   # install agent skill (claude | codex | both)
+npx demohunter --help
+```
 
 ## License
 

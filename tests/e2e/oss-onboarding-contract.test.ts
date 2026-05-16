@@ -25,8 +25,11 @@ describe("oss onboarding contract", () => {
     expect(readme).toContain("npx demohunter init");
     expect(readme).toContain("npx demohunter generate");
     expect(readme).toContain("npx demohunter add-skill");
+    expect(readme).toContain("OPENAI_API_KEY");
     expect(readme).not.toContain("REPO_ROOT");
     expect(readme).not.toContain("bun x demohunter");
+    expect(readme).not.toContain("bun run");
+    expect(readme).not.toMatch(/packages\/cli\/dist/);
 
     expect(gettingStarted).toContain("npm install --save-dev demohunter");
     expect(gettingStarted).toContain("npx playwright install chromium");
