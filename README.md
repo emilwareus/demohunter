@@ -9,6 +9,27 @@ Demo Hunter is an extension to playwright that helps you record demos of you pro
 
 Hope you enjoy it! PRs and issues welcome :) No real strong opinion on things here, just needed this myself.
 
+## Features
+
+- [x] Cached narration. Same text never hits the TTS API twice.
+- [x] MP4 by default, WebM optional.
+- [x] SRT and VTT captions generated from narration.
+- [x] Chapter markers and overlays.
+- [x] Action overlays (mouse clicks visible on the recording).
+- [x] All three Playwright browsers: Chromium, Firefox, WebKit.
+- [x] Per-call voice and tone overrides on `narrate()`.
+- [x] OpenAI TTS (`gpt-4o-mini-tts`, `tts-1`, `tts-1-hd`).
+- [x] Portable `manifest.json` with sha256 checksums.
+- [x] Offline regeneration when narration is fully cached.
+- [x] Agent skill for Claude and Codex.
+- [ ] Other AI voice providers (ElevenLabs, Cartesia, local Piper).
+- [ ] Background music and sound effects.
+- [ ] Hosted / cloud generation.
+- [ ] Cursor agent skill.
+- [ ] GitHub PR comment / webhook automation / GitHub Action.
+
+PRs welcome on anything unchecked.
+
 ## Install
 
 ```sh
