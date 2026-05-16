@@ -4,6 +4,8 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
+import { getDemohunterTarballPath } from "../helpers/demohunter-tarball.js";
+
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const cliEntryPoint = path.join(repoRoot, "packages/cli/src/bin/demohunter.ts");
 const authoringFixturePath = path.join(repoRoot, "tests/fixtures/tours/phase-02-authoring.tour.ts");
@@ -112,6 +114,7 @@ async function makeTempProject(): Promise<string> {
 }
 
 async function writeTempRepoPackageJson(cwd: string): Promise<void> {
+  const tarballPath = await getDemohunterTarballPath();
   await writeFile(
     path.join(cwd, "package.json"),
     `${JSON.stringify(
@@ -120,7 +123,7 @@ async function writeTempRepoPackageJson(cwd: string): Promise<void> {
         private: true,
         type: "module",
         dependencies: {
-          demohunter: `file:${path.join(repoRoot, "packages/cli")}`,
+          demohunter: `file:${tarballPath}`,
         },
       },
       null,

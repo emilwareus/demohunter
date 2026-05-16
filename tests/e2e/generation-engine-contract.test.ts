@@ -6,6 +6,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 
 import { parsePortableOutputManifest } from "../../packages/manifest/src/index.js";
 import { createNarrationRequest, resolveNarrationFromCache } from "../../packages/tts-core/src/index.js";
+import { getDemohunterTarballPath } from "../helpers/demohunter-tarball.js";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const cliEntryPoint = path.join(repoRoot, "packages/cli/src/bin/demohunter.ts");
@@ -190,6 +191,7 @@ async function setupNarrationProject(cwd: string, tourPath: string): Promise<voi
 }
 
 async function writeTempRepoPackageJson(cwd: string): Promise<void> {
+  const tarballPath = await getDemohunterTarballPath();
   await writeFile(
     path.join(cwd, "package.json"),
     `${JSON.stringify(
@@ -198,7 +200,7 @@ async function writeTempRepoPackageJson(cwd: string): Promise<void> {
         private: true,
         type: "module",
         dependencies: {
-          demohunter: `file:${path.join(repoRoot, "packages/cli")}`,
+          demohunter: `file:${tarballPath}`,
         },
       },
       null,

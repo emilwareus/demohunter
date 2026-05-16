@@ -64,6 +64,9 @@
     "prepublishOnly": "bun run build"
   },
   "devDependencies": {
+    "@demohunter/generator-playwright": "workspace:*",
+    "@demohunter/sdk": "workspace:*",
+    "@demohunter/tts-core": "workspace:*",
     "tsup": "^8.5.1",
     "typescript": "^5.9.3"
   }
