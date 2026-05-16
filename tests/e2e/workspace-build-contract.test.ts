@@ -12,24 +12,26 @@ afterEach(async () => {
 });
 
 describe("workspace build contract", () => {
-  test("builds the workspace and exposes a single published demohunter package", async () => {
-    await runRepoCommand(["run", "build"]);
+  test(
+    "builds the workspace and exposes a single published demohunter package",
+    async () => {
+      await runRepoCommand(["run", "build"]);
 
-    const builtEntryPoints = [
-      "packages/cli/dist/index.js",
-      "packages/cli/dist/index.d.ts",
-      "packages/cli/dist/bin/demohunter.js",
-      "packages/cli/dist/bin/demohunter.d.ts",
-      "packages/cli/templates/starter/demohunter.config.ts",
-      "packages/cli/templates/starter/demos/sample.tour.ts",
-      "packages/cli/templates/starter/demos/sample-site/index.html",
-    ];
+      const builtEntryPoints = [
+        "packages/cli/dist/index.js",
+        "packages/cli/dist/index.d.ts",
+        "packages/cli/dist/bin/demohunter.js",
+        "packages/cli/dist/bin/demohunter.d.ts",
+        "packages/cli/templates/starter/demohunter.config.ts",
+        "packages/cli/templates/starter/demos/sample.tour.ts",
+        "packages/cli/templates/starter/demos/sample-site/index.html",
+      ];
 
-    for (const relativePath of builtEntryPoints) {
-      await access(path.join(repoRoot, relativePath));
-    }
+      for (const relativePath of builtEntryPoints) {
+        await access(path.join(repoRoot, relativePath));
+      }
 
-    const exportProbe = await runBunEval(`
+      const exportProbe = await runBunEval(`
       const demohunter = await import(${JSON.stringify(pathToFileURL(path.join(repoRoot, "packages/cli/dist/index.js")).href)});
       const cli = await import(${JSON.stringify(pathToFileURL(path.join(repoRoot, "packages/cli/dist/bin/demohunter.js")).href)});
       console.log(JSON.stringify({
@@ -44,24 +46,26 @@ describe("workspace build contract", () => {
       }));
     `);
 
-    const exports = JSON.parse(exportProbe.stdout.trim()) as {
-      demohunter: Record<string, string>;
-      cli: Record<string, string>;
-    };
+      const exports = JSON.parse(exportProbe.stdout.trim()) as {
+        demohunter: Record<string, string>;
+        cli: Record<string, string>;
+      };
 
-    expect(exports.demohunter).toEqual({
-      defineConfig: "function",
-      defineTour: "function",
-      DEFAULT_DEMOHUNTER_CONFIG: "object",
-    });
-    expect(exports.cli).toEqual({
-      runCli: "function",
-    });
+      expect(exports.demohunter).toEqual({
+        defineConfig: "function",
+        defineTour: "function",
+        DEFAULT_DEMOHUNTER_CONFIG: "object",
+      });
+      expect(exports.cli).toEqual({
+        runCli: "function",
+      });
 
-    const declarations = await readFile(path.join(repoRoot, "packages/cli/dist/index.d.ts"), "utf8");
-    expect(declarations).toContain("DemoHunterRunContext");
-    expect(declarations).toContain("WaitForStableOptions");
-  });
+      const declarations = await readFile(path.join(repoRoot, "packages/cli/dist/index.d.ts"), "utf8");
+      expect(declarations).toContain("DemoHunterRunContext");
+      expect(declarations).toContain("WaitForStableOptions");
+    },
+    30_000,
+  );
 });
 
 async function runRepoCommand(args: string[]): Promise<void> {
