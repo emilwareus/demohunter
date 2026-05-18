@@ -1,0 +1,99 @@
+name: Weekly Bun Dependencies
+
+on:
+  schedule:
+    - cron: "0 9 * * 0"
+  workflow_dispatch:
+
+concurrency:
+  group: weekly-bun-dependencies
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Cache Bun download cache
+        uses: actions/cache@v5
+        with:
+          path: ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-weekly-${{ hashFiles('bun.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-bun-
+
+      - name: Update workspace dependencies
+        run: bun update --latest --recursive
+
+      - name: Check for dependency changes
+        id: changes
+        run: |
+          if git diff --quiet; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "No dependency updates available outside the 3 day release-age window."
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Install ffmpeg
+        if: steps.changes.outputs.changed == 'true'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+          ffmpeg -version
+
+      - name: Install Playwright Chromium runtime
+        if: steps.changes.outputs.changed == 'true'
+        run: bun x playwright install --with-deps chromium
+
+      - name: Run verify
+        if: steps.changes.outputs.changed == 'true'
+        run: bun run verify
+
+      - name: Commit and open dependency update PR
+        if: steps.changes.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          UPDATE_BRANCH: automation/weekly-bun-dependency-update
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git checkout -B "$UPDATE_BRANCH"
+          git add package.json bun.lock bunfig.toml packages/*/package.json examples/*/package.json
+          git commit -m "chore: update bun dependencies"
+          git push --force-with-lease origin "$UPDATE_BRANCH"
+
+          PR_BODY="$(printf '%s\n' \
+            'Automated weekly Bun dependency update.' \
+            '' \
+            '- Runs `bun update --latest --recursive`' \
+            '- Uses Bun'\''s configured `minimumReleaseAge = 259200` gate, so newly resolved versions must be at least 3 days old when registry publish times are available' \
+            '- Runs `bun run verify` before opening or updating this PR')"
+
+          if gh pr view "$UPDATE_BRANCH" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh pr edit "$UPDATE_BRANCH" \
+              --repo "$GITHUB_REPOSITORY" \
+              --title "chore: weekly Bun dependency update" \
+              --body "$PR_BODY"
+          else
+            gh pr create \
+              --repo "$GITHUB_REPOSITORY" \
+              --base main \
+              --head "$UPDATE_BRANCH" \
+              --title "chore: weekly Bun dependency update" \
+              --body "$PR_BODY"
+          fi

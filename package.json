@@ -20,7 +20,7 @@
     "uninstall:global": "bun run --cwd packages/cli unlink:global"
   },
   "devDependencies": {
-    "@types/node": "^25.5.2",
-    "typescript": "^5.9.3"
+    "@types/node": "^25.9.0",
+    "typescript": "^6.0.3"
   }
 }
