@@ -49,12 +49,26 @@ describe("oss onboarding contract", () => {
 
     expect(workflow).toContain("pull_request:");
     expect(workflow).toContain("push:");
+    expect(workflow).toContain("actions/checkout@v6");
+    expect(workflow).toContain("actions/cache@v5");
     expect(workflow).toContain("apt-get install -y ffmpeg");
     expect(workflow).toContain("bun x playwright install --with-deps chromium");
     expect(workflow).toContain("bun run verify");
     expect(workflow).toContain("npm publish --dry-run");
     expect(workflow).not.toContain("OPENAI_API_KEY:");
     expect(workflow).not.toContain("DEMOHUNTER_RUN_LIVE_OPENAI_TESTS: \"1\"");
+  });
+
+  test("release workflow can publish the current initial version before bumping future releases", async () => {
+    const workflow = await readFile(path.join(repoRoot, ".github/workflows/release.yml"), "utf8");
+
+    expect(workflow).toContain("- current");
+    expect(workflow).toContain("default: current");
+    expect(workflow).toContain('if [[ "${{ inputs.bump }}" != "current" ]]; then');
+    expect(workflow).toContain("actions/checkout@v6");
+    expect(workflow).toContain("actions/setup-node@v6");
+    expect(workflow).toContain('npm view "demohunter@$VERSION" version');
+    expect(workflow).toContain("npm publish --provenance --access public");
   });
 
   test("surfaces actionable guidance for first-run blockers", async () => {

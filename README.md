@@ -2,12 +2,14 @@
 
 **Narrated product demos as code**
 
-Demo Hunter is an extension to playwright that helps you record demos of you product with AI-voice narration. IMO, there are two good use cases for this: 
+DemoHunter turns Playwright-style automation into narrated product demos. You write a `.tour.ts` file, run the CLI locally, and get portable demo assets under `.demohunter/`: video, captions, chapters, poster, narration audio, and a checksummed manifest.
 
-- **Product, docs, and DevRel**: keep marketing pages, release notes, and onboarding videos in sync with the product. Record and crate demos in your CI, up-to-date with your product. 
-- **AI coding agents**: let your agent attach a narrated demo of its own work to every pull request. Reviewers see exactly what changed, in motion, with AI explaining what they're looking at.
+Two workflows are especially useful:
 
-Hope you enjoy it! PRs and issues welcome :) No real strong opinion on things here, just needed this myself.
+- **Product, docs, and DevRel**: keep marketing pages, release notes, and onboarding videos in sync with the product by generating demos from repeatable scripts.
+- **AI coding agents**: let an agent attach a narrated demo of its work to a pull request so reviewers can see the changed flow in motion.
+
+DemoHunter is local-first. It does not require a hosted backend, and OpenAI is used only for text-to-speech when uncached narration needs to be generated.
 
 ## Features
 
@@ -38,7 +40,7 @@ npx playwright install chromium
 export OPENAI_API_KEY=sk-...
 ```
 
-You also need `ffmpeg` on your `PATH`.
+You also need `ffmpeg` and `ffprobe` on your `PATH`. `OPENAI_API_KEY` is only required when generating narration that is not already cached.
 
 ## Quick start
 
@@ -51,7 +53,7 @@ npx demohunter generate demos/sample.tour.ts
 open .demohunter/sample-smoke/video.mp4
 ```
 
-That's the full loop: scaffold → write the tour → render the video.
+That's the full loop: scaffold, write the tour, render the video.
 
 ## What a tour looks like
 
@@ -123,6 +125,11 @@ Teach Claude or Codex to write tours for you:
 npx demohunter add-skill                  # installs to both .claude/ and .codex/
 npx demohunter add-skill --target claude  # or just one
 ```
+
+## Docs
+
+- [Getting started](https://github.com/emilwareus/demohunter/blob/main/docs/getting-started.md)
+- [Troubleshooting](https://github.com/emilwareus/demohunter/blob/main/docs/troubleshooting.md)
 
 ## CLI
 

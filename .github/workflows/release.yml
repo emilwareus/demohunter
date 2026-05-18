@@ -8,11 +8,12 @@ on:
         required: true
         type: choice
         options:
+          - current
           - patch
           - minor
           - major
           - prerelease
-        default: patch
+        default: current
 
 concurrency:
   group: release
@@ -28,7 +29,7 @@ jobs:
 
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
@@ -36,7 +37,7 @@ jobs:
         uses: oven-sh/setup-bun@v2
 
       - name: Set up Node for npm publish
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: "20"
           registry-url: "https://registry.npmjs.org"
@@ -59,10 +60,12 @@ jobs:
       - name: Bump package version
         id: bump
         run: |
-          npm version "${{ inputs.bump }}" --no-git-tag-version --preid rc
+          if [[ "${{ inputs.bump }}" != "current" ]]; then
+            npm version "${{ inputs.bump }}" --no-git-tag-version --preid rc
+          fi
           NEW_VERSION=$(node -p "require('./package.json').version")
           echo "version=$NEW_VERSION" >> "$GITHUB_OUTPUT"
-          echo "Bumped to v$NEW_VERSION"
+          echo "Release version: v$NEW_VERSION"
         working-directory: packages/cli
 
       - name: Fail if tag already exists
@@ -70,6 +73,14 @@ jobs:
           TAG="v${{ steps.bump.outputs.version }}"
           if git rev-parse "$TAG" >/dev/null 2>&1; then
             echo "::error::Tag $TAG already exists. Aborting before any side-effects."
+            exit 1
+          fi
+
+      - name: Fail if package version already exists
+        run: |
+          VERSION="${{ steps.bump.outputs.version }}"
+          if npm view "demohunter@$VERSION" version >/dev/null 2>&1; then
+            echo "::error::demohunter@$VERSION already exists on npm. Aborting before any side-effects."
             exit 1
           fi
 
@@ -82,10 +93,12 @@ jobs:
           VERSION="${{ steps.bump.outputs.version }}"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add packages/cli/package.json
-          git commit -m "chore(release): v$VERSION"
+          if [[ "${{ inputs.bump }}" != "current" ]]; then
+            git add packages/cli/package.json
+            git commit -m "chore(release): v$VERSION"
+            git push origin HEAD:${{ github.ref_name }}
+          fi
           git tag -a "v$VERSION" -m "Release v$VERSION"
-          git push origin HEAD:${{ github.ref_name }}
           git push origin "v$VERSION"
 
       - name: Publish to npm

@@ -9,11 +9,18 @@ import { generateCommand } from "../commands/generate.js";
 import { initCommand } from "../commands/init.js";
 import { addSkillCommand, parseSkillTargets } from "../commands/skill.js";
 
+type AddSkillInput = {
+  targets: readonly ("claude" | "codex")[];
+};
+
 type CliDependencies = {
-  cacheCommand: typeof cacheCommand;
-  initCommand: typeof initCommand;
-  generateCommand: typeof generateCommand;
-  addSkillCommand: typeof addSkillCommand;
+  cacheCommand: (
+    cwd: string,
+    input: { action: "list" | "prune" | "clear" },
+  ) => Promise<void>;
+  initCommand: (cwd: string, options?: { force?: boolean }) => Promise<void>;
+  generateCommand: (cwd: string, tourPath: string) => Promise<void>;
+  addSkillCommand: (cwd: string, input: AddSkillInput) => Promise<void>;
 };
 
 const defaultDependencies: CliDependencies = {
