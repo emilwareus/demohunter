@@ -157,6 +157,8 @@ export default defineTour({
       "es2022",
       "--lib",
       "esnext,dom",
+      "--types",
+      "node",
       "--strict",
       "index.ts",
     ],
