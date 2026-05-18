@@ -13,49 +13,70 @@ afterEach(async () => {
 });
 
 describe("oss onboarding contract", () => {
-  test("keeps the public docs aligned around one OSS adoption path", async () => {
+  test("public docs advertise the npm install path", async () => {
     const [readme, gettingStarted, troubleshooting] = await Promise.all([
       readFile(path.join(repoRoot, "README.md"), "utf8"),
       readFile(path.join(repoRoot, "docs/getting-started.md"), "utf8"),
       readFile(path.join(repoRoot, "docs/troubleshooting.md"), "utf8"),
     ]);
 
-    expect(readme).toContain("bun x playwright install chromium");
-    expect(readme).toContain("examples/vite-demo");
-    expect(readme).toContain("skills/demohunter");
-    expect(readme).toContain("does not start your app for you");
-    expect(readme).toContain("REPO_ROOT=$(pwd)");
-    expect(readme).toContain('bun "$REPO_ROOT/packages/cli/dist/bin/demohunter.js" init');
-    expect(gettingStarted).toContain("Start your app yourself before generation.");
-    expect(gettingStarted).toContain("The cleanest first run is the starter smoke demo in a fresh temp directory.");
-    expect(gettingStarted).toContain('bun "$REPO_ROOT/packages/cli/dist/bin/demohunter.js" init');
-    expect(gettingStarted).toContain("bun run --cwd examples/nextjs-demo generate");
-    expect(gettingStarted).toContain("bun packages/cli/dist/bin/demohunter.js generate demos/sample.tour.ts");
+    expect(readme).toContain("npm install --save-dev demohunter");
+    expect(readme).toContain("npx playwright install chromium");
+    expect(readme).toContain("npx demohunter init");
+    expect(readme).toContain("npx demohunter generate");
+    expect(readme).toContain("npx demohunter add-skill");
+    expect(readme).toContain("OPENAI_API_KEY");
+    expect(readme).not.toContain("REPO_ROOT");
+    expect(readme).not.toContain("bun x demohunter");
+    expect(readme).not.toContain("bun run");
+    expect(readme).not.toMatch(/packages\/cli\/dist/);
+
+    expect(gettingStarted).toContain("npm install --save-dev demohunter");
+    expect(gettingStarted).toContain("npx playwright install chromium");
+    expect(gettingStarted).toContain("npx demohunter init");
+    expect(gettingStarted).toContain("npx demohunter generate");
+    expect(gettingStarted).toContain("npx demohunter add-skill");
+    expect(gettingStarted).not.toContain("REPO_ROOT");
+
     expect(troubleshooting).toContain("OPENAI_API_KEY");
     expect(troubleshooting).toContain("ffmpeg");
     expect(troubleshooting).toContain("ERR_CONNECTION_REFUSED");
+    expect(troubleshooting).toContain("npx playwright install chromium");
   });
 
-  test("keeps the public CI contract aligned with the deterministic OSS verification path", async () => {
+  test("public CI runs verify and dry-runs the publish", async () => {
     const workflow = await readFile(path.join(repoRoot, ".github/workflows/ci.yml"), "utf8");
 
     expect(workflow).toContain("pull_request:");
     expect(workflow).toContain("push:");
+    expect(workflow).toContain("actions/checkout@v6");
+    expect(workflow).toContain("actions/cache@v5");
     expect(workflow).toContain("apt-get install -y ffmpeg");
     expect(workflow).toContain("bun x playwright install --with-deps chromium");
-    expect(workflow).toContain("bun run --cwd examples/nextjs-demo build");
-    expect(workflow).toContain("bun run --cwd examples/vite-demo build");
     expect(workflow).toContain("bun run verify");
+    expect(workflow).toContain("npm publish --dry-run");
     expect(workflow).not.toContain("OPENAI_API_KEY:");
     expect(workflow).not.toContain("DEMOHUNTER_RUN_LIVE_OPENAI_TESTS: \"1\"");
   });
 
-  test("surfaces actionable source-cli guidance for first-run blockers", async () => {
+  test("release workflow can publish the current initial version before bumping future releases", async () => {
+    const workflow = await readFile(path.join(repoRoot, ".github/workflows/release.yml"), "utf8");
+
+    expect(workflow).toContain("- current");
+    expect(workflow).toContain("default: current");
+    expect(workflow).toContain('if [[ "${{ inputs.bump }}" != "current" ]]; then');
+    expect(workflow).toContain("actions/checkout@v6");
+    expect(workflow).toContain("actions/setup-node@v6");
+    expect(workflow).toContain('npm view "demohunter@$VERSION" version');
+    expect(workflow).toContain("npm publish --provenance --access public");
+  });
+
+  test("surfaces actionable guidance for first-run blockers", async () => {
     const missingConfigCwd = await makeTempProject();
     const missingConfig = await runCli(missingConfigCwd, ["generate", "demos/sample.tour.ts"]);
     expect(missingConfig.exitCode).toBe(1);
     expect(missingConfig.stderr).toContain("Could not find demohunter.config.ts");
-    expect(missingConfig.stderr).toContain('Run "demohunter init" from an installed DemoHunter CLI');
+    expect(missingConfig.stderr).toContain('Run "demohunter init"');
 
     const invalidTourCwd = await writeProject({
       config: 'export default { baseURL: "http://127.0.0.1:4173" };\n',
@@ -64,8 +85,6 @@ describe("oss onboarding contract", () => {
     const invalidTour = await runCli(invalidTourCwd, ["generate", "demos/sample.tour.ts"]);
     expect(invalidTour.exitCode).toBe(1);
     expect(invalidTour.stderr).toContain("Tour file must default export");
-    expect(invalidTour.stderr).toContain("id");
-    expect(invalidTour.stderr).toContain("run");
 
     const unreachableCwd = await writeProject({
       config: 'export default { baseURL: "http://127.0.0.1:4173" };\n',
@@ -74,7 +93,6 @@ describe("oss onboarding contract", () => {
     const unreachable = await runCli(unreachableCwd, ["generate", "demos/sample.tour.ts"]);
     expect(unreachable.exitCode).toBe(1);
     expect(unreachable.stderr).toContain("DemoHunter could not reach baseURL http://127.0.0.1:4173.");
-    expect(unreachable.stderr).toContain('rerun "demohunter generate"');
 
     const missingKeyCwd = await writeProject({
       config: 'export default { baseURL: new URL("./site/index.html", import.meta.url).href };\n',

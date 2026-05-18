@@ -142,14 +142,16 @@ function improveGenerateError(input: {
   return input.error;
 }
 
+const BASE_URL_REACHABILITY_MARKERS = [
+  "ERR_CONNECTION_REFUSED",
+  "ERR_CONNECTION_TIMED_OUT",
+  "ERR_CONNECTION_RESET",
+  "ERR_NAME_NOT_RESOLVED",
+  "ERR_NETWORK_CHANGED",
+] as const;
+
 function isBaseUrlReachabilityError(message: string): boolean {
-  return (
-    message.includes("ERR_CONNECTION_REFUSED") ||
-    message.includes("ERR_CONNECTION_TIMED_OUT") ||
-    message.includes("ERR_CONNECTION_RESET") ||
-    message.includes("ERR_NAME_NOT_RESOLVED") ||
-    message.includes("ERR_NETWORK_CHANGED")
-  );
+  return BASE_URL_REACHABILITY_MARKERS.some((marker) => message.includes(marker));
 }
 
 function readFirstUrl(message: string): string | undefined {

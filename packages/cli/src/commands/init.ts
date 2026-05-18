@@ -1,4 +1,4 @@
-import { scaffoldStarter } from "create-demohunter";
+import { scaffoldStarter } from "./scaffold.js";
 
 export type InitCommandOptions = {
   force?: boolean;
@@ -23,4 +23,9 @@ export async function initCommand(cwd: string, options: InitCommandOptions = {})
   for (const createdFile of result.createdFiles) {
     console.log(createdFile);
   }
+
+  console.log("");
+  console.log("Next steps:");
+  console.log("  1. Run: demohunter generate demos/sample.tour.ts");
+  console.log("  2. (Optional) Run: demohunter add-skill");
 }

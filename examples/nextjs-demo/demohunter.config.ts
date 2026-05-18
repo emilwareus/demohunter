@@ -1,4 +1,4 @@
-import { defineConfig } from "@demohunter/sdk";
+import { defineConfig } from "demohunter";
 
 const outputDir = process.env.DEMOHUNTER_EXAMPLE_OUTPUT_DIR ?? ".demohunter";
 

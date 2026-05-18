@@ -1,5 +1,5 @@
 {
-  "name": "demohunter",
+  "name": "demohunter-workspace",
   "private": true,
   "type": "module",
   "workspaces": [
@@ -7,13 +7,15 @@
     "examples/*"
   ],
   "scripts": {
-    "build": "bun x tsc -b tsconfig.json --pretty false",
+    "build:internals": "bun x tsc -b tsconfig.json --pretty false",
+    "build:cli": "bun run --cwd packages/cli build",
+    "build": "bun run build:internals && bun run build:cli",
     "clean": "rm -rf packages/*/dist",
     "install:global": "bun run --cwd packages/cli link:global",
     "test:e2e": "bun test tests/e2e",
     "test:unit": "bun test packages",
     "verify": "bun run build && bun run test",
-    "typecheck": "bun x tsc -b tsconfig.json --pretty false",
+    "typecheck": "bun x tsc -b tsconfig.json --pretty false && bun run --cwd packages/cli typecheck",
     "test": "bun test",
     "uninstall:global": "bun run --cwd packages/cli unlink:global"
   },

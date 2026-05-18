@@ -1,4 +1,5 @@
 import { access, copyFile, mkdir } from "node:fs/promises";
+import { existsSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -16,13 +17,12 @@ export type ScaffoldResult = {
   createdFiles: string[];
 };
 
-const templateRoot = fileURLToPath(new URL("../templates/starter/", import.meta.url));
-
 export async function scaffoldStarter(
   cwd: string,
   options: ScaffoldStarterOptions = {},
 ): Promise<ScaffoldResult> {
   const projectRoot = path.resolve(cwd);
+  const templateRoot = findTemplateRoot();
   const targets = STARTER_TARGETS.map((relativePath) => ({
     sourcePath: path.join(templateRoot, relativePath),
     targetPath: path.join(projectRoot, relativePath),
@@ -44,6 +44,29 @@ export async function scaffoldStarter(
   return {
     createdFiles: targets.map((target) => target.targetPath),
   };
+}
+
+function findTemplateRoot(): string {
+  const moduleDir = path.dirname(fileURLToPath(import.meta.url));
+  let dir = moduleDir;
+
+  while (true) {
+    const candidate = path.join(dir, "templates", "starter");
+
+    if (existsSync(candidate)) {
+      return candidate;
+    }
+
+    const parent = path.dirname(dir);
+
+    if (parent === dir) {
+      break;
+    }
+
+    dir = parent;
+  }
+
+  throw new Error(`Could not locate DemoHunter starter templates from ${moduleDir}.`);
 }
 
 async function pathExists(targetPath: string): Promise<boolean> {

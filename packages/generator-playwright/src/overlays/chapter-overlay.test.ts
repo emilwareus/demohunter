@@ -6,6 +6,8 @@ type OverlayEvaluate = (
   input: {
     durationMs: number;
     title: string;
+    overlayId: string;
+    overlayTimerKey: string;
   },
 ) => void;
 
@@ -66,7 +68,7 @@ afterEach(() => {
 
 describe("showChapterOverlay", () => {
   test("renders a chapter label through Playwright page APIs", async () => {
-    const evaluate = mock(async (callback: OverlayEvaluate, input: { durationMs: number; title: string }) => {
+    const evaluate = mock(async (callback: OverlayEvaluate, input: { durationMs: number; title: string; overlayId: string; overlayTimerKey: string }) => {
       const state = installOverlayGlobals();
       callback(input);
 
@@ -82,11 +84,16 @@ describe("showChapterOverlay", () => {
     await showChapterOverlay({ durationMs: 900, page: { evaluate } as never, title: "Billing" });
 
     expect(evaluate).toHaveBeenCalledTimes(1);
-    expect(evaluate.mock.calls[0]?.[1]).toEqual({ durationMs: 900, title: "Billing" });
+    expect(evaluate.mock.calls[0]?.[1]).toEqual({
+      durationMs: 900,
+      title: "Billing",
+      overlayId: "demohunter-chapter-overlay",
+      overlayTimerKey: "__demohunterChapterOverlayHideTimer",
+    });
   });
 
   test("uses a short timeout to hide the overlay deterministically", async () => {
-    const evaluate = mock(async (callback: OverlayEvaluate, input: { durationMs: number; title: string }) => {
+    const evaluate = mock(async (callback: OverlayEvaluate, input: { durationMs: number; title: string; overlayId: string; overlayTimerKey: string }) => {
       const state = installOverlayGlobals();
       callback(input);
 
@@ -106,7 +113,7 @@ describe("showChapterOverlay", () => {
 
   test("updates the existing overlay and resets the hide timer on subsequent calls", async () => {
     const pageState = installOverlayGlobals();
-    const evaluate = mock(async (callback: OverlayEvaluate, input: { durationMs: number; title: string }) => {
+    const evaluate = mock(async (callback: OverlayEvaluate, input: { durationMs: number; title: string; overlayId: string; overlayTimerKey: string }) => {
       callback(input);
     });
 

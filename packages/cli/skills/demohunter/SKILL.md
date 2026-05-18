@@ -19,7 +19,7 @@ Use this skill when you need to create or update a DemoHunter `.tour.ts` file in
 
 - Keep user code Playwright-native. Use normal `page`, `locator`, and `getByRole` flows instead of inventing wrapper abstractions.
 - Keep app-specific auth, bootstrap, and session setup in user Playwright code such as `setup` or the top of `run`.
-- Default export `defineTour({ ... })` from `@demohunter/sdk`.
+- Default export `defineTour({ ... })` from `demohunter`.
 - Keep narration grounded in visible product behavior. Do not narrate speculative backend behavior.
 - Prefer editing the existing tour shape and selectors over rewriting the file unless the current file is clearly broken.
 - After changes, run repo-local verification from the closest consumer root instead of assuming the tour is valid.

@@ -1,117 +1,90 @@
 # Troubleshooting
 
-These are the main first-run blockers for DemoHunter OSS users.
+Common first-run failures and how to fix them.
 
-## Missing Playwright Browser Runtime
+## `Playwright could not launch the local browser runtime`
 
-Symptoms:
+The Playwright Chromium runtime is not installed on this machine.
 
-- errors mentioning a missing browser executable
-- Playwright telling you to run an install command
-
-Fix:
-
-```bash
-bun x playwright install chromium
+```sh
+npx playwright install chromium
 ```
 
-DemoHunter does not bundle browsers. The local Playwright runtime must already exist on the machine that runs generation.
+DemoHunter does not bundle browsers.
 
-## Missing `ffmpeg` Or `ffprobe`
+## `spawn ffmpeg ENOENT` or `spawn ffprobe ENOENT`
 
-Symptoms:
+Install `ffmpeg` with your system package manager and confirm both binaries resolve:
 
-- `spawn ffmpeg ENOENT`
-- `spawn ffprobe ENOENT`
-- `ffmpeg exited with code ...`
-
-Fix:
-
-- install `ffmpeg` using your system package manager
-- confirm both commands resolve from the shell:
-
-```bash
+```sh
 ffmpeg -version
 ffprobe -version
 ```
 
-DemoHunter uses `ffmpeg` to produce the final video and poster assets. If those binaries are not on `PATH`, generation cannot finish.
+DemoHunter uses `ffmpeg` to mux audio into video and capture poster frames.
 
-## Missing `OPENAI_API_KEY` For Uncached Narration
+## `OPENAI_API_KEY is not set`
 
-Symptoms:
+DemoHunter only needs `OPENAI_API_KEY` when generating *uncached* narration.
 
-- errors mentioning `OPENAI_API_KEY`
-- generation succeeds for cached runs but fails on new narration text
+- If every narration string is already in `.demohunter/cache/`, generation runs offline.
+- For new strings, export the key:
 
-Fix:
-
-```bash
-export OPENAI_API_KEY=your_key_here
+```sh
+export OPENAI_API_KEY=sk-...
 ```
 
-Important:
+DemoHunter does not store credentials.
 
-- cached narration can be reused offline
-- uncached narration requires `OPENAI_API_KEY`
-- DemoHunter does not provide a custom login flow or credential storage
+## `DemoHunter could not reach baseURL`
 
-## Invalid Tour Entrypoint Shape
+The CLI tried to load your app and got `ERR_CONNECTION_REFUSED` or a similar network error.
 
-Symptoms:
+- Start your app yourself before running `demohunter generate`.
+- Open the configured `baseURL` in a browser to confirm it is reachable.
+- DemoHunter does not wait for your app to boot or manage preview environments.
 
-- errors saying the tour must default export an object with `id`, `title`, and `run`
-- errors saying `setup` or `teardown` must be functions when provided
+## `Tour file must default export an object with string id/title and a run function`
 
-Fix:
+The tour file is missing one of the required fields. Minimum shape:
 
-- default export one tour object
-- keep `id` and `title` as strings
-- keep `run` as a function
-- only provide `setup` and `teardown` when they are functions
+```ts
+import { defineTour } from "demohunter";
 
-Start from `demos/sample.tour.ts` or `skills/demohunter/assets/tour.template.ts` if you need a known-good shape.
-
-## App Or `baseURL` Not Reachable
-
-Symptoms:
-
-- `ERR_CONNECTION_REFUSED`
-- navigation timeout failures during `page.goto(...)`
-- generation failing immediately before any steps run
-
-Fix:
-
-- start your app yourself before running `demohunter generate`
-- confirm `baseURL` in `demohunter.config.ts` points at a reachable local or preview URL
-- open the URL in a browser before retrying generation
-
-DemoHunter does not wait for your app to boot, manage preview URLs, or repair app readiness automatically.
-
-## Confusion About App Startup, Auth, Or Test Runner Boundaries
-
-DemoHunter is not a replacement for your app bootstrap logic or `@playwright/test`.
-
-Keep these responsibilities in your own code:
-
-- app startup
-- login/session flows
-- seeding data
-- app-specific waits
-
-Keep these responsibilities in DemoHunter:
-
-- tour structure
-- narration timing
-- screen recording
-- portable output generation
-
-## Still Stuck?
-
-Run the repo verification commands to confirm the local install path:
-
-```bash
-bun test tests/e2e/examples-contract.test.ts
-bun test tests/e2e/init-generate-smoke.test.ts
-bun run verify
+export default defineTour({
+  id: "my-tour",
+  title: "My tour",
+  async run({ page }) {
+    // ...
+  },
+});
 ```
+
+Use `npx demohunter init` to scaffold a known-good starter.
+
+## `Refusing to overwrite existing file`
+
+`demohunter init` will not silently overwrite files. Pass `--force` to refresh the starter on top of existing ones:
+
+```sh
+npx demohunter init --force
+```
+
+## Generated files end up in `git status`
+
+`demohunter generate` writes a `.demohunter/.gitignore` file containing `*` so the directory ignores itself. If you accidentally deleted that file, recreate it or add `.demohunter/` to your project-level `.gitignore`.
+
+## Still stuck?
+
+Run a clean smoke test in a fresh directory:
+
+```sh
+mkdir /tmp/dh && cd /tmp/dh
+npm init -y
+npm install --save-dev demohunter
+npx playwright install chromium
+npx demohunter init
+npx demohunter generate demos/sample.tour.ts
+```
+
+If that fails, [open an issue](https://github.com/emilwareus/demohunter/issues) with the command, the full output, and your OS / Node / `ffmpeg` versions.

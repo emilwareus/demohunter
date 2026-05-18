@@ -1,4 +1,4 @@
-import { defineTour } from "@demohunter/sdk";
+import { defineTour } from "demohunter";
 
 export default defineTour({
   id: "phase-02-authoring",

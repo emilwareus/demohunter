@@ -5,6 +5,7 @@ import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 import { parsePortableOutputManifest } from "../../packages/manifest/src/index.js";
+import { getDemohunterTarballPath } from "../helpers/demohunter-tarball.js";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const builtCliEntryPoint = path.join(repoRoot, "packages/cli/dist/bin/demohunter.js");
@@ -199,6 +200,7 @@ async function listFiles(cwd: string): Promise<string[]> {
 }
 
 async function writeGenerationPackageJson(cwd: string): Promise<void> {
+  const tarballPath = await getDemohunterTarballPath();
   await writeFile(
     path.join(cwd, "package.json"),
     `${JSON.stringify(
@@ -207,8 +209,7 @@ async function writeGenerationPackageJson(cwd: string): Promise<void> {
         private: true,
         type: "module",
         dependencies: {
-          "@demohunter/sdk": `file:${path.join(repoRoot, "packages/sdk")}`,
-          playwright: ">=1.59",
+          demohunter: `file:${tarballPath}`,
         },
       },
       null,

@@ -1,10 +1,11 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { access, mkdtemp, readFile, rm } from "node:fs/promises";
+import { access, mkdir, mkdtemp, readFile, realpath, rm, symlink, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
+const cliPackageRoot = path.join(repoRoot, "packages/cli");
 const tempRoots: string[] = [];
 
 afterEach(async () => {
@@ -12,41 +13,33 @@ afterEach(async () => {
 });
 
 describe("workspace build contract", () => {
-  test("builds the workspace and exposes compiled package entrypoints", async () => {
-    await runRepoCommand(["x", "tsc", "-b", "tsconfig.json", "--pretty", "false"]);
+  test(
+    "builds the workspace and exposes a single published demohunter package",
+    async () => {
+      await runRepoCommand(["run", "build"]);
 
-    const builtEntryPoints = [
-      "packages/sdk/dist/index.js",
-      "packages/generator-playwright/dist/index.js",
-      "packages/manifest/dist/index.js",
-      "packages/create-demohunter/dist/index.js",
-      "packages/cli/dist/bin/demohunter.js",
-    ];
+      const builtEntryPoints = [
+        "packages/cli/dist/index.js",
+        "packages/cli/dist/index.d.ts",
+        "packages/cli/dist/bin/demohunter.js",
+        "packages/cli/dist/bin/demohunter.d.ts",
+        "packages/cli/templates/starter/demohunter.config.ts",
+        "packages/cli/templates/starter/demos/sample.tour.ts",
+        "packages/cli/templates/starter/demos/sample-site/index.html",
+      ];
 
-    for (const relativePath of builtEntryPoints) {
-      await access(path.join(repoRoot, relativePath));
-    }
+      for (const relativePath of builtEntryPoints) {
+        await access(path.join(repoRoot, relativePath));
+      }
 
-    const exportProbe = await runBunEval(`
-      const sdk = await import(${JSON.stringify(pathToFileURL(path.join(repoRoot, "packages/sdk/dist/index.js")).href)});
-      const generator = await import(${JSON.stringify(pathToFileURL(path.join(repoRoot, "packages/generator-playwright/dist/index.js")).href)});
-      const manifest = await import(${JSON.stringify(pathToFileURL(path.join(repoRoot, "packages/manifest/dist/index.js")).href)});
-      const scaffold = await import(${JSON.stringify(pathToFileURL(path.join(repoRoot, "packages/create-demohunter/dist/index.js")).href)});
+      const exportProbe = await runBunEval(`
+      const demohunter = await import(${JSON.stringify(pathToFileURL(path.join(repoRoot, "packages/cli/dist/index.js")).href)});
       const cli = await import(${JSON.stringify(pathToFileURL(path.join(repoRoot, "packages/cli/dist/bin/demohunter.js")).href)});
       console.log(JSON.stringify({
-        sdk: {
-          defineConfig: typeof sdk.defineConfig,
-          defineTour: typeof sdk.defineTour,
-        },
-        generator: {
-          smokeGenerate: typeof generator.smokeGenerate,
-        },
-        manifest: {
-          createPortableArtifactDescriptor: typeof manifest.createPortableArtifactDescriptor,
-          parsePortableOutputManifest: typeof manifest.parsePortableOutputManifest,
-        },
-        scaffold: {
-          scaffoldStarter: typeof scaffold.scaffoldStarter,
+        demohunter: {
+          defineConfig: typeof demohunter.defineConfig,
+          defineTour: typeof demohunter.defineTour,
+          DEFAULT_DEMOHUNTER_CONFIG: typeof demohunter.DEFAULT_DEMOHUNTER_CONFIG,
         },
         cli: {
           runCli: typeof cli.runCli,
@@ -54,37 +47,130 @@ describe("workspace build contract", () => {
       }));
     `);
 
-    const exports = JSON.parse(exportProbe.stdout.trim()) as {
-      sdk: Record<string, string>;
-      generator: Record<string, string>;
-      manifest: Record<string, string>;
-      scaffold: Record<string, string>;
-      cli: Record<string, string>;
-    };
+      const exports = JSON.parse(exportProbe.stdout.trim()) as {
+        demohunter: Record<string, string>;
+        cli: Record<string, string>;
+      };
 
-    const sdkDeclarations = await readFile(path.join(repoRoot, "packages/sdk/dist/index.d.ts"), "utf8");
+      expect(exports.demohunter).toEqual({
+        defineConfig: "function",
+        defineTour: "function",
+        DEFAULT_DEMOHUNTER_CONFIG: "object",
+      });
+      expect(exports.cli).toEqual({
+        runCli: "function",
+      });
 
-    expect(exports.sdk).toEqual({
-      defineConfig: "function",
-      defineTour: "function",
-    });
-    expect(exports.generator).toEqual({
-      smokeGenerate: "function",
-    });
-    expect(exports.manifest).toEqual({
-      createPortableArtifactDescriptor: "function",
-      parsePortableOutputManifest: "function",
-    });
-    expect(exports.scaffold).toEqual({
-      scaffoldStarter: "function",
-    });
-    expect(exports.cli).toEqual({
-      runCli: "function",
-    });
-    expect(sdkDeclarations).toContain("DemoHunterRunContext");
-    expect(sdkDeclarations).toContain("WaitForStableOptions");
-  });
+      const declarations = await readFile(path.join(repoRoot, "packages/cli/dist/index.d.ts"), "utf8");
+      expect(declarations).toContain("DemoHunterRunContext");
+      expect(declarations).toContain("WaitForStableOptions");
+      expect(declarations).not.toContain("@demohunter/");
+
+      const binDeclarations = await readFile(path.join(repoRoot, "packages/cli/dist/bin/demohunter.d.ts"), "utf8");
+      expect(binDeclarations).not.toContain("@demohunter/");
+
+      const packed = await packCliPackage();
+      const packedPaths = packed.files.map((file) => file.path).sort();
+      expect(packedPaths).toContain("README.md");
+      expect(packedPaths).toContain("LICENSE");
+      expect(packedPaths).toContain("CHANGELOG.md");
+      expect(packedPaths).toContain("dist/index.d.ts");
+
+      await expectPackedTypesToWorkForConsumer(packed.filename);
+      await expectPackageDocsToBeCleaned();
+    },
+    30_000,
+  );
 });
+
+type PackedPackage = {
+  filename: string;
+  files: Array<{ path: string }>;
+};
+
+async function packCliPackage(): Promise<PackedPackage> {
+  const packRoot = await makeTempRoot();
+  const result = await spawnCommand(["npm", "pack", "--pack-destination", packRoot, "--json"], cliPackageRoot);
+
+  if (result.exitCode !== 0) {
+    throw new Error(result.stderr || result.stdout || "npm pack failed");
+  }
+
+  const [packed] = JSON.parse(result.stdout) as PackedPackage[];
+
+  if (packed === undefined) {
+    throw new Error(`npm pack did not report a packed package: ${result.stdout}`);
+  }
+
+  return {
+    ...packed,
+    filename: path.join(packRoot, packed.filename),
+  };
+}
+
+async function expectPackedTypesToWorkForConsumer(tarballPath: string): Promise<void> {
+  const consumerRoot = await makeTempRoot();
+  const packageRoot = path.join(consumerRoot, "node_modules/demohunter");
+  const playwrightRoot = await realpath(path.join(cliPackageRoot, "node_modules/playwright"));
+  const nodeTypesRoot = await realpath(path.join(repoRoot, "node_modules/@types/node"));
+
+  await mkdir(packageRoot, { recursive: true });
+  await mkdir(path.join(consumerRoot, "node_modules/@types"), { recursive: true });
+  await symlink(playwrightRoot, path.join(consumerRoot, "node_modules/playwright"), "dir");
+  await symlink(nodeTypesRoot, path.join(consumerRoot, "node_modules/@types/node"), "dir");
+  await writeFile(path.join(consumerRoot, "package.json"), `{"type":"module"}\n`);
+
+  const extractResult = await spawnCommand(
+    ["tar", "-xzf", tarballPath, "-C", packageRoot, "--strip-components", "1"],
+    consumerRoot,
+  );
+
+  if (extractResult.exitCode !== 0) {
+    throw new Error(extractResult.stderr || extractResult.stdout || "Failed to extract packed package");
+  }
+
+  await writeFile(
+    path.join(consumerRoot, "index.ts"),
+    `import { defineConfig, defineTour, type DemoHunterRunContext } from "demohunter";
+
+export const config = defineConfig({ baseURL: "http://localhost:3000" });
+
+export default defineTour({
+  id: "consumer-check",
+  title: "Consumer check",
+  async run(context: DemoHunterRunContext) {
+    await context.page.goto("/");
+  },
+});
+`,
+  );
+
+  const tscResult = await spawnCommand(
+    [
+      path.join(repoRoot, "node_modules/.bin/tsc"),
+      "--noEmit",
+      "--moduleResolution",
+      "node16",
+      "--module",
+      "node16",
+      "--target",
+      "es2022",
+      "--lib",
+      "esnext,dom",
+      "--strict",
+      "index.ts",
+    ],
+    consumerRoot,
+  );
+
+  expect(tscResult.exitCode, tscResult.stderr || tscResult.stdout).toBe(0);
+}
+
+async function expectPackageDocsToBeCleaned(): Promise<void> {
+  for (const fileName of ["README.md", "LICENSE", "CHANGELOG.md"]) {
+    await expect(access(path.join(cliPackageRoot, fileName))).rejects.toThrow();
+  }
+}
 
 async function runRepoCommand(args: string[]): Promise<void> {
   const result = await spawnCommand([process.execPath, ...args], repoRoot);

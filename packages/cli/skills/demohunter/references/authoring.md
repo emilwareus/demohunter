@@ -2,7 +2,7 @@
 
 ## Authoring Contract
 
-Every tour must default export `defineTour({ ... })` from `@demohunter/sdk`.
+Every tour must default export `defineTour({ ... })` from `demohunter`.
 
 Required fields:
 
