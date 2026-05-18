@@ -94,7 +94,7 @@ async function typecheckTemplate(templatePath: string): Promise<void> {
             module: "NodeNext",
             moduleResolution: "NodeNext",
             lib: ["ESNext"],
-            ignoreDeprecations: "6.0",
+            ignoreDeprecations: "5.0",
             types: ["node"],
             typeRoots: [path.join(repoRoot, "node_modules", "@types")],
             skipLibCheck: true,
