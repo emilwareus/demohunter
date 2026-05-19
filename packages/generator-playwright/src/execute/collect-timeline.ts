@@ -9,12 +9,15 @@ import type {
   CollectedNarration,
   CollectedTimeline,
   CollectedTimelineEntry,
+  GenerationProgressReporter,
   NarrationSegmentResolver,
   TourRuntimeEvent,
 } from "./generator-types.js";
 
 export type CollectTimelineInput = {
   loadedConfig: SmokeGenerateInput["loadedConfig"];
+  onRuntimeEvent?: (event: TourRuntimeEvent) => void;
+  onProgress?: GenerationProgressReporter;
   page: Page;
   tourFile: SmokeTourModule;
   resolveNarrationSegment?: NarrationSegmentResolver;
@@ -22,6 +25,8 @@ export type CollectTimelineInput = {
 
 export async function collectTimeline({
   loadedConfig,
+  onRuntimeEvent,
+  onProgress,
   page,
   resolveNarrationSegment = (event) => defaultResolveNarrationSegment({ event, loadedConfig }),
   tourFile,
@@ -30,8 +35,10 @@ export async function collectTimeline({
   const outputDir = path.join(config.outputDir, tourFile.tour.id);
   const events: TourRuntimeEvent[] = [];
   const runtime = createSmokeTourRuntime({
+    config,
     onEvent: (event) => {
       events.push(event);
+      onRuntimeEvent?.(event);
     },
     outputDir,
     page,
@@ -60,12 +67,13 @@ export async function collectTimeline({
     }
   }
 
-  return buildCollectedTimeline(events, resolveNarrationSegment);
+  return buildCollectedTimeline(events, resolveNarrationSegment, onProgress);
 }
 
 async function buildCollectedTimeline(
   events: TourRuntimeEvent[],
   resolveNarrationSegment: NarrationSegmentResolver,
+  onProgress?: GenerationProgressReporter,
 ): Promise<CollectedTimeline> {
   const entries: CollectedTimelineEntry[] = [];
   const narrations: CollectedTimeline["narrations"] = [];
@@ -74,6 +82,11 @@ async function buildCollectedTimeline(
     const order = index + 1;
 
     if (event.kind === "narrate") {
+      onProgress?.({
+        phase: "resolving-narration",
+        message: `Resolving narration ${order}`,
+        runtimeEvent: event,
+      });
       const segment = await resolveNarrationSegment(event);
 
       if (!Number.isFinite(segment.durationMs) || segment.durationMs < 0) {

@@ -110,13 +110,18 @@ describe("generateTour", () => {
       const next = timestamps.shift();
       return next ?? 2_750;
     });
+    const progress: string[] = [];
 
     const result = await generateTour(
       {
         loadedConfig: createLoadedConfig("/tmp/project"),
+        onProgress: (event) => {
+          progress.push(event.phase);
+        },
         tourFile: createTourFile("/tmp/project"),
       },
       {
+        attachDebugCapture: mock(() => createDebugCapture()),
         collectTimeline,
         muxVideo,
         now,
@@ -148,6 +153,15 @@ describe("generateTour", () => {
       outputDir: "/tmp/project/.demohunter/billing-overview",
       videoPath: "/tmp/project/.demohunter/billing-overview/video.mp4",
     });
+    expect(progress).toEqual([
+      "preparing-output",
+      "launching-browser",
+      "collecting-timeline",
+      "recording-replay",
+      "muxing-video",
+      "writing-artifacts",
+      "completed",
+    ]);
     expect(calls).toEqual([
       "prepare-output",
       "launch",
@@ -171,6 +185,14 @@ describe("generateTour", () => {
       outputPath: "/tmp/project/.demohunter/billing-overview.recording.webm",
       page: passTwoPage,
       showActions: true,
+      viewport: { height: 720, width: 1280 },
+    });
+    expect(browser.newContext).toHaveBeenNthCalledWith(1, {
+      baseURL: "http://localhost:3000",
+      viewport: { height: 720, width: 1280 },
+    });
+    expect(browser.newContext).toHaveBeenNthCalledWith(2, {
+      baseURL: "http://localhost:3000",
       viewport: { height: 720, width: 1280 },
     });
     expect(writeGenerationOutput).toHaveBeenCalledWith({
@@ -237,7 +259,8 @@ describe("generateTour", () => {
           loadedConfig: createLoadedConfig("/tmp/project"),
           tourFile: createTourFile("/tmp/project"),
         },
-        {
+      {
+          attachDebugCapture: mock(() => createDebugCapture()),
           collectTimeline,
           playwright: {
             chromium: {
@@ -277,7 +300,8 @@ describe("generateTour", () => {
           loadedConfig: createLoadedConfig("/tmp/project"),
           tourFile: createTourFile("/tmp/project"),
         },
-        {
+      {
+          attachDebugCapture: mock(() => createDebugCapture()),
           collectTimeline,
           playwright: {
             chromium: {
@@ -333,7 +357,8 @@ describe("generateTour", () => {
           loadedConfig: createLoadedConfig("/tmp/project"),
           tourFile: createTourFile("/tmp/project"),
         },
-        {
+      {
+          attachDebugCapture: mock(() => createDebugCapture()),
           collectTimeline: mock(async () => createTimeline()),
           muxVideo,
           playwright: {
@@ -444,6 +469,16 @@ function createTimeline(): CollectedTimeline {
         text: "Explain billing",
       },
     ],
+  };
+}
+
+function createDebugCapture() {
+  return {
+    captureFailure: mock(async () => ({
+      directory: "/tmp/project/.demohunter/billing-overview/debug/failure",
+      failureJsonPath: "/tmp/project/.demohunter/billing-overview/debug/failure/failure.json",
+    })),
+    dispose: mock(() => {}),
   };
 }
 

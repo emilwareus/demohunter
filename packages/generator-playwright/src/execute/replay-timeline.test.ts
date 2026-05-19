@@ -240,7 +240,7 @@ function createLoadedConfig(projectRoot: string) {
       browser: "chromium" as const,
       viewport: { width: 1280, height: 720 },
       holdPaddingMs: 300,
-      record: { showActions: true, showChapters: true },
+      record: { format: "mp4" as const, showActions: true, showChapters: true },
       tts: {
         provider: "openai" as const,
         model: "gpt-4o-mini-tts",

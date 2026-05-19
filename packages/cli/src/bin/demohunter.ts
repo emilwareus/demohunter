@@ -5,7 +5,9 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { cacheCommand } from "../commands/cache.js";
+import { doctorCommand } from "../commands/doctor.js";
 import { generateCommand } from "../commands/generate.js";
+import type { GenerateCommandOptions } from "../commands/generate.js";
 import { initCommand } from "../commands/init.js";
 import { addSkillCommand, parseSkillTargets } from "../commands/skill.js";
 
@@ -18,13 +20,15 @@ type CliDependencies = {
     cwd: string,
     input: { action: "list" | "prune" | "clear" },
   ) => Promise<void>;
+  doctorCommand: (cwd: string) => Promise<void>;
   initCommand: (cwd: string, options?: { force?: boolean }) => Promise<void>;
-  generateCommand: (cwd: string, tourPath: string) => Promise<void>;
+  generateCommand: (cwd: string, tourPath: string, options?: GenerateCommandOptions) => Promise<void>;
   addSkillCommand: (cwd: string, input: AddSkillInput) => Promise<void>;
 };
 
 const defaultDependencies: CliDependencies = {
   cacheCommand,
+  doctorCommand,
   initCommand,
   generateCommand,
   addSkillCommand,
@@ -38,10 +42,15 @@ Usage:
 Commands:
   init                     Scaffold a starter tour, config, and .gitignore entry
   generate <tour-file>     Run a tour and write portable assets to .demohunter/<tour-id>/
+  doctor                   Check local prerequisites and project setup
   cache list               Show cached narration entries
   cache prune              Remove stale or corrupt cache entries
   cache clear              Delete every cached narration entry
   add-skill [--target ...] Install the DemoHunter agent skill into .claude or .codex
+
+generate flags:
+  --dry-run                Validate the browser flow without narration or video
+  --flow-only              Alias for --dry-run
 
 add-skill flags:
   --target <name>          Repeatable. One of: claude, codex, both.
@@ -83,11 +92,18 @@ export async function runCli(
       return;
     }
     case "generate": {
-      const [tourPath] = rest;
+      const { options, tourPath } = parseGenerateArgs(rest);
       if (!tourPath) {
-        throw new Error("Usage: demohunter generate <tour-file>");
+        throw new Error("Usage: demohunter generate <tour-file> [--dry-run|--flow-only]");
       }
-      await dependencies.generateCommand(cwd, tourPath);
+      await dependencies.generateCommand(cwd, tourPath, options);
+      return;
+    }
+    case "doctor": {
+      if (rest.length > 0) {
+        throw new Error("Usage: demohunter doctor");
+      }
+      await dependencies.doctorCommand(cwd);
       return;
     }
     case "add-skill": {
@@ -100,6 +116,38 @@ export async function runCli(
         `Unknown command: ${command}. Run "demohunter --help" to see available commands.`,
       );
   }
+}
+
+function parseGenerateArgs(args: readonly string[]): {
+  options: GenerateCommandOptions;
+  tourPath?: string;
+} {
+  const options: GenerateCommandOptions = {};
+  let tourPath: string | undefined;
+
+  for (const arg of args) {
+    if (arg === "--dry-run") {
+      options.dryRun = true;
+      continue;
+    }
+
+    if (arg === "--flow-only") {
+      options.flowOnly = true;
+      continue;
+    }
+
+    if (arg.startsWith("-")) {
+      throw new Error(`Unknown generate flag: ${arg}`);
+    }
+
+    if (tourPath !== undefined) {
+      throw new Error("Usage: demohunter generate <tour-file> [--dry-run|--flow-only]");
+    }
+
+    tourPath = arg;
+  }
+
+  return { options, tourPath };
 }
 
 function isCacheAction(action: string | undefined): action is "list" | "prune" | "clear" {

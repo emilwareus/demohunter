@@ -7,6 +7,7 @@ import type {
   NarrateOptions,
   SnapshotOptions,
   WaitForStableOptions,
+  ResolvedDemoHunterConfig,
 } from "@demohunter/sdk";
 import type { Locator, Page } from "playwright";
 import type { TourRuntimeEvent } from "../execute/generator-types.js";
@@ -18,6 +19,7 @@ type SnapshotInput = string | SnapshotOptions | undefined;
 export type SmokeTourRuntimeEvent = TourRuntimeEvent;
 
 export function createSmokeTourRuntime(args: {
+  config: ResolvedDemoHunterConfig;
   page: Page;
   outputDir: string;
   onEvent?: (event: SmokeTourRuntimeEvent) => void;
@@ -27,8 +29,15 @@ export function createSmokeTourRuntime(args: {
   const emit = (event: TourRuntimeEvent): void => {
     args.onEvent?.(event);
   };
+  const goto: DemoHunterRunContext["goto"] = async (url, options) => {
+    const resolvedUrl = new URL(url, args.config.baseURL).href;
+
+    return args.page.goto(resolvedUrl, options);
+  };
 
   return {
+    config: args.config,
+    goto,
     page: args.page,
     async chapter(title: string, options?: ChapterOptions): Promise<void> {
       currentChapter = title;

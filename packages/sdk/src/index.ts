@@ -21,6 +21,7 @@ export type {
   ChapterOptions,
   DemoHunterAssertVisible,
   DemoHunterChapter,
+  DemoHunterGoto,
   DemoHunterHighlight,
   DemoHunterLifecycleContext,
   DemoHunterNarrate,

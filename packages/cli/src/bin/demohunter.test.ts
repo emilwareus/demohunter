@@ -5,6 +5,7 @@ import { isExecutedAsEntrypoint, runCli } from "./demohunter.js";
 function buildStubs(overrides: Partial<Parameters<typeof runCli>[2]> = {}): Parameters<typeof runCli>[2] {
   return {
     cacheCommand: mock(async () => {}),
+    doctorCommand: mock(async () => {}),
     initCommand: mock(async () => {}),
     generateCommand: mock(async () => {}),
     addSkillCommand: mock(async () => {}),
@@ -21,6 +22,7 @@ describe("runCli", () => {
     expect(stubs.initCommand).toHaveBeenCalledWith("/tmp/demo", { force: true });
     expect(stubs.cacheCommand).not.toHaveBeenCalled();
     expect(stubs.generateCommand).not.toHaveBeenCalled();
+    expect(stubs.doctorCommand).not.toHaveBeenCalled();
     expect(stubs.addSkillCommand).not.toHaveBeenCalled();
   });
 
@@ -29,7 +31,31 @@ describe("runCli", () => {
 
     await runCli(["generate", "demos/sample.tour.ts"], "/tmp/demo", stubs);
 
-    expect(stubs.generateCommand).toHaveBeenCalledWith("/tmp/demo", "demos/sample.tour.ts");
+    expect(stubs.generateCommand).toHaveBeenCalledWith("/tmp/demo", "demos/sample.tour.ts", {});
+  });
+
+  test("dispatches generate with dry-run validation", async () => {
+    const stubs = buildStubs();
+
+    await runCli(["generate", "demos/sample.tour.ts", "--dry-run"], "/tmp/demo", stubs);
+
+    expect(stubs.generateCommand).toHaveBeenCalledWith("/tmp/demo", "demos/sample.tour.ts", { dryRun: true });
+  });
+
+  test("dispatches generate with flow-only validation", async () => {
+    const stubs = buildStubs();
+
+    await runCli(["generate", "demos/sample.tour.ts", "--flow-only"], "/tmp/demo", stubs);
+
+    expect(stubs.generateCommand).toHaveBeenCalledWith("/tmp/demo", "demos/sample.tour.ts", { flowOnly: true });
+  });
+
+  test("dispatches doctor", async () => {
+    const stubs = buildStubs();
+
+    await runCli(["doctor"], "/tmp/demo", stubs);
+
+    expect(stubs.doctorCommand).toHaveBeenCalledWith("/tmp/demo");
   });
 
   test("dispatches cache subcommands with the requested action", async () => {
@@ -66,7 +92,7 @@ describe("runCli", () => {
 
   test("throws a usage error when generate is missing the tour path", async () => {
     await expect(runCli(["generate"], "/tmp/demo", buildStubs())).rejects.toThrow(
-      "Usage: demohunter generate <tour-file>",
+      "Usage: demohunter generate <tour-file> [--dry-run|--flow-only]",
     );
   });
 

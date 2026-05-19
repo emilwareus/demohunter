@@ -69,7 +69,7 @@ describe("smokeGenerate", () => {
             browser: "chromium",
             viewport: { width: 1280, height: 720 },
             holdPaddingMs: 300,
-            record: { showActions: true, showChapters: true },
+            record: { format: "mp4" as const, showActions: true, showChapters: true },
             tts: {
               provider: "openai",
               model: "gpt-4o-mini-tts",
@@ -93,6 +93,7 @@ describe("smokeGenerate", () => {
         },
       },
       {
+        attachDebugCapture: mock(() => createDebugCapture()),
         now: () => new Date("2026-04-10T00:00:00.000Z"),
         playwright: {
           chromium: { launch },
@@ -104,6 +105,7 @@ describe("smokeGenerate", () => {
 
     expect(launch).toHaveBeenCalledTimes(1);
     expect(newContext).toHaveBeenCalledWith({
+      baseURL: "http://localhost:3000",
       viewport: { width: 1280, height: 720 },
     });
     expect(page.goto).toHaveBeenCalledWith("http://localhost:3000/");
@@ -161,7 +163,7 @@ describe("smokeGenerate", () => {
               browser: "chromium",
               viewport: { width: 1280, height: 720 },
               holdPaddingMs: 300,
-              record: { showActions: true, showChapters: true },
+              record: { format: "mp4" as const, showActions: true, showChapters: true },
               tts: {
                 provider: "openai",
                 model: "gpt-4o-mini-tts",
@@ -192,6 +194,7 @@ describe("smokeGenerate", () => {
           },
         },
         {
+          attachDebugCapture: mock(() => createDebugCapture()),
           playwright: {
             chromium: { launch },
             firefox: { launch: mock(async () => { throw new Error("unexpected browser"); }) },
@@ -237,7 +240,7 @@ describe("smokeGenerate", () => {
               browser: "chromium",
               viewport: { width: 1280, height: 720 },
               holdPaddingMs: 300,
-              record: { showActions: true, showChapters: true },
+              record: { format: "mp4" as const, showActions: true, showChapters: true },
               tts: {
                 provider: "openai",
                 model: "gpt-4o-mini-tts",
@@ -261,6 +264,7 @@ describe("smokeGenerate", () => {
           },
         },
         {
+          attachDebugCapture: mock(() => createDebugCapture()),
           playwright: {
             chromium: { launch },
             firefox: { launch: mock(async () => { throw new Error("unexpected browser"); }) },
@@ -305,7 +309,7 @@ describe("smokeGenerate", () => {
               browser: "chromium",
               viewport: { width: 1280, height: 720 },
               holdPaddingMs: 300,
-              record: { showActions: true, showChapters: true },
+              record: { format: "mp4" as const, showActions: true, showChapters: true },
               tts: {
                 provider: "openai",
                 model: "gpt-4o-mini-tts",
@@ -327,6 +331,7 @@ describe("smokeGenerate", () => {
           },
         },
         {
+          attachDebugCapture: mock(() => createDebugCapture()),
           mkdir,
           playwright: {
             chromium: { launch },
@@ -370,7 +375,7 @@ describe("smokeGenerate", () => {
               browser: "chromium",
               viewport: { width: 1280, height: 720 },
               holdPaddingMs: 300,
-              record: { showActions: true, showChapters: true },
+              record: { format: "mp4" as const, showActions: true, showChapters: true },
               tts: {
                 provider: "openai",
                 model: "gpt-4o-mini-tts",
@@ -392,6 +397,7 @@ describe("smokeGenerate", () => {
           },
         },
         {
+          attachDebugCapture: mock(() => createDebugCapture()),
           mkdir,
           playwright: {
             chromium: { launch },
@@ -413,4 +419,14 @@ async function makeTempRoot(): Promise<string> {
   const tempRoot = await mkdtemp(path.join(os.tmpdir(), "demohunter-smoke-generate-"));
   tempRoots.push(tempRoot);
   return tempRoot;
+}
+
+function createDebugCapture() {
+  return {
+    captureFailure: mock(async () => ({
+      directory: "/tmp/project/.demohunter/sample-smoke/debug/failure",
+      failureJsonPath: "/tmp/project/.demohunter/sample-smoke/debug/failure/failure.json",
+    })),
+    dispose: mock(() => {}),
+  };
 }

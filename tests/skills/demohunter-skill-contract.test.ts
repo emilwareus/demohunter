@@ -49,14 +49,20 @@ describe("demohunter skill bundle", () => {
     const documentedCommands = [
       "demohunter init",
       "demohunter generate <tour-file>",
+      "demohunter generate <tour-file> --dry-run",
+      "demohunter generate <tour-file> --flow-only",
+      "demohunter doctor",
       "demohunter cache list",
       "demohunter cache prune",
       "demohunter cache clear",
+      "demohunter add-skill [--target claude|codex|both]",
     ] as const;
 
     expect(cliSource).toContain('case "init"');
     expect(cliSource).toContain('case "generate"');
+    expect(cliSource).toContain('case "doctor"');
     expect(cliSource).toContain('case "cache"');
+    expect(cliSource).toContain('case "add-skill"');
 
     for (const markdownPath of markdownFiles) {
       const markdown = await readFile(markdownPath, "utf8");

@@ -12,14 +12,16 @@ Required fields:
 
 Optional lifecycle hooks:
 
-- `setup({ page })`
-- `teardown({ page })`
+- `setup({ page, config, goto })`
+- `teardown({ page, config, goto })`
 
 ## Run Context
 
 The current SDK exposes these helpers on `run(...)`:
 
 - `page`
+- `config`
+- `goto(pathOrUrl, options?)`
 - `chapter(title, options?)`
 - `step(title, fn)`
 - `narrate(text, options?)`
@@ -40,6 +42,7 @@ Useful option details:
 ## Editing Rules
 
 - Preserve normal Playwright code. Use `page.goto`, locator actions, and `waitFor` calls directly.
+- Relative `page.goto("/path")` resolves against `demohunter.config.ts` `baseURL`. Use `goto("/path")` when you want DemoHunter's explicit baseURL resolver.
 - Do not invent repo-wide helpers like `login()`, `bootstrapApp()`, `agentContext()`, or cloud-specific wrappers unless they already exist in user code.
 - Keep selectors stable and user-facing when possible: headings, labels, buttons, and explicit test ids beat brittle CSS traversal.
 - Keep chapters and step titles tied to visible product states.
