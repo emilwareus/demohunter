@@ -7,6 +7,7 @@ describe("collectTimeline", () => {
   test("reuses one runtime across goto, setup, run, and teardown while collecting ordered replay entries", async () => {
     const page = {
       goto: mock(async () => {}),
+      waitForTimeout: mock(async () => {}),
       waitForLoadState: mock(async () => {}),
     };
     const locator = {
@@ -15,12 +16,12 @@ describe("collectTimeline", () => {
     };
     const calls: string[] = [];
     const contexts: object[] = [];
-    const resolveNarrationSegment = mock(async () => ({
+    const resolveNarrationSegment = mock(async (event) => ({
       audioPath: "/tmp/workspace/.demohunter/cache/narration.mp3",
       cacheKey: "cache-key",
-      chapterTitle: "Billing",
+      chapterTitle: event.chapterTitle,
       durationMs: 1200,
-      text: "Explain the invoice screen",
+      text: event.text,
     }));
     const setup = mock(async (context) => {
       calls.push(`setup:${context.page === page}`);
@@ -40,6 +41,10 @@ describe("collectTimeline", () => {
           calls.push("step");
           await narrate("Explain the invoice screen", { voice: "marin" });
           await waitForStable({ state: "load", timeoutMs: 2500 });
+          await context.narrateWhile("Explain the transition", async ({ sleep }) => {
+            await sleep(500);
+            await snapshot({ name: "during-transition" });
+          }, { cacheKeyHint: "transition" });
           await highlight(locator as never, { name: "CTA", paddingPx: 12 });
           await snapshot({ name: "invoice" });
           await assertVisible(locator as never, { timeoutMs: 800 });
@@ -80,6 +85,7 @@ describe("collectTimeline", () => {
     expect(contexts[0]).toBe(contexts[1]);
     expect(contexts[1]).toBe(contexts[2]);
     expect(page.waitForLoadState).toHaveBeenCalledWith("load", { timeout: 2500 });
+    expect(page.waitForTimeout).toHaveBeenCalledWith(500);
     expect(locator.waitFor).toHaveBeenCalledTimes(2);
     expect(locator.scrollIntoViewIfNeeded).toHaveBeenCalledTimes(1);
     expect(timeline).toEqual({
@@ -134,12 +140,47 @@ describe("collectTimeline", () => {
         {
           event: {
             chapterTitle: "Billing",
+            cacheKeyHint: "transition",
+            kind: "narrate",
+            text: "Explain the transition",
+          },
+          kind: "narration",
+          order: 5,
+          segment: {
+            audioPath: "/tmp/workspace/.demohunter/cache/narration.mp3",
+            cacheKey: "cache-key",
+            chapterTitle: "Billing",
+            durationMs: 1200,
+            text: "Explain the transition",
+          },
+        },
+        {
+          event: {
+            chapterTitle: "Billing",
+            durationMs: 500,
+            kind: "narration-sleep",
+          },
+          kind: "event",
+          order: 6,
+        },
+        {
+          event: {
+            chapterTitle: "Billing",
+            kind: "snapshot",
+            name: "during-transition",
+          },
+          kind: "event",
+          order: 7,
+        },
+        {
+          event: {
+            chapterTitle: "Billing",
             kind: "highlight",
             name: "CTA",
             paddingPx: 12,
           },
           kind: "event",
-          order: 5,
+          order: 8,
         },
         {
           event: {
@@ -148,7 +189,7 @@ describe("collectTimeline", () => {
             name: "invoice",
           },
           kind: "event",
-          order: 6,
+          order: 9,
         },
         {
           event: {
@@ -157,7 +198,7 @@ describe("collectTimeline", () => {
             timeoutMs: 800,
           },
           kind: "event",
-          order: 7,
+          order: 10,
         },
         {
           event: {
@@ -166,7 +207,7 @@ describe("collectTimeline", () => {
             title: "Open invoice view",
           },
           kind: "event",
-          order: 8,
+          order: 11,
         },
       ],
       narrations: [
@@ -176,6 +217,13 @@ describe("collectTimeline", () => {
           cacheKey: "cache-key",
           durationMs: 1200,
           text: "Explain the invoice screen",
+        },
+        {
+          chapterTitle: "Billing",
+          audioPath: "/tmp/workspace/.demohunter/cache/narration.mp3",
+          cacheKey: "cache-key",
+          durationMs: 1200,
+          text: "Explain the transition",
         },
       ],
     });

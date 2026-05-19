@@ -11,6 +11,7 @@ export const TOUR_RUNTIME_EVENT_KINDS = [
   "step-start",
   "step-end",
   "narrate",
+  "narration-sleep",
   "wait-for-stable",
   "highlight",
   "snapshot",
@@ -35,6 +36,11 @@ export type TourRuntimeEvent =
       text: string;
       chapterTitle?: string;
     } & NarrateOptions)
+  | {
+      kind: "narration-sleep";
+      durationMs: number;
+      chapterTitle?: string;
+    }
   | ({
       kind: "wait-for-stable";
       chapterTitle?: string;

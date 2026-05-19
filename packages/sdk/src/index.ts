@@ -25,6 +25,8 @@ export type {
   DemoHunterHighlight,
   DemoHunterLifecycleContext,
   DemoHunterNarrate,
+  DemoHunterNarrateWhile,
+  DemoHunterNarrationTimeline,
   DemoHunterRunContext,
   DemoHunterSnapshot,
   DemoHunterStep,

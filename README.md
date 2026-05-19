@@ -64,7 +64,7 @@ import { defineTour } from "demohunter";
 export default defineTour({
   id: "billing-overview",
   title: "Billing overview",
-  async run({ page, chapter, step, narrate }) {
+  async run({ page, chapter, step, narrate, narrateWhile }) {
     await chapter("Open the workspace");
 
     await step("Land on the dashboard", async () => {
@@ -74,9 +74,11 @@ export default defineTour({
     });
 
     await step("Create a new invoice", async () => {
-      await page.getByRole("button", { name: "New invoice" }).click();
-      await page.getByLabel("Customer").fill("Acme");
-      await narrate("Creating an invoice is one step now. The customer field has type-ahead search built in.");
+      await narrateWhile("Creating an invoice is one step now. The customer field has type-ahead search built in.", async ({ sleep }) => {
+        await page.getByRole("button", { name: "New invoice" }).click();
+        await sleep(700);
+        await page.getByLabel("Customer").fill("Acme");
+      });
     });
   },
 });
@@ -86,7 +88,7 @@ export default defineTour({
 npx demohunter generate demos/billing-overview.tour.ts
 ```
 
-You get `.demohunter/billing-overview/video.mp4` with the narration timed to each step, plus captions and a manifest.
+You get `.demohunter/billing-overview/video.mp4` with narration timed to each step or choreographed over visible motion, plus captions and a manifest.
 
 ## Config
 

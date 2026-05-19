@@ -106,6 +106,137 @@ describe("replayTimeline", () => {
     expect(waitForTimeout).toHaveBeenCalledWith(1500);
   });
 
+  test("runs narrateWhile actions during narration and waits only the remaining narration window", async () => {
+    const waitForTimeout = mock(async () => {});
+    const page = {
+      goto: mock(async () => {}),
+      waitForTimeout,
+    };
+
+    await replayTimeline({
+      loadedConfig: createLoadedConfig("/tmp/workspace"),
+      page: page as never,
+      timeline: {
+        entries: [
+          {
+            event: {
+              chapterTitle: undefined,
+              kind: "narrate",
+              text: "Narrate over motion",
+            },
+            kind: "narration",
+            order: 1,
+            segment: {
+              audioPath: "/tmp/workspace/.demohunter/cache/motion.mp3",
+              cacheKey: "motion",
+              chapterTitle: undefined,
+              durationMs: 1200,
+              text: "Narrate over motion",
+            },
+          },
+          {
+            event: {
+              chapterTitle: undefined,
+              durationMs: 500,
+              kind: "narration-sleep",
+            },
+            kind: "event",
+            order: 2,
+          },
+          {
+            event: {
+              chapterTitle: undefined,
+              kind: "snapshot",
+              name: "during-motion",
+            },
+            kind: "event",
+            order: 3,
+          },
+        ],
+        narrations: [],
+      },
+      tourFile: {
+        path: "/tmp/workspace/demos/billing.tour.ts",
+        tour: {
+          id: "billing-overview",
+          title: "Billing overview",
+          run: async ({ narrateWhile, snapshot }) => {
+            await narrateWhile("Narrate over motion", async ({ sleep }) => {
+              await sleep(500);
+              await snapshot({ name: "during-motion" });
+            });
+          },
+        },
+      },
+    });
+
+    expect(waitForTimeout).toHaveBeenCalledTimes(2);
+    expect(waitForTimeout).toHaveBeenNthCalledWith(1, 500);
+    expect(waitForTimeout).toHaveBeenNthCalledWith(2, 1000);
+  });
+
+  test("keeps only hold padding when narrateWhile actions run longer than the narration", async () => {
+    const waitForTimeout = mock(async () => {});
+    const page = {
+      goto: mock(async () => {}),
+      waitForTimeout,
+    };
+    const timestamps = [0, 1600];
+    const now = mock(() => timestamps.shift() ?? 1600);
+
+    await replayTimeline({
+      loadedConfig: createLoadedConfig("/tmp/workspace"),
+      now,
+      page: page as never,
+      timeline: {
+        entries: [
+          {
+            event: {
+              chapterTitle: undefined,
+              kind: "narrate",
+              text: "Short narration",
+            },
+            kind: "narration",
+            order: 1,
+            segment: {
+              audioPath: "/tmp/workspace/.demohunter/cache/short.mp3",
+              cacheKey: "short",
+              chapterTitle: undefined,
+              durationMs: 1200,
+              text: "Short narration",
+            },
+          },
+          {
+            event: {
+              chapterTitle: undefined,
+              kind: "snapshot",
+              name: "slow-action",
+            },
+            kind: "event",
+            order: 2,
+          },
+        ],
+        narrations: [],
+      },
+      tourFile: {
+        path: "/tmp/workspace/demos/billing.tour.ts",
+        tour: {
+          id: "billing-overview",
+          title: "Billing overview",
+          run: async ({ narrateWhile, snapshot }) => {
+            await narrateWhile("Short narration", async () => {
+              await snapshot({ name: "slow-action" });
+            });
+          },
+        },
+      },
+    });
+
+    expect(waitForTimeout).toHaveBeenCalledTimes(1);
+    expect(waitForTimeout).toHaveBeenCalledWith(300);
+    expect(now).toHaveBeenCalledTimes(2);
+  });
+
   test("fails clearly when the live pass diverges from the collected timeline", async () => {
     const page = {
       goto: mock(async () => {}),

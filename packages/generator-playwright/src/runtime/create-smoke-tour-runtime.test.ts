@@ -59,10 +59,12 @@ describe("createSmokeTourRuntime", () => {
 
   test("uses Playwright-native methods for stability, highlighting, snapshots, and visibility", async () => {
     const events: unknown[] = [];
+    const waitForTimeout = mock(async () => {});
     const waitForLoadState = mock(async () => {});
     const page = {
       goto: mock(async () => null),
       waitForLoadState,
+      waitForTimeout,
     } as never;
     const waitFor = mock(async () => {});
     const scrollIntoViewIfNeeded = mock(async () => {});
@@ -84,10 +86,15 @@ describe("createSmokeTourRuntime", () => {
     await runtime.snapshot({ name: "hero" });
     await runtime.assertVisible(locator, { timeoutMs: 800 });
     await runtime.narrate("Describe the screen", { voice: "marin" });
+    await runtime.narrateWhile("Describe the transition", async ({ sleep }) => {
+      await sleep(900);
+      await runtime.snapshot({ name: "transition" });
+    }, { cacheKeyHint: "transition" });
     await runtime.goto("/billing");
 
     expect(page.goto).toHaveBeenCalledWith("http://localhost:3000/billing", undefined);
     expect(waitForLoadState).toHaveBeenCalledWith("load", { timeout: 2500 });
+    expect(waitForTimeout).toHaveBeenCalledWith(900);
     expect(waitFor).toHaveBeenCalledTimes(2);
     expect(waitFor.mock.calls[0]).toEqual([{ state: "visible" }]);
     expect(waitFor.mock.calls[1]).toEqual([{ state: "visible", timeout: 800 }]);
@@ -115,6 +122,19 @@ describe("createSmokeTourRuntime", () => {
         kind: "narrate",
         text: "Describe the screen",
         voice: "marin",
+      },
+      {
+        cacheKeyHint: "transition",
+        kind: "narrate",
+        text: "Describe the transition",
+      },
+      {
+        durationMs: 900,
+        kind: "narration-sleep",
+      },
+      {
+        kind: "snapshot",
+        name: "transition",
       },
     ]);
   });
@@ -165,6 +185,7 @@ describe("createSmokeTourRuntime", () => {
       "step-start",
       "step-end",
       "narrate",
+      "narration-sleep",
       "wait-for-stable",
       "highlight",
       "snapshot",

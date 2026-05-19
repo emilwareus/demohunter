@@ -49,7 +49,7 @@ The starter tour does not call `narrate(...)`, so it runs without `OPENAI_API_KE
 
 1. Start your app yourself (DemoHunter does not start it for you).
 2. Set `baseURL` in `demohunter.config.ts` to wherever your app is reachable.
-3. Write a tour under `demos/` that exercises one flow. Use normal Playwright (`page.getByRole`, `page.click`, etc.). Add `narrate(...)` for each visible state change you want the viewer to hear.
+3. Write a tour under `demos/` that exercises one flow. Use normal Playwright (`page.getByRole`, `page.click`, etc.). Add `narrate(...)` for static states and `narrateWhile(...)` when narration should continue over navigation, clicks, typing, waits, or highlights.
 
 Example:
 
@@ -59,13 +59,17 @@ import { defineTour } from "demohunter";
 export default defineTour({
   id: "billing-overview",
   title: "Billing overview",
-  async run({ page, chapter, step, narrate }) {
+  async run({ page, chapter, step, narrate, narrateWhile }) {
     await chapter("Open the workspace");
 
     await step("Land on the dashboard", async () => {
       await page.goto("/");
       await page.getByRole("heading", { name: "Workspace" }).waitFor();
       await narrate("Welcome to the billing workspace. Invoices, exports, and credits all live here.");
+      await narrateWhile("Now we open the invoice form while the overview stays in context.", async ({ sleep }) => {
+        await sleep(800);
+        await page.getByRole("button", { name: "New invoice" }).click();
+      });
     });
   },
 });
