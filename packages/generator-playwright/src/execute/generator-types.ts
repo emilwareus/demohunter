@@ -106,3 +106,26 @@ export type CollectedTimeline = {
   entries: CollectedTimelineEntry[];
   narrations: NarrationSegment[];
 };
+
+export type GenerationProgressPhase =
+  | "loading-config"
+  | "loading-tour"
+  | "preparing-output"
+  | "launching-browser"
+  | "collecting-timeline"
+  | "running-flow"
+  | "runtime-event"
+  | "resolving-narration"
+  | "recording-replay"
+  | "muxing-video"
+  | "writing-artifacts"
+  | "capturing-debug"
+  | "completed";
+
+export type GenerationProgressEvent = {
+  phase: GenerationProgressPhase;
+  message: string;
+  runtimeEvent?: TourRuntimeEvent;
+};
+
+export type GenerationProgressReporter = (event: GenerationProgressEvent) => void;

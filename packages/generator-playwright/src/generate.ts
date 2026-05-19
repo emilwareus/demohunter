@@ -8,8 +8,13 @@ import type { BrowserType } from "playwright";
 import { collectTimeline } from "./execute/collect-timeline.js";
 import type {
   CollectedTimeline,
+  GenerationProgressEvent,
+  GenerationProgressReporter,
   RecordedNarration,
+  TourRuntimeEvent,
 } from "./execute/generator-types.js";
+import { attachDebugCapture } from "./debug/failure-artifacts.js";
+import type { DebugArtifactResult, DebugCapture, DebugPhase } from "./debug/failure-artifacts.js";
 import { replayTimeline } from "./execute/replay-timeline.js";
 import { prepareOutputDir as prepareOutputDirHelper } from "./output/prepare-output-dir.js";
 import { writeGenerationOutput } from "./output/write-generation-output.js";
@@ -33,10 +38,12 @@ export type GenerateTourFile = SmokeTourModule;
 
 export type GenerateTourInput = {
   loadedConfig: GenerateLoadedConfig;
+  onProgress?: GenerationProgressReporter;
   tourFile: GenerateTourFile;
 };
 
 type GenerateTourDependencies = {
+  attachDebugCapture: typeof attachDebugCapture;
   collectTimeline: typeof collectTimeline;
   muxVideo: typeof muxVideo;
   now: () => number;
@@ -50,6 +57,7 @@ type GenerateTourDependencies = {
 };
 
 const defaultDependencies: GenerateTourDependencies = {
+  attachDebugCapture,
   collectTimeline,
   muxVideo,
   now: () => Date.now(),
@@ -63,7 +71,7 @@ const defaultDependencies: GenerateTourDependencies = {
 };
 
 export async function generateTour(
-  { loadedConfig, tourFile }: GenerateTourInput,
+  { loadedConfig, onProgress, tourFile }: GenerateTourInput,
   dependencies: Partial<GenerateTourDependencies> = {},
 ): Promise<GenerateTourResult> {
   const resolvedDependencies = {
@@ -71,36 +79,75 @@ export async function generateTour(
     ...dependencies,
   };
   const { config } = loadedConfig;
+  report(onProgress, {
+    phase: "preparing-output",
+    message: `Preparing output for ${tourFile.tour.id}`,
+  });
   const outputDir = await resolvedDependencies.prepareOutputDir(tourFile.tour.id, config.outputDir);
   const tempScreencastPath = path.join(path.dirname(outputDir), `${tourFile.tour.id}.recording.webm`);
   const browserType = resolvedDependencies.playwright[config.browser];
+  report(onProgress, {
+    phase: "launching-browser",
+    message: `Launching ${config.browser}`,
+  });
   const browser = await browserType.launch();
   let passOneContext: Awaited<ReturnType<typeof browser.newContext>> | undefined;
   let passTwoContext: Awaited<ReturnType<typeof browser.newContext>> | undefined;
   let primaryError: unknown;
+  let passOneDebug: DebugCapture | undefined;
+  let passTwoDebug: DebugCapture | undefined;
+  let lastRuntimeEvent: TourRuntimeEvent | undefined;
   const chapters: GenerationChapter[] = [];
   const recordedNarrations: RecordedNarration[] = [];
 
   try {
     passOneContext = await browser.newContext({
+      baseURL: config.baseURL,
       viewport: config.viewport,
     });
 
     const passOnePage = await passOneContext.newPage();
-    const timeline = await resolvedDependencies.collectTimeline({
-      loadedConfig,
+    passOneDebug = resolvedDependencies.attachDebugCapture({
+      outputDir,
       page: passOnePage,
-      tourFile,
     });
+    report(onProgress, {
+      phase: "collecting-timeline",
+      message: `Collecting timeline for ${tourFile.tour.id}`,
+    });
+    const timeline = await capturePhaseFailure({
+      debugCapture: passOneDebug,
+      onProgress,
+      phase: "collect-timeline",
+      run: () =>
+        resolvedDependencies.collectTimeline({
+          loadedConfig,
+          onProgress,
+          onRuntimeEvent: (event) => {
+            lastRuntimeEvent = event;
+            reportRuntimeEvent(onProgress, event);
+          },
+          page: passOnePage,
+          tourFile,
+        }),
+      getLastRuntimeEvent: () => lastRuntimeEvent,
+    });
+    passOneDebug.dispose();
+    passOneDebug = undefined;
 
     await passOneContext.close();
     passOneContext = undefined;
 
     passTwoContext = await browser.newContext({
+      baseURL: config.baseURL,
       viewport: config.viewport,
     });
 
     const passTwoPage = await passTwoContext.newPage();
+    passTwoDebug = resolvedDependencies.attachDebugCapture({
+      outputDir,
+      page: passTwoPage,
+    });
 
     await resolvedDependencies.startScreencast({
       outputPath: tempScreencastPath,
@@ -111,6 +158,10 @@ export async function generateTour(
     const recordingStartedAt = resolvedDependencies.now();
 
     try {
+      report(onProgress, {
+        phase: "recording-replay",
+        message: `Recording replay for ${tourFile.tour.id}`,
+      });
       await resolvedDependencies.replayTimeline({
         loadedConfig,
         onMatchedEvent: (event, index) => {
@@ -139,6 +190,10 @@ export async function generateTour(
             startMs,
           });
         },
+        onRuntimeEvent: (event) => {
+          lastRuntimeEvent = event;
+          reportRuntimeEvent(onProgress, event);
+        },
         page: passTwoPage,
         timeline,
         tourFile: wrapTourForReplay({
@@ -150,6 +205,13 @@ export async function generateTour(
       });
     } catch (error) {
       primaryError = error;
+      await captureDebugFailure({
+        debugCapture: passTwoDebug,
+        error,
+        getLastRuntimeEvent: () => lastRuntimeEvent,
+        onProgress,
+        phase: "record-replay",
+      });
     }
 
     await resolvedDependencies.stopScreencast({
@@ -157,6 +219,12 @@ export async function generateTour(
       primaryError,
     });
 
+    passTwoDebug.dispose();
+    passTwoDebug = undefined;
+    report(onProgress, {
+      phase: "muxing-video",
+      message: `Muxing ${config.record.format} video`,
+    });
     const videos = await resolvedDependencies.muxVideo({
       narrations: recordedNarrations,
       outputDir,
@@ -164,7 +232,11 @@ export async function generateTour(
       tempScreencastPath,
     });
 
-    return await resolvedDependencies.writeGenerationOutput({
+    report(onProgress, {
+      phase: "writing-artifacts",
+      message: `Writing artifacts for ${tourFile.tour.id}`,
+    });
+    const result = await resolvedDependencies.writeGenerationOutput({
       tourId: tourFile.tour.id,
       tourTitle: tourFile.tour.title,
       chapters,
@@ -172,6 +244,12 @@ export async function generateTour(
       videos,
       outputDir,
     });
+    report(onProgress, {
+      phase: "completed",
+      message: `Wrote ${result.videoPath}`,
+    });
+
+    return result;
   } catch (error) {
     primaryError ??= error;
     throw error;
@@ -179,6 +257,8 @@ export async function generateTour(
     let closeError: unknown;
 
     try {
+      passOneDebug?.dispose();
+      passTwoDebug?.dispose();
       await rm(tempScreencastPath, { force: true });
     } catch (error) {
       closeError ??= error;
@@ -205,6 +285,94 @@ export async function generateTour(
     if (primaryError === undefined && closeError !== undefined) {
       throw closeError;
     }
+  }
+}
+
+async function capturePhaseFailure<T>(input: {
+  debugCapture: DebugCapture;
+  getLastRuntimeEvent: () => TourRuntimeEvent | undefined;
+  onProgress?: GenerationProgressReporter;
+  phase: DebugPhase;
+  run: () => Promise<T>;
+}): Promise<T> {
+  try {
+    return await input.run();
+  } catch (error) {
+    await captureDebugFailure({
+      debugCapture: input.debugCapture,
+      error,
+      getLastRuntimeEvent: input.getLastRuntimeEvent,
+      onProgress: input.onProgress,
+      phase: input.phase,
+    });
+    throw error;
+  }
+}
+
+async function captureDebugFailure(input: {
+  debugCapture: DebugCapture | undefined;
+  error: unknown;
+  getLastRuntimeEvent: () => TourRuntimeEvent | undefined;
+  onProgress?: GenerationProgressReporter;
+  phase: DebugPhase;
+}): Promise<DebugArtifactResult | undefined> {
+  if (input.debugCapture === undefined) {
+    return undefined;
+  }
+
+  report(input.onProgress, {
+    phase: "capturing-debug",
+    message: `Capturing debug artifacts for ${input.phase}`,
+  });
+
+  try {
+    const result = await input.debugCapture.captureFailure({
+      error: input.error,
+      lastRuntimeEvent: input.getLastRuntimeEvent(),
+      phase: input.phase,
+    });
+    report(input.onProgress, {
+      phase: "capturing-debug",
+      message: `Wrote debug artifacts to ${result.directory}`,
+    });
+    return result;
+  } catch (debugError) {
+    report(input.onProgress, {
+      phase: "capturing-debug",
+      message: `Could not capture debug artifacts: ${
+        debugError instanceof Error ? debugError.message : String(debugError)
+      }`,
+    });
+    return undefined;
+  }
+}
+
+function report(
+  onProgress: GenerationProgressReporter | undefined,
+  event: GenerationProgressEvent,
+): void {
+  onProgress?.(event);
+}
+
+function reportRuntimeEvent(
+  onProgress: GenerationProgressReporter | undefined,
+  event: TourRuntimeEvent,
+): void {
+  if (event.kind === "step-start") {
+    report(onProgress, {
+      phase: "runtime-event",
+      message: `Step: ${event.title}`,
+      runtimeEvent: event,
+    });
+    return;
+  }
+
+  if (event.kind === "chapter") {
+    report(onProgress, {
+      phase: "runtime-event",
+      message: `Chapter: ${event.title}`,
+      runtimeEvent: event,
+    });
   }
 }
 

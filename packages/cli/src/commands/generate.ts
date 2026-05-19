@@ -1,6 +1,7 @@
 import path from "node:path";
 
-import { generateTour } from "@demohunter/generator-playwright";
+import { generateTour, smokeGenerate } from "@demohunter/generator-playwright";
+import type { GenerationProgressEvent } from "@demohunter/generator-playwright";
 import type { DemoHunterTour } from "@demohunter/sdk";
 
 import { loadConfig } from "../config/load-config.js";
@@ -15,6 +16,12 @@ type GenerateDependencies = {
   importModule: (modulePath: string) => Promise<TourModule>;
   loadConfig: typeof loadConfig;
   log: (message: string) => void;
+  smokeGenerate: typeof smokeGenerate;
+};
+
+export type GenerateCommandOptions = {
+  dryRun?: boolean;
+  flowOnly?: boolean;
 };
 
 const defaultDependencies: GenerateDependencies = {
@@ -22,13 +29,19 @@ const defaultDependencies: GenerateDependencies = {
   importModule: loadAuthoredModule,
   loadConfig,
   log: console.log,
+  smokeGenerate,
 };
 
 export async function generateCommand(
   cwd: string,
   tourPath: string,
-  dependencies: Partial<GenerateDependencies> = {},
+  optionsOrDependencies: GenerateCommandOptions | Partial<GenerateDependencies> = {},
+  maybeDependencies: Partial<GenerateDependencies> = {},
 ): Promise<void> {
+  const options = isGenerateCommandOptions(optionsOrDependencies) ? optionsOrDependencies : {};
+  const dependencies = isGenerateCommandOptions(optionsOrDependencies)
+    ? maybeDependencies
+    : optionsOrDependencies;
   const resolvedDependencies = {
     ...defaultDependencies,
     ...dependencies,
@@ -37,17 +50,39 @@ export async function generateCommand(
   let loadedConfig: Awaited<ReturnType<typeof loadConfig>> | undefined;
 
   try {
+    resolvedDependencies.log(formatProgress({ phase: "loading-config", message: "Loading demohunter.config.ts" }));
     loadedConfig = await resolvedDependencies.loadConfig(cwd);
+    resolvedDependencies.log(formatProgress({ phase: "loading-tour", message: `Loading ${tourPath}` }));
     const tourModule = await resolvedDependencies.importModule(resolvedTourPath);
+    const tourFile = {
+      path: resolvedTourPath,
+      tour: readTourDefaultExport(tourModule.default, resolvedTourPath),
+    };
+    const onProgress = (event: GenerationProgressEvent) => {
+      resolvedDependencies.log(formatProgress(event));
+    };
+
+    if (options.dryRun || options.flowOnly) {
+      const result = await resolvedDependencies.smokeGenerate({
+        loadedConfig,
+        onProgress,
+        tourFile,
+      });
+
+      resolvedDependencies.log(`Validated flow: ${result.outputPath}`);
+      return;
+    }
+
     const result = await resolvedDependencies.generateTour({
       loadedConfig,
+      onProgress,
       tourFile: {
         path: resolvedTourPath,
-        tour: readTourDefaultExport(tourModule.default, resolvedTourPath),
+        tour: tourFile.tour,
       },
     });
 
-    resolvedDependencies.log(result.videoPath);
+    resolvedDependencies.log(`Generated video: ${result.videoPath}`);
   } catch (error) {
     throw improveGenerateError({
       cwd,
@@ -55,6 +90,16 @@ export async function generateCommand(
       loadedConfig,
     });
   }
+}
+
+function isGenerateCommandOptions(
+  value: GenerateCommandOptions | Partial<GenerateDependencies>,
+): value is GenerateCommandOptions {
+  return "dryRun" in value || "flowOnly" in value;
+}
+
+function formatProgress(event: GenerationProgressEvent): string {
+  return `[${new Date().toISOString()}] ${event.message}`;
 }
 
 type TourLike = DemoHunterTour & {

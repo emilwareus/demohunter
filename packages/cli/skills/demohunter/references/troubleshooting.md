@@ -29,6 +29,18 @@ Use the repo's documented browser install variant if it differs.
 
 Video muxing and poster generation depend on `ffmpeg`. Install it on the machine and rerun generation.
 
+## Flow Validation
+
+Use `demohunter generate <tour-file> --dry-run` while fixing selectors or app state. `--flow-only` is an alias. Dry runs skip narration and video work.
+
+## Debug Artifacts
+
+Failed collection, replay, and dry-run validation write debug artifacts under `.demohunter/<tour-id>/debug/`, including failure metadata, current page text when available, and a screenshot when Playwright can capture one.
+
+## Doctor
+
+Run `demohunter doctor` to check config loading, local media tools, Playwright browser availability, `baseURL`, writable output/cache directories, and `OPENAI_API_KEY` setup.
+
 ## Invalid Tour Module
 
 The tour file must default export an object with:

@@ -25,6 +25,7 @@ describe("createSmokeTourRuntime", () => {
   test("records chapter markers and runs steps inline", async () => {
     const events: unknown[] = [];
     const runtime = createSmokeTourRuntime({
+      config: createConfig(),
       page: {} as never,
       outputDir: "/tmp/demohunter-output",
       onEvent: (event) => {
@@ -60,6 +61,7 @@ describe("createSmokeTourRuntime", () => {
     const events: unknown[] = [];
     const waitForLoadState = mock(async () => {});
     const page = {
+      goto: mock(async () => null),
       waitForLoadState,
     } as never;
     const waitFor = mock(async () => {});
@@ -69,6 +71,7 @@ describe("createSmokeTourRuntime", () => {
       waitFor,
     } as never;
     const runtime = createSmokeTourRuntime({
+      config: createConfig(),
       page,
       outputDir: "/tmp/demohunter-output",
       onEvent: (event) => {
@@ -81,7 +84,9 @@ describe("createSmokeTourRuntime", () => {
     await runtime.snapshot({ name: "hero" });
     await runtime.assertVisible(locator, { timeoutMs: 800 });
     await runtime.narrate("Describe the screen", { voice: "marin" });
+    await runtime.goto("/billing");
 
+    expect(page.goto).toHaveBeenCalledWith("http://localhost:3000/billing", undefined);
     expect(waitForLoadState).toHaveBeenCalledWith("load", { timeout: 2500 });
     expect(waitFor).toHaveBeenCalledTimes(2);
     expect(waitFor.mock.calls[0]).toEqual([{ state: "visible" }]);
@@ -176,3 +181,29 @@ describe("createSmokeTourRuntime", () => {
     expect(resolvedSegment.durationMs).toBe(1200);
   });
 });
+
+function createConfig() {
+  return {
+    baseURL: "http://localhost:3000",
+    browser: "chromium" as const,
+    cacheDir: "/tmp/demohunter-output/cache",
+    holdPaddingMs: 300,
+    outputDir: "/tmp/demohunter-output",
+    record: {
+      format: "mp4" as const,
+      showActions: true,
+      showChapters: true,
+    },
+    tts: {
+      format: "mp3",
+      instructions: "Speak clearly.",
+      model: "gpt-4o-mini-tts",
+      provider: "openai" as const,
+      voice: "marin",
+    },
+    viewport: {
+      height: 720,
+      width: 1280,
+    },
+  };
+}

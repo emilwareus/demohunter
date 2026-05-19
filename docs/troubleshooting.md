@@ -44,6 +44,36 @@ The CLI tried to load your app and got `ERR_CONNECTION_REFUSED` or a similar net
 - Open the configured `baseURL` in a browser to confirm it is reachable.
 - DemoHunter does not wait for your app to boot or manage preview environments.
 
+## Failed tour debug artifacts
+
+When collection, replay, or dry-run validation fails, DemoHunter writes debug files under:
+
+```text
+.demohunter/<tour-id>/debug/<timestamp>-<phase>/
+```
+
+The directory includes `failure.json`, `body.txt` when page text is available, and `screenshot.png` when Playwright can capture the current page.
+
+## Validate the flow before narration
+
+Use dry-run mode while authoring selectors or app state:
+
+```sh
+npx demohunter generate demos/sample.tour.ts --dry-run
+```
+
+`--flow-only` is an alias. Dry runs skip narration resolution, video recording, muxing, and final manifest output.
+
+## Setup checks
+
+Run:
+
+```sh
+npx demohunter doctor
+```
+
+This checks config loading, `ffmpeg`, `ffprobe`, Playwright browser launchability, `baseURL` reachability, output/cache writability, and whether `OPENAI_API_KEY` is available for uncached narration.
+
 ## `Tour file must default export an object with string id/title and a run function`
 
 The tour file is missing one of the required fields. Minimum shape:

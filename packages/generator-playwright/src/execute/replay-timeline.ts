@@ -11,6 +11,7 @@ import type { CollectedTimeline, CollectedTimelineEntry, TourRuntimeEvent } from
 export type ReplayTimelineInput = {
   loadedConfig: SmokeGenerateInput["loadedConfig"];
   onMatchedEvent?: (event: TourRuntimeEvent, index: number) => void;
+  onRuntimeEvent?: (event: TourRuntimeEvent) => void;
   page: Page;
   timeline: CollectedTimeline;
   tourFile: SmokeTourModule;
@@ -37,6 +38,7 @@ export class ReplayTimelineError extends Error {
 export async function replayTimeline({
   loadedConfig,
   onMatchedEvent,
+  onRuntimeEvent,
   page,
   timeline,
   tourFile,
@@ -54,6 +56,7 @@ export async function replayTimeline({
     replayWait,
     timeline,
     onMatchedEvent,
+    onRuntimeEvent,
     updatePendingNarrationWait: (durationMs) => {
       pendingNarrationWaitMs = durationMs;
     },
@@ -96,6 +99,7 @@ export async function replayTimeline({
 function createReplayRuntime(args: {
   config: ReplayTimelineInput["loadedConfig"]["config"];
   onMatchedEvent?: (event: TourRuntimeEvent, index: number) => void;
+  onRuntimeEvent?: (event: TourRuntimeEvent) => void;
   outputDir: string;
   page: Page;
   replayWait: (durationMs: number) => Promise<void>;
@@ -105,7 +109,9 @@ function createReplayRuntime(args: {
   updatePendingNarrationWait: (durationMs: number | undefined) => void;
 }): SmokeRuntime {
   const runtime = createSmokeTourRuntime({
+    config: args.config,
     onEvent: (actualEvent) => {
+      args.onRuntimeEvent?.(actualEvent);
       const expectedEntry = args.timeline.entries[args.getReplayPosition()];
       const index = args.getReplayPosition() + 1;
 

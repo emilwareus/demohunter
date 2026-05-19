@@ -31,6 +31,7 @@ describe("generateCommand", () => {
     expect(generateTour).toHaveBeenCalledTimes(1);
     expect(generateTour.mock.calls[0]?.[0]).toEqual({
       loadedConfig: makeLoadedConfig(cwd),
+      onProgress: expect.any(Function),
       tourFile: {
         path: tourPath,
         tour: {
@@ -42,7 +43,49 @@ describe("generateCommand", () => {
         },
       },
     });
-    expect(log).toHaveBeenCalledWith(path.join(cwd, ".demohunter/sample-smoke/video.mp4"));
+    expect(log).toHaveBeenCalledWith(`Generated video: ${path.join(cwd, ".demohunter/sample-smoke/video.mp4")}`);
+  });
+
+  test("runs dry-run generation through the flow validator", async () => {
+    const cwd = await makeTempProject();
+    const generateTour = mock(async () => {
+      throw new Error("full generation should not run");
+    });
+    const smokeGenerate = mock(async () => ({
+      outputPath: path.join(cwd, ".demohunter/sample-smoke/smoke-run.json"),
+    }));
+    const log = mock(() => {});
+
+    await generateCommand(
+      cwd,
+      "demos/sample.tour.ts",
+      { dryRun: true },
+      {
+        generateTour,
+        loadConfig: async () => makeLoadedConfig(cwd),
+        log,
+        smokeGenerate,
+      },
+    );
+
+    expect(smokeGenerate).toHaveBeenCalledWith({
+      loadedConfig: makeLoadedConfig(cwd),
+      onProgress: expect.any(Function),
+      tourFile: {
+        path: path.join(cwd, "demos", "sample.tour.ts"),
+        tour: {
+          id: "sample-smoke",
+          setup: expect.any(Function),
+          title: "Sample",
+          teardown: expect.any(Function),
+          run: expect.any(Function),
+        },
+      },
+    });
+    expect(generateTour).not.toHaveBeenCalled();
+    expect(log).toHaveBeenCalledWith(
+      `Validated flow: ${path.join(cwd, ".demohunter/sample-smoke/smoke-run.json")}`,
+    );
   });
 
   test("throws a clear error for invalid default exports", async () => {

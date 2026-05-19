@@ -75,6 +75,7 @@ Then:
 
 ```sh
 export OPENAI_API_KEY=sk-...
+npx demohunter generate demos/billing-overview.tour.ts --dry-run
 npx demohunter generate demos/billing-overview.tour.ts
 ```
 

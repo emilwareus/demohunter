@@ -1,34 +1,23 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 
-import type { DemoHunterTour } from "@demohunter/sdk";
+import type { DemoHunterTour, ResolvedDemoHunterConfig } from "@demohunter/sdk";
 import * as playwright from "playwright";
 import type { BrowserType, Page } from "playwright";
 
+import { attachDebugCapture } from "./debug/failure-artifacts.js";
+import type { DebugCapture } from "./debug/failure-artifacts.js";
+import type { GenerationProgressEvent, GenerationProgressReporter, TourRuntimeEvent } from "./execute/generator-types.js";
 import { createSmokeTourRuntime } from "./runtime/create-smoke-tour-runtime.js";
 
 export type SmokeGenerateInput = {
   loadedConfig: {
     projectRoot: string;
     configPath: string;
-    config: {
-      baseURL: string;
-      outputDir: string;
-      cacheDir: string;
-      browser: "chromium" | "firefox" | "webkit";
-      viewport: { width: number; height: number };
-      holdPaddingMs: number;
-      record: { showActions: boolean; showChapters: boolean };
-      tts: {
-        provider: "openai";
-        model: string;
-        voice: string;
-        format: string;
-        instructions: string;
-      };
-    };
+    config: ResolvedDemoHunterConfig;
   };
   tourFile: SmokeTourModule;
+  onProgress?: GenerationProgressReporter;
 };
 
 export type SmokeTourModule = {
@@ -40,9 +29,12 @@ export type SmokeGenerateResult = {
   outputPath: string;
 };
 
+export type SmokeGenerateProgressEvent = GenerationProgressEvent;
+
 type BrowserTypeMap = Record<"chromium" | "firefox" | "webkit", Pick<BrowserType, "launch">>;
 
 type SmokeGenerateDependencies = {
+  attachDebugCapture: typeof attachDebugCapture;
   mkdir: typeof mkdir;
   now: () => Date;
   playwright: BrowserTypeMap;
@@ -52,6 +44,7 @@ type SmokeGenerateDependencies = {
 const TOUR_ID_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
 const defaultDependencies: SmokeGenerateDependencies = {
+  attachDebugCapture,
   mkdir,
   now: () => new Date(),
   playwright,
@@ -59,7 +52,7 @@ const defaultDependencies: SmokeGenerateDependencies = {
 };
 
 export async function smokeGenerate(
-  { loadedConfig, tourFile }: SmokeGenerateInput,
+  { loadedConfig, onProgress, tourFile }: SmokeGenerateInput,
   dependencies: Partial<SmokeGenerateDependencies> = {},
 ): Promise<SmokeGenerateResult> {
   const resolvedDependencies = {
@@ -73,24 +66,43 @@ export async function smokeGenerate(
   }
 
   const browserType = resolvedDependencies.playwright[config.browser];
+  report(onProgress, {
+    phase: "launching-browser",
+    message: `Launching ${config.browser}`,
+  });
   const browser = await browserType.launch();
   let context: Awaited<ReturnType<typeof browser.newContext>> | undefined;
   let primaryError: unknown;
+  let debugCapture: DebugCapture | undefined;
+  let lastRuntimeEvent: TourRuntimeEvent | undefined;
 
   try {
     context = await browser.newContext({
+      baseURL: config.baseURL,
       viewport: config.viewport,
     });
     const page = await context.newPage();
     const outputDir = path.join(config.outputDir, tourFile.tour.id);
+    debugCapture = resolvedDependencies.attachDebugCapture({
+      outputDir,
+      page,
+    });
     const runtime = createSmokeTourRuntime({
+      config,
+      onEvent: (event) => {
+        lastRuntimeEvent = event;
+        reportRuntimeEvent(onProgress, event);
+      },
       outputDir,
       page,
     });
 
-    await page.goto(new URL(config.baseURL).href);
-
     try {
+      await page.goto(new URL(config.baseURL).href);
+      report(onProgress, {
+        phase: "running-flow",
+        message: `Validating ${tourFile.tour.id}`,
+      });
       await Promise.resolve(tourFile.tour.setup?.(runtime));
       await Promise.resolve(tourFile.tour.run(runtime));
     } catch (error) {
@@ -105,12 +117,22 @@ export async function smokeGenerate(
       }
 
       if (primaryError !== undefined) {
+        await captureSmokeDebugFailure({
+          debugCapture,
+          error: primaryError,
+          lastRuntimeEvent,
+          onProgress,
+        });
         throw primaryError;
       }
     }
 
     const outputPath = path.join(outputDir, "smoke-run.json");
 
+    report(onProgress, {
+      phase: "writing-artifacts",
+      message: `Writing ${path.relative(loadedConfig.projectRoot, outputPath)}`,
+    });
     await resolvedDependencies.mkdir(outputDir, { recursive: true });
     await resolvedDependencies.writeFile(
       outputPath,
@@ -129,6 +151,11 @@ export async function smokeGenerate(
       ),
     );
 
+    report(onProgress, {
+      phase: "completed",
+      message: `Validated ${tourFile.tour.id}`,
+    });
+
     return { outputPath };
   } catch (error) {
     primaryError ??= error;
@@ -137,6 +164,7 @@ export async function smokeGenerate(
     let closeError: unknown;
 
     try {
+      debugCapture?.dispose();
       await context?.close();
     } catch (error) {
       closeError ??= error;
@@ -151,5 +179,67 @@ export async function smokeGenerate(
     if (primaryError === undefined && closeError !== undefined) {
       throw closeError;
     }
+  }
+}
+
+async function captureSmokeDebugFailure(input: {
+  debugCapture: DebugCapture | undefined;
+  error: unknown;
+  lastRuntimeEvent?: TourRuntimeEvent;
+  onProgress?: GenerationProgressReporter;
+}): Promise<void> {
+  if (input.debugCapture === undefined) {
+    return;
+  }
+
+  report(input.onProgress, {
+    phase: "capturing-debug",
+    message: "Capturing debug artifacts for dry-run",
+  });
+
+  try {
+    const result = await input.debugCapture.captureFailure({
+      error: input.error,
+      lastRuntimeEvent: input.lastRuntimeEvent,
+      phase: "dry-run",
+    });
+    report(input.onProgress, {
+      phase: "capturing-debug",
+      message: `Wrote debug artifacts to ${result.directory}`,
+    });
+  } catch (error) {
+    report(input.onProgress, {
+      phase: "capturing-debug",
+      message: `Could not capture debug artifacts: ${error instanceof Error ? error.message : String(error)}`,
+    });
+  }
+}
+
+function report(
+  onProgress: GenerationProgressReporter | undefined,
+  event: GenerationProgressEvent,
+): void {
+  onProgress?.(event);
+}
+
+function reportRuntimeEvent(
+  onProgress: GenerationProgressReporter | undefined,
+  event: TourRuntimeEvent,
+): void {
+  if (event.kind === "step-start") {
+    report(onProgress, {
+      phase: "runtime-event",
+      message: `Step: ${event.title}`,
+      runtimeEvent: event,
+    });
+    return;
+  }
+
+  if (event.kind === "chapter") {
+    report(onProgress, {
+      phase: "runtime-event",
+      message: `Chapter: ${event.title}`,
+      runtimeEvent: event,
+    });
   }
 }

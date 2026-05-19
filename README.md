@@ -136,6 +136,9 @@ npx demohunter add-skill --target claude  # or just one
 ```sh
 npx demohunter init                       # scaffold starter tour + config
 npx demohunter generate <tour-file>       # run a tour, write output
+npx demohunter generate <tour-file> --dry-run
+                                           # validate browser flow without TTS/video
+npx demohunter doctor                     # check local prerequisites
 npx demohunter cache list|prune|clear     # manage narration cache
 npx demohunter add-skill [--target ...]   # install agent skill (claude | codex | both)
 npx demohunter --help

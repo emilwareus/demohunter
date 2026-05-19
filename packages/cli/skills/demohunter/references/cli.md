@@ -6,9 +6,13 @@ The current CLI surface is:
 
 - `demohunter init`
 - `demohunter generate <tour-file>`
+- `demohunter generate <tour-file> --dry-run`
+- `demohunter generate <tour-file> --flow-only`
+- `demohunter doctor`
 - `demohunter cache list`
 - `demohunter cache prune`
 - `demohunter cache clear`
+- `demohunter add-skill [--target claude|codex|both]`
 
 Do not reference unimplemented commands or hosted workflows.
 

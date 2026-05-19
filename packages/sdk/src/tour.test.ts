@@ -82,8 +82,34 @@ describe("defineTour", () => {
   test("exposes Playwright-native helper types directly on the run context", async () => {
     const locator = {} as Locator;
     const page = {} as Page;
+    const config = {
+      baseURL: "http://localhost:3000",
+      browser: "chromium" as const,
+      cacheDir: ".demohunter/cache",
+      holdPaddingMs: 300,
+      outputDir: ".demohunter",
+      record: {
+        format: "mp4" as const,
+        showActions: true,
+        showChapters: true,
+      },
+      tts: {
+        format: "mp3",
+        instructions: "Speak clearly.",
+        model: "gpt-4o-mini-tts",
+        provider: "openai" as const,
+        voice: "marin",
+      },
+      viewport: {
+        height: 900,
+        width: 1440,
+      },
+    };
+    const goto = async () => null;
 
     const run = async ({
+      config,
+      goto,
       page,
       chapter,
       step,
@@ -93,6 +119,8 @@ describe("defineTour", () => {
       snapshot,
       assertVisible,
     }: DemoHunterRunContext) => {
+      expectType<typeof config>(config);
+      expectType<(url: string | URL, options?: Parameters<Page["goto"]>[1]) => ReturnType<Page["goto"]>>(goto);
       expectType<Page>(page);
       expectType<(title: string, options?: ChapterOptions) => Promise<void>>(chapter);
       expectType<(title: string, fn: () => Promise<void> | void) => Promise<void>>(step);
@@ -125,6 +153,8 @@ describe("defineTour", () => {
     };
 
     await run({
+      config,
+      goto,
       page,
       chapter: async () => undefined,
       step: async (_title, fn) => {
@@ -137,7 +167,7 @@ describe("defineTour", () => {
       assertVisible: async () => undefined,
     });
 
-    await setup({ page });
-    await teardown({ page });
+    await setup({ config, goto, page });
+    await teardown({ config, goto, page });
   });
 });

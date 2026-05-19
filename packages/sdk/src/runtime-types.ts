@@ -1,4 +1,5 @@
-import type { Locator, Page } from "playwright";
+import type { Locator, Page, Response } from "playwright";
+import type { ResolvedDemoHunterConfig } from "./config.js";
 
 export type ChapterOptions = {
   id?: string;
@@ -29,6 +30,8 @@ export type AssertVisibleOptions = {
 };
 
 export type DemoHunterLifecycleContext = {
+  config: ResolvedDemoHunterConfig;
+  goto: DemoHunterGoto;
   page: Page;
 };
 
@@ -48,6 +51,11 @@ export type DemoHunterAssertVisible = (
   target: Locator,
   options?: AssertVisibleOptions,
 ) => Promise<void>;
+
+export type DemoHunterGoto = (
+  url: string | URL,
+  options?: Parameters<Page["goto"]>[1],
+) => Promise<null | Response>;
 
 export type DemoHunterRunContext = DemoHunterLifecycleContext & {
   chapter: DemoHunterChapter;
