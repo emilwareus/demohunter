@@ -38,6 +38,7 @@ describe("demohunter skill bundle", () => {
     expect(templateSource).toContain("chapter(");
     expect(templateSource).toContain("step(");
     expect(templateSource).toContain("narrate(");
+    expect(templateSource).toContain("narrateWhile(");
     expect(templateSource).not.toContain("replace-with-tour-id");
     expect(templateSource).not.toContain("Replace visible heading");
 

@@ -1,6 +1,12 @@
 import type { DemoHunterLifecycleContext, DemoHunterRunContext } from "./runtime-types.js";
 
-export type { DemoHunterLifecycleContext, DemoHunterNarrate, DemoHunterRunContext } from "./runtime-types.js";
+export type {
+  DemoHunterLifecycleContext,
+  DemoHunterNarrate,
+  DemoHunterNarrateWhile,
+  DemoHunterNarrationTimeline,
+  DemoHunterRunContext,
+} from "./runtime-types.js";
 
 export type DemoHunterTour = {
   id: string;

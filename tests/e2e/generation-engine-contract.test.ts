@@ -71,8 +71,8 @@ describe("generation engine contract", () => {
       await access(videoPath);
       await access(posterPath);
       expect(chapters.map((chapter) => chapter.title)).toEqual(["Workspace Overview", "Payment History"]);
-      expect(captionsSrt).toBe(createExpectedSrt());
-      expect(captionsVtt).toBe(createExpectedVtt());
+      expect(captionsSrt).toBe(createExpectedSrt(manifest.timeline.narrations));
+      expect(captionsVtt).toBe(createExpectedVtt(manifest.timeline.narrations));
       expect(captionsSrt).not.toContain("Workspace Overview");
       expect(captionsSrt).not.toContain("Payment History");
       expect(manifest.playback.durationMs).toBeGreaterThan(0);
@@ -406,38 +406,44 @@ function parseJson<T>(input: string): T {
   return JSON.parse(input.trim()) as T;
 }
 
-function createExpectedSrt(): string {
-  return [
-    "1",
-    "00:00:00,000 --> 00:00:00,750",
-    NARRATION_TEXTS[0],
-    "",
-    "2",
-    "00:00:00,750 --> 00:00:01,850",
-    NARRATION_TEXTS[1],
-    "",
-    "3",
-    "00:00:01,850 --> 00:00:02,750",
-    NARRATION_TEXTS[2],
-  ].join("\n");
+function createExpectedSrt(
+  narrations: Array<{ startMs: number; endMs: number; text: string }>,
+): string {
+  return createExpectedCaptions(narrations, { delimiter: ",", header: "" });
 }
 
-function createExpectedVtt(): string {
+function createExpectedVtt(
+  narrations: Array<{ startMs: number; endMs: number; text: string }>,
+): string {
+  return createExpectedCaptions(narrations, { delimiter: ".", header: "WEBVTT\n\n" });
+}
+
+function createExpectedCaptions(
+  narrations: Array<{ startMs: number; endMs: number; text: string }>,
+  options: { delimiter: "," | "."; header: string },
+): string {
+  const cues = narrations.map((narration, index) =>
+    [
+      `${index + 1}`,
+      `${formatTimestamp(narration.startMs, options.delimiter)} --> ${formatTimestamp(narration.endMs, options.delimiter)}`,
+      narration.text,
+    ].join("\n"),
+  );
+
+  return `${options.header}${cues.join("\n\n")}`.trimEnd();
+}
+
+function formatTimestamp(durationMs: number, delimiter: "," | "."): string {
+  const hours = Math.floor(durationMs / 3_600_000);
+  const minutes = Math.floor((durationMs % 3_600_000) / 60_000);
+  const seconds = Math.floor((durationMs % 60_000) / 1_000);
+  const milliseconds = durationMs % 1_000;
+
   return [
-    "WEBVTT",
-    "",
-    "1",
-    "00:00:00.000 --> 00:00:00.750",
-    NARRATION_TEXTS[0],
-    "",
-    "2",
-    "00:00:00.750 --> 00:00:01.850",
-    NARRATION_TEXTS[1],
-    "",
-    "3",
-    "00:00:01.850 --> 00:00:02.750",
-    NARRATION_TEXTS[2],
-  ].join("\n");
+    hours.toString().padStart(2, "0"),
+    minutes.toString().padStart(2, "0"),
+    seconds.toString().padStart(2, "0"),
+  ].join(":") + `${delimiter}${milliseconds.toString().padStart(3, "0")}`;
 }
 
 function collectManifestArtifactPaths(

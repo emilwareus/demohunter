@@ -56,6 +56,32 @@ describe("serializeNarrationSubtitles", () => {
     expect(subtitles.srt).not.toContain("Billing");
     expect(subtitles.vtt).not.toContain("Billing");
   });
+
+  test("uses recorded narration spans when replay timing includes gaps", () => {
+    const subtitles = serializeNarrationSubtitles([
+      {
+        ...createSegment({
+          durationMs: 1_200,
+          text: "Open the workspace home page.",
+        }),
+        endMs: 1_450,
+        startMs: 250,
+      },
+      {
+        ...createSegment({
+          durationMs: 800,
+          text: "Highlight the billing summary.",
+        }),
+        endMs: 3_300,
+        startMs: 2_500,
+      },
+    ]);
+
+    expect(subtitles.srt).toContain("00:00:00,250 --> 00:00:01,450");
+    expect(subtitles.srt).toContain("00:00:02,500 --> 00:00:03,300");
+    expect(subtitles.vtt).toContain("00:00:00.250 --> 00:00:01.450");
+    expect(subtitles.vtt).toContain("00:00:02.500 --> 00:00:03.300");
+  });
 });
 
 function createSegment(segment: Partial<NarrationSegment> & Pick<NarrationSegment, "durationMs" | "text">): NarrationSegment {

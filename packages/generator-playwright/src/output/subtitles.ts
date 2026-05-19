@@ -1,4 +1,4 @@
-import type { NarrationSegment } from "../execute/generator-types.js";
+import type { NarrationSegment, RecordedNarration } from "../execute/generator-types.js";
 
 export type SerializedNarrationSubtitles = {
   srt: string;
@@ -6,7 +6,7 @@ export type SerializedNarrationSubtitles = {
 };
 
 export function serializeNarrationSubtitles(
-  narrations: NarrationSegment[],
+  narrations: Array<NarrationSegment | RecordedNarration>,
 ): SerializedNarrationSubtitles {
   return {
     srt: serializeCues(narrations, { delimiter: ",", header: "" }),
@@ -15,14 +15,14 @@ export function serializeNarrationSubtitles(
 }
 
 function serializeCues(
-  narrations: NarrationSegment[],
+  narrations: Array<NarrationSegment | RecordedNarration>,
   options: { delimiter: "," | "."; header: string },
 ): string {
   let elapsedMs = 0;
   const cues = narrations.map((segment, index) => {
-    const startMs = elapsedMs;
-    const endMs = elapsedMs + segment.durationMs;
-    elapsedMs = endMs;
+    const startMs = "startMs" in segment ? segment.startMs : elapsedMs;
+    const endMs = "endMs" in segment ? segment.endMs : startMs + segment.durationMs;
+    elapsedMs = Math.max(elapsedMs, endMs);
 
     return [
       `${index + 1}`,

@@ -11,6 +11,8 @@ import type {
   DemoHunterRunContext,
   HighlightOptions,
   NarrateOptions,
+  DemoHunterNarrateWhile,
+  DemoHunterNarrationTimeline,
   SnapshotOptions,
   WaitForStableOptions,
 } from "./runtime-types.js";
@@ -58,6 +60,8 @@ describe("defineTour", () => {
     expect(declarations).toContain("DemoHunterRunContext");
     expect(declarations).toContain("ChapterOptions");
     expect(declarations).toContain("NarrateOptions");
+    expect(declarations).toContain("DemoHunterNarrateWhile");
+    expect(declarations).toContain("DemoHunterNarrationTimeline");
     expect(declarations).toContain("WaitForStableOptions");
     expect(declarations).toContain("HighlightOptions");
     expect(declarations).toContain("SnapshotOptions");
@@ -114,6 +118,7 @@ describe("defineTour", () => {
       chapter,
       step,
       narrate,
+      narrateWhile,
       waitForStable,
       highlight,
       snapshot,
@@ -125,6 +130,7 @@ describe("defineTour", () => {
       expectType<(title: string, options?: ChapterOptions) => Promise<void>>(chapter);
       expectType<(title: string, fn: () => Promise<void> | void) => Promise<void>>(step);
       expectType<(text: string, options?: NarrateOptions) => Promise<void>>(narrate);
+      expectType<DemoHunterNarrateWhile>(narrateWhile);
       expectType<(options?: WaitForStableOptions) => Promise<void>>(waitForStable);
       expectType<(target: Locator, options?: HighlightOptions) => Promise<void>>(highlight);
       expectType<(options?: SnapshotOptions) => Promise<void>>(snapshot);
@@ -136,6 +142,10 @@ describe("defineTour", () => {
           cacheKeyHint: "billing-dashboard",
           instructions: "Speak clearly.",
           voice: "marin",
+        });
+        await narrateWhile("Now the dashboard updates while narration continues.", async ({ sleep }) => {
+          expectType<DemoHunterNarrationTimeline["sleep"]>(sleep);
+          await sleep(750);
         });
         await waitForStable({ state: "networkidle", timeoutMs: 5000 });
         await highlight(locator, { name: "Primary CTA", paddingPx: 12 });
@@ -161,6 +171,7 @@ describe("defineTour", () => {
         await fn();
       },
       narrate: async () => undefined,
+      narrateWhile: async (_text, fn) => fn({ sleep: async () => undefined }),
       waitForStable: async () => undefined,
       highlight: async () => undefined,
       snapshot: async () => undefined,

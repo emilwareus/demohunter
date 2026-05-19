@@ -1,6 +1,7 @@
 import path from "node:path";
 import { isDeepStrictEqual } from "node:util";
 
+import type { DemoHunterNarrationTimeline } from "@demohunter/sdk";
 import type { Page } from "playwright";
 
 import type { SmokeGenerateInput, SmokeTourModule } from "../smoke-generate.js";
@@ -15,6 +16,7 @@ export type ReplayTimelineInput = {
   page: Page;
   timeline: CollectedTimeline;
   tourFile: SmokeTourModule;
+  now?: () => number;
   waitForTimeout?: (durationMs: number) => Promise<void>;
 };
 
@@ -42,6 +44,7 @@ export async function replayTimeline({
   page,
   timeline,
   tourFile,
+  now = () => Date.now(),
   waitForTimeout,
 }: ReplayTimelineInput): Promise<void> {
   const { config } = loadedConfig;
@@ -52,6 +55,7 @@ export async function replayTimeline({
   const runtime = createReplayRuntime({
     config,
     outputDir,
+    now,
     page,
     replayWait,
     timeline,
@@ -101,6 +105,7 @@ function createReplayRuntime(args: {
   onMatchedEvent?: (event: TourRuntimeEvent, index: number) => void;
   onRuntimeEvent?: (event: TourRuntimeEvent) => void;
   outputDir: string;
+  now: () => number;
   page: Page;
   replayWait: (durationMs: number) => Promise<void>;
   timeline: CollectedTimeline;
@@ -152,8 +157,10 @@ function createReplayRuntime(args: {
     },
     outputDir: args.outputDir,
     page: args.page,
+    waitForTimeout: args.replayWait,
   });
   const baseNarrate = runtime.narrate.bind(runtime);
+  const baseNarrateWhile = runtime.narrateWhile.bind(runtime);
 
   runtime.narrate = async (text, options) => {
     args.updatePendingNarrationWait(undefined);
@@ -179,6 +186,71 @@ function createReplayRuntime(args: {
     }
 
     await args.replayWait(expectedEntry.segment.durationMs + args.config.holdPaddingMs);
+  };
+
+  runtime.narrateWhile = async (text, fn, options) => {
+    args.updatePendingNarrationWait(undefined);
+    const startedAt = args.now();
+    let sleepElapsedMs = 0;
+    let narrationEntry: CollectedTimelineEntry | undefined;
+
+    const result = await baseNarrateWhile(
+      text,
+      async (timeline) => {
+        narrationEntry = args.timeline.entries[args.getReplayPosition() - 1];
+
+        if (narrationEntry?.kind !== "narration") {
+          throw new ReplayTimelineError(
+            `Recorded pass diverged at entry ${args.getReplayPosition()}: narrateWhile wait could not be resolved from the collected timeline.`,
+            {
+              actual: {
+                chapterTitle: narrationEntry?.event.chapterTitle,
+                kind: "narrate",
+                text,
+                ...options,
+              },
+              expected: narrationEntry?.event,
+              index: args.getReplayPosition(),
+              reason: "mismatch",
+            },
+          );
+        }
+
+        const replayTimeline: DemoHunterNarrationTimeline = {
+          sleep: async (durationMs) => {
+            await timeline.sleep(durationMs);
+            sleepElapsedMs += durationMs;
+          },
+        };
+
+        return fn(replayTimeline);
+      },
+      options,
+    );
+
+    if (narrationEntry?.kind !== "narration") {
+      throw new ReplayTimelineError(
+        `Recorded pass diverged at entry ${args.getReplayPosition()}: narrateWhile wait could not be resolved from the collected timeline.`,
+        {
+          actual: {
+            chapterTitle: narrationEntry?.event.chapterTitle,
+            kind: "narrate",
+            text,
+            ...options,
+          },
+          expected: narrationEntry?.event,
+          index: args.getReplayPosition(),
+          reason: "mismatch",
+        },
+      );
+    }
+
+    const realElapsedMs = Math.max(0, args.now() - startedAt);
+    const elapsedMs = Math.max(realElapsedMs, sleepElapsedMs);
+    const remainingNarrationMs = Math.max(0, narrationEntry.segment.durationMs - elapsedMs);
+    await args.replayWait(remainingNarrationMs + args.config.holdPaddingMs);
+
+    return result;
   };
 
   return runtime;
@@ -214,6 +286,8 @@ function describeEvent(event: TourRuntimeEvent): string {
       return `${event.kind} "${event.title}" in chapter "${chapter}"`;
     case "narrate":
       return `narration "${event.text}" in chapter "${chapter}"`;
+    case "narration-sleep":
+      return `narration sleep ${event.durationMs}ms in chapter "${chapter}"`;
     default:
       return `${event.kind} event in chapter "${chapter}"`;
   }

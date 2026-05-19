@@ -25,6 +25,7 @@ The current SDK exposes these helpers on `run(...)`:
 - `chapter(title, options?)`
 - `step(title, fn)`
 - `narrate(text, options?)`
+- `narrateWhile(text, async ({ sleep }) => { ... }, options?)`
 - `waitForStable(options?)`
 - `highlight(locator, options?)`
 - `snapshot(options?)`
@@ -34,6 +35,8 @@ Useful option details:
 
 - `chapter(..., { id?: string })`
 - `narrate(..., { voice?, instructions?, cacheKeyHint? })`
+- `narrateWhile(..., { voice?, instructions?, cacheKeyHint? })`
+- `sleep(ms)` inside `narrateWhile(...)` waits inside the narration window
 - `waitForStable(..., { state?, timeoutMs? })`
 - `highlight(..., { name?, paddingPx? })`
 - `snapshot(..., { name? })`
@@ -47,6 +50,9 @@ Useful option details:
 - Keep selectors stable and user-facing when possible: headings, labels, buttons, and explicit test ids beat brittle CSS traversal.
 - Keep chapters and step titles tied to visible product states.
 - Keep narration concise and specific to what the viewer can observe.
+- Use `narrate(...)` when the viewer should absorb a static state.
+- Use `narrateWhile(...)` when narration should bridge navigation, clicking, typing, waits, generation, highlights, or other visible motion.
+- Use `sleep(ms)` inside `narrateWhile(...)` when a UI action should happen at a specific moment in the voiceover.
 - Only add `setup` or `teardown` when the flow genuinely needs shared preparation or cleanup.
 
 ## Config Awareness
@@ -65,8 +71,34 @@ Treat config as an input to the tour. Do not duplicate config values inside the 
 2. Choose one small user-visible flow.
 3. Add a chapter for the flow.
 4. Wrap each visible state change in `step(...)`.
-5. Call `narrate(...)` after the UI state is ready.
-6. Add `snapshot(...)` only when a saved visual checkpoint adds value.
+5. Call `narrate(...)` after the UI state is ready and should stay static for a beat.
+6. Use `narrateWhile(...)` when narration should continue while the UI moves.
+7. Add timed `sleep(ms)` calls inside `narrateWhile(...)` to choreograph clicks, typing, highlights, or waits to narration phrases.
+8. Add `snapshot(...)` only when a saved visual checkpoint adds value.
+
+## Narration Timing Pattern
+
+Use `narrateWhile(...)` for transitions and visible motion:
+
+```ts
+await narrateWhile("Now we open the workflow builder and switch to the right mode.", async ({ sleep }) => {
+  await goto("/chat?new=true");
+  await sleep(1200);
+  await page.getByTestId("agent-menu-button").click();
+  await page.getByTestId("mode-option-builder").click();
+});
+```
+
+Keep normal DemoHunter helpers inside the wrapped action when they describe visible UI states:
+
+```ts
+await narrateWhile("Here is the generated workflow. Notice the schedule and output field.", async ({ sleep }) => {
+  await sleep(700);
+  await highlight(page.getByText("Daily Digest"));
+  await sleep(1200);
+  await highlight(page.getByText("readyMessage"));
+});
+```
 
 ## Template
 

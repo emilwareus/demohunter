@@ -190,7 +190,8 @@ Optional skill docs containing:
 * Must generate from a local dev server, preview URL, or arbitrary base URL.
 * Must output `mp4` by default, optionally `webm`.
 * Must generate subtitles from narration timeline.
-* Must pause the screen after each action for `durationMs + holdPaddingMs`.
+* Must pause after standalone narration for `durationMs + holdPaddingMs`.
+* Must support timed action choreography during narration via `narrateWhile(text, fn, options?)`.
 * Must expose `holdPaddingMs` in config, default around `300`.
 * Must write generated files into a `.demohunter/` directory relative to the current working directory.
 * Must not require or provide a built-in playback UI in OSS.
@@ -198,7 +199,8 @@ Optional skill docs containing:
 
 ### Narration
 
-* `narrate()` is declarative. Script authors do not manually calculate timing.
+* `narrate()` is declarative for static narration beats. Script authors do not manually calculate audio duration.
+* `narrateWhile()` starts narration, runs wrapped Playwright actions during that narration, and exposes `sleep(ms)` for timed choreography.
 * Narration duration comes from the real audio file, not heuristic text length.
 * Support provider-specific voice instructions.
 * Support local cache reuse with zero API calls on cache hit.
@@ -288,7 +290,7 @@ Pass 1 - plan/synthesis pass:
 
 * launch fresh browser context
 * run the tour
-* each `narrate()` ensures audio exists in cache
+* each `narrate()` or `narrateWhile()` ensures audio exists in cache
 * measure actual duration
 * build timeline manifest
 * no video output
@@ -299,6 +301,7 @@ Pass 2 - generation pass:
 * start screencast
 * replay the same tour
 * after each `narrate()`, wait the exact cached duration
+* for `narrateWhile()`, run wrapped actions during the narration window, then wait only the remaining cached duration plus hold padding
 * stop screencast
 * write video + narration audio + subtitles + manifest into `.demohunter/`
 

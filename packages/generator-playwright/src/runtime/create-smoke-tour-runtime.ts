@@ -23,11 +23,29 @@ export function createSmokeTourRuntime(args: {
   page: Page;
   outputDir: string;
   onEvent?: (event: SmokeTourRuntimeEvent) => void;
+  waitForTimeout?: (durationMs: number) => Promise<void>;
 }): SmokeRuntime {
   let currentChapter: string | undefined;
 
   const emit = (event: TourRuntimeEvent): void => {
     args.onEvent?.(event);
+  };
+  const emitNarration = (text: string, options?: NarrateOptions): void => {
+    emit({
+      chapterTitle: currentChapter,
+      kind: "narrate",
+      text,
+      ...options,
+    });
+  };
+  const sleep = async (durationMs: number): Promise<void> => {
+    assertNonNegativeFiniteDuration(durationMs);
+    emit({
+      chapterTitle: currentChapter,
+      durationMs,
+      kind: "narration-sleep",
+    });
+    await (args.waitForTimeout ?? ((ms: number) => args.page.waitForTimeout(ms)))(durationMs);
   };
   const goto: DemoHunterRunContext["goto"] = async (url, options) => {
     const resolvedUrl = new URL(url, args.config.baseURL).href;
@@ -35,7 +53,7 @@ export function createSmokeTourRuntime(args: {
     return args.page.goto(resolvedUrl, options);
   };
 
-  return {
+  const runtime: SmokeRuntime = {
     config: args.config,
     goto,
     page: args.page,
@@ -74,12 +92,15 @@ export function createSmokeTourRuntime(args: {
       }
     },
     async narrate(text: string, options?: NarrateOptions): Promise<void> {
-      emit({
-        chapterTitle: currentChapter,
-        kind: "narrate",
-        text,
-        ...options,
-      });
+      emitNarration(text, options);
+    },
+    async narrateWhile<T>(
+      text: string,
+      fn: (timeline: { sleep(ms: number): Promise<void> }) => Promise<T> | T,
+      options?: NarrateOptions,
+    ): Promise<T> {
+      emitNarration(text, options);
+      return fn({ sleep });
     },
     async waitForStable(options?: WaitForStableOptions): Promise<void> {
       const state = options?.state ?? "networkidle";
@@ -129,4 +150,14 @@ export function createSmokeTourRuntime(args: {
       });
     },
   };
+
+  return runtime;
+}
+
+function assertNonNegativeFiniteDuration(durationMs: number): void {
+  if (Number.isFinite(durationMs) && durationMs >= 0) {
+    return;
+  }
+
+  throw new Error(`narrateWhile sleep duration must be a non-negative finite number: ${durationMs}`);
 }

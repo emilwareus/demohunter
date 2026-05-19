@@ -84,6 +84,16 @@ export type DemoHunterStep = <T>(title: string, fn: () => Promise<T> | T) => Pro
 
 export type DemoHunterNarrate = (text: string, options?: NarrateOptions) => Promise<void>;
 
+export type DemoHunterNarrationTimeline = {
+  sleep(ms: number): Promise<void>;
+};
+
+export type DemoHunterNarrateWhile = <T>(
+  text: string,
+  fn: (timeline: DemoHunterNarrationTimeline) => Promise<T> | T,
+  options?: NarrateOptions,
+) => Promise<T>;
+
 export type DemoHunterWaitForStable = (options?: WaitForStableOptions) => Promise<void>;
 
 export type DemoHunterHighlight = (target: Locator, options?: HighlightOptions) => Promise<void>;
@@ -104,6 +114,7 @@ export type DemoHunterRunContext = DemoHunterLifecycleContext & {
   chapter: DemoHunterChapter;
   step: DemoHunterStep;
   narrate: DemoHunterNarrate;
+  narrateWhile: DemoHunterNarrateWhile;
   waitForStable: DemoHunterWaitForStable;
   highlight: DemoHunterHighlight;
   snapshot: DemoHunterSnapshot;
