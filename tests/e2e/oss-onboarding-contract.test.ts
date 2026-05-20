@@ -68,8 +68,12 @@ describe("oss onboarding contract", () => {
     expect(workflow).toContain("--workspaces=false");
     expect(workflow).toContain("actions/checkout@v6");
     expect(workflow).toContain("actions/setup-node@v6");
+    expect(workflow).toContain('node-version: "24"');
+    expect(workflow).toContain("package-manager-cache: false");
     expect(workflow).toContain('npm view "demohunter@$VERSION" version');
-    expect(workflow).toContain("npm publish --provenance --access public");
+    expect(workflow).toContain('git checkout --detach "${{ steps.bump.outputs.tag }}"');
+    expect(workflow).toContain("npm publish --access public");
+    expect(workflow).not.toContain("NODE_AUTH_TOKEN:");
   });
 
   test("surfaces actionable guidance for first-run blockers", async () => {

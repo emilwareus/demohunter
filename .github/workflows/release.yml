@@ -39,8 +39,9 @@ jobs:
       - name: Set up Node for npm publish
         uses: actions/setup-node@v6
         with:
-          node-version: "20"
+          node-version: "24"
           registry-url: "https://registry.npmjs.org"
+          package-manager-cache: false
 
       - name: Install workspace dependencies
         run: bun install --frozen-lockfile
@@ -123,6 +124,10 @@ jobs:
             git push origin HEAD:${{ github.ref_name }}
           fi
 
+      - name: Check out existing release tag
+        if: steps.release_state.outputs.npm_exists != 'true' && steps.release_state.outputs.tag_exists == 'true'
+        run: git checkout --detach "${{ steps.bump.outputs.tag }}"
+
       - name: Dry-run publish
         if: steps.release_state.outputs.npm_exists != 'true'
         run: npm publish --dry-run --access public
@@ -147,10 +152,8 @@ jobs:
 
       - name: Publish to npm
         if: steps.release_state.outputs.npm_exists != 'true'
-        run: npm publish --provenance --access public
+        run: npm publish --access public
         working-directory: packages/cli
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Ensure GitHub release
         env:
