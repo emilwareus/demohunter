@@ -71,6 +71,8 @@ describe("oss onboarding contract", () => {
     expect(workflow).toContain('node-version: "24"');
     expect(workflow).toContain("package-manager-cache: false");
     expect(workflow).toContain('npm view "demohunter@$VERSION" version');
+    expect(workflow).toContain("for attempt in {1..10}; do");
+    expect(workflow).toContain("sleep 6");
     expect(workflow).toContain('git checkout --detach "${{ steps.bump.outputs.tag }}"');
     expect(workflow).toContain("npm publish --access public");
     expect(workflow).not.toContain("NODE_AUTH_TOKEN:");
