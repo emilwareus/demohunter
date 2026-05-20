@@ -12,7 +12,7 @@ import {
   COLLECTED_TIMELINE_ENTRY_KINDS,
   TOUR_RUNTIME_EVENT_KINDS,
 } from "../execute/generator-types.js";
-import { createSmokeTourRuntime } from "./create-smoke-tour-runtime.js";
+import { createSmokeLifecycleContext, createSmokeTourRuntime } from "./create-smoke-tour-runtime.js";
 
 const assertTourRuntimeEvent = <T extends TourRuntimeEvent>(event: T): T => event;
 const assertCollectedNarration = <T extends CollectedNarration>(entry: T): T => entry;
@@ -22,6 +22,37 @@ const assertNarrationSegment = <T extends NarrationSegment>(segment: T): T => se
 const assertNarrationSegmentResolver = <T extends NarrationSegmentResolver>(resolver: T): T => resolver;
 
 describe("createSmokeTourRuntime", () => {
+  test("creates a lifecycle context that shares custom state without exposing timeline helpers", async () => {
+    const events: unknown[] = [];
+    const runtime = createSmokeTourRuntime({
+      config: createConfig(),
+      page: {} as never,
+      outputDir: "/tmp/demohunter-output",
+      onEvent: (event) => {
+        events.push(event);
+      },
+    });
+    const lifecycleContext = createSmokeLifecycleContext(runtime);
+
+    (lifecycleContext as Record<string, unknown>).marker = "shared";
+
+    expect(lifecycleContext.config).toBe(runtime.config);
+    expect(lifecycleContext.goto).toBe(runtime.goto);
+    expect(lifecycleContext.page).toBe(runtime.page);
+    expect((runtime as Record<string, unknown>).marker).toBe("shared");
+    expect("narrate" in lifecycleContext).toBe(false);
+    expect((lifecycleContext as Record<string, unknown>).narrate).toBeUndefined();
+
+    await runtime.narrate("Runtime narration still works");
+
+    expect(events).toEqual([
+      {
+        kind: "narrate",
+        text: "Runtime narration still works",
+      },
+    ]);
+  });
+
   test("records chapter markers and runs steps inline", async () => {
     const events: unknown[] = [];
     const runtime = createSmokeTourRuntime({

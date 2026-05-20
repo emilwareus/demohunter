@@ -17,6 +17,12 @@ describe("replayTimeline", () => {
       contexts.push(context as object);
       (context as Record<string, unknown>).marker = "shared";
     });
+    const beforeRecord = mock(async (context) => {
+      calls.push(`beforeRecord:${context.page === page}`);
+      contexts.push(context as object);
+      expect((context as Record<string, unknown>).marker).toBe("shared");
+      expect("narrate" in context).toBe(false);
+    });
     const run = mock(async (context) => {
       const { page: runtimePage, chapter, step, narrate } = context;
 
@@ -37,12 +43,16 @@ describe("replayTimeline", () => {
 
     await replayTimeline({
       loadedConfig: createLoadedConfig("/tmp/workspace"),
+      onBeforeRun: () => {
+        calls.push("before-run");
+      },
       page: page as never,
       timeline: createTimeline("/tmp/workspace"),
       tourFile: {
         path: "/tmp/workspace/demos/billing.tour.ts",
         tour: {
           id: "billing-overview",
+          beforeRecord,
           run,
           setup,
           teardown,
@@ -53,10 +63,11 @@ describe("replayTimeline", () => {
 
     expect(page.goto).toHaveBeenCalledWith("http://localhost:3000/");
     expect(page.waitForTimeout).toHaveBeenCalledWith(1500);
-    expect(calls).toEqual(["setup:true", "run:true", "step", "teardown:true"]);
-    expect(contexts).toHaveLength(3);
+    expect(calls).toEqual(["setup:true", "beforeRecord:true", "before-run", "run:true", "step", "teardown:true"]);
+    expect(contexts).toHaveLength(4);
     expect(contexts[0]).toBe(contexts[1]);
-    expect(contexts[1]).toBe(contexts[2]);
+    expect(contexts[0]).not.toBe(contexts[2]);
+    expect(contexts[2]).toBe(contexts[3]);
   });
 
   test("waits for narration duration plus hold padding exactly once per narration event", async () => {

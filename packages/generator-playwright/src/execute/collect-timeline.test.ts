@@ -28,6 +28,12 @@ describe("collectTimeline", () => {
       contexts.push(context as object);
       (context as Record<string, unknown>).marker = "shared";
     });
+    const beforeRecord = mock(async (context) => {
+      calls.push(`beforeRecord:${context.page === page}`);
+      contexts.push(context as object);
+      expect((context as Record<string, unknown>).marker).toBe("shared");
+      expect("narrate" in context).toBe(false);
+    });
     const run = mock(
       async (context) => {
         const { page: runtimePage, chapter, step, narrate, waitForStable, highlight, snapshot, assertVisible } =
@@ -59,12 +65,16 @@ describe("collectTimeline", () => {
 
     const timeline = await collectTimeline({
       loadedConfig: createLoadedConfig("/tmp/workspace"),
+      onBeforeRun: () => {
+        calls.push("before-run");
+      },
       page: page as never,
       resolveNarrationSegment,
       tourFile: {
         path: "/tmp/workspace/demos/billing.tour.ts",
         tour: {
           id: "billing-overview",
+          beforeRecord,
           run,
           setup,
           teardown,
@@ -80,10 +90,11 @@ describe("collectTimeline", () => {
       text: "Explain the invoice screen",
       voice: "marin",
     });
-    expect(calls).toEqual(["setup:true", "run:true", "step", "teardown:true"]);
-    expect(contexts).toHaveLength(3);
+    expect(calls).toEqual(["setup:true", "beforeRecord:true", "before-run", "run:true", "step", "teardown:true"]);
+    expect(contexts).toHaveLength(4);
     expect(contexts[0]).toBe(contexts[1]);
-    expect(contexts[1]).toBe(contexts[2]);
+    expect(contexts[0]).not.toBe(contexts[2]);
+    expect(contexts[2]).toBe(contexts[3]);
     expect(page.waitForLoadState).toHaveBeenCalledWith("load", { timeout: 2500 });
     expect(page.waitForTimeout).toHaveBeenCalledWith(500);
     expect(locator.waitFor).toHaveBeenCalledTimes(2);

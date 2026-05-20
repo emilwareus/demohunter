@@ -3,11 +3,14 @@ import { defineTour } from "demohunter";
 export default defineTour({
   id: "product-overview",
   title: "Product overview",
+  async beforeRecord({ goto, page }) {
+    await goto("/");
+    await page.getByRole("heading", { name: "Product overview" }).waitFor();
+  },
   async run({ page, chapter, step, narrate, narrateWhile, waitForStable, snapshot }) {
     await chapter("Overview", { id: "overview" });
 
     await step("Open the overview page", async () => {
-      await page.goto("/");
       await waitForStable();
       await page.getByRole("heading", { name: "Product overview" }).waitFor();
       await narrate("This page introduces the core workflow before deeper feature steps.");

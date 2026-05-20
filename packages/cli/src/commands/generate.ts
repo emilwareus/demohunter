@@ -103,6 +103,7 @@ function formatProgress(event: GenerationProgressEvent): string {
 }
 
 type TourLike = DemoHunterTour & {
+  beforeRecord?: unknown;
   setup?: unknown;
   teardown?: unknown;
 };
@@ -117,6 +118,12 @@ function readTourDefaultExport(tourModule: unknown, tourPath: string): DemoHunte
   if (tourModule.setup !== undefined && typeof tourModule.setup !== "function") {
     throw new Error(
       `Tour file has invalid setup export; expected a function when provided: ${tourPath}. Keep setup as async setup(runtime) {} or remove it.`,
+    );
+  }
+
+  if (tourModule.beforeRecord !== undefined && typeof tourModule.beforeRecord !== "function") {
+    throw new Error(
+      `Tour file has invalid beforeRecord export; expected a function when provided: ${tourPath}. Keep beforeRecord as async beforeRecord(runtime) {} or remove it.`,
     );
   }
 

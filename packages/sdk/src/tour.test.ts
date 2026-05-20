@@ -71,14 +71,16 @@ describe("defineTour", () => {
 
   test("returns the authored object unchanged while supporting top-level lifecycle hooks", async () => {
     const setup = async (_context: DemoHunterLifecycleContext) => {};
+    const beforeRecord = async (_context: DemoHunterLifecycleContext) => {};
     const run = async (_context: DemoHunterRunContext) => {};
     const teardown = async (_context: DemoHunterLifecycleContext) => {};
 
-    const authored = { id: "billing-overview", title: "Billing overview", setup, run, teardown };
+    const authored = { id: "billing-overview", title: "Billing overview", setup, beforeRecord, run, teardown };
     const tour = defineTour(authored);
 
     expect(tour).toBe(authored);
     expect(tour.setup).toBe(setup);
+    expect(tour.beforeRecord).toBe(beforeRecord);
     expect(tour.run).toBe(run);
     expect(tour.teardown).toBe(teardown);
   });
@@ -158,6 +160,11 @@ describe("defineTour", () => {
       expectType<Page>(page);
     };
 
+    const beforeRecord = async ({ goto, page }: DemoHunterLifecycleContext) => {
+      expectType<Page>(page);
+      expectType<DemoHunterLifecycleContext["goto"]>(goto);
+    };
+
     const teardown = async ({ page }: DemoHunterLifecycleContext) => {
       expectType<Page>(page);
     };
@@ -179,6 +186,7 @@ describe("defineTour", () => {
     });
 
     await setup({ config, goto, page });
+    await beforeRecord({ config, goto, page });
     await teardown({ config, goto, page });
   });
 });

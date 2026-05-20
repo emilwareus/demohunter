@@ -18,7 +18,7 @@ Use this skill when you need to create or update a DemoHunter `.tour.ts` file in
 ## Rules
 
 - Keep user code Playwright-native. Use normal `page`, `locator`, and `getByRole` flows instead of inventing wrapper abstractions.
-- Keep app-specific auth, bootstrap, and session setup in user Playwright code such as `setup` or the top of `run`.
+- Keep app-specific auth, bootstrap, and session setup in user Playwright code. Use `beforeRecord` for setup that must finish before the generated video starts.
 - Default export `defineTour({ ... })` from `demohunter`.
 - Keep narration grounded in visible product behavior. Do not narrate speculative backend behavior.
 - Use `narrate(...)` when the viewer should absorb a static state.

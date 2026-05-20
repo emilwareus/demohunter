@@ -35,6 +35,9 @@ describe("smokeGenerate", () => {
     const setup = mock(async ({ page: lifecyclePage }) => {
       calls.push(`setup:${lifecyclePage === page}`);
     });
+    const beforeRecord = mock(async ({ page: lifecyclePage }) => {
+      calls.push(`beforeRecord:${lifecyclePage === page}`);
+    });
     const run = mock(async ({ page: runtimePage, chapter, step, narrate, waitForStable, highlight, snapshot, assertVisible }) => {
       calls.push(`run:${runtimePage === page}`);
       expect(typeof chapter).toBe("function");
@@ -85,6 +88,7 @@ describe("smokeGenerate", () => {
           path: path.join(cwd, "demos/sample.tour.ts"),
           tour: {
             id: "sample-smoke",
+            beforeRecord,
             setup,
             title: "Sample demo",
             teardown,
@@ -109,8 +113,9 @@ describe("smokeGenerate", () => {
       viewport: { width: 1280, height: 720 },
     });
     expect(page.goto).toHaveBeenCalledWith("http://localhost:3000/");
-    expect(calls).toEqual(["setup:true", "run:true", "step", "teardown:true"]);
+    expect(calls).toEqual(["setup:true", "beforeRecord:true", "run:true", "step", "teardown:true"]);
     expect(run).toHaveBeenCalledTimes(1);
+    expect(beforeRecord).toHaveBeenCalledTimes(1);
     expect(setup).toHaveBeenCalledTimes(1);
     expect(teardown).toHaveBeenCalledTimes(1);
     expect(waitForLoadState).toHaveBeenCalledWith("load", { timeout: 123 });

@@ -12,6 +12,7 @@ export type DemoHunterTour = {
   id: string;
   title: string;
   setup?: (context: DemoHunterLifecycleContext) => Promise<void> | void;
+  beforeRecord?: (context: DemoHunterLifecycleContext) => Promise<void> | void;
   run: (context: DemoHunterRunContext) => Promise<void> | void;
   teardown?: (context: DemoHunterLifecycleContext) => Promise<void> | void;
 };

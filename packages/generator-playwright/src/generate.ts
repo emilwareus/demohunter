@@ -107,10 +107,6 @@ export async function generateTour(
     });
 
     const passOnePage = await passOneContext.newPage();
-    passOneDebug = resolvedDependencies.attachDebugCapture({
-      outputDir,
-      page: passOnePage,
-    });
     report(onProgress, {
       phase: "collecting-timeline",
       message: `Collecting timeline for ${tourFile.tour.id}`,
@@ -122,6 +118,12 @@ export async function generateTour(
       run: () =>
         resolvedDependencies.collectTimeline({
           loadedConfig,
+          onBeforeRun: () => {
+            passOneDebug = resolvedDependencies.attachDebugCapture({
+              outputDir,
+              page: passOnePage,
+            });
+          },
           onProgress,
           onRuntimeEvent: (event) => {
             lastRuntimeEvent = event;
@@ -132,7 +134,7 @@ export async function generateTour(
         }),
       getLastRuntimeEvent: () => lastRuntimeEvent,
     });
-    passOneDebug.dispose();
+    passOneDebug?.dispose();
     passOneDebug = undefined;
 
     await passOneContext.close();
@@ -144,18 +146,8 @@ export async function generateTour(
     });
 
     const passTwoPage = await passTwoContext.newPage();
-    passTwoDebug = resolvedDependencies.attachDebugCapture({
-      outputDir,
-      page: passTwoPage,
-    });
-
-    await resolvedDependencies.startScreencast({
-      outputPath: tempScreencastPath,
-      page: passTwoPage,
-      showActions: config.record.showActions,
-      viewport: config.viewport,
-    });
-    const recordingStartedAt = resolvedDependencies.now();
+    let recordingStartedAt: number | undefined;
+    let screencastStarted = false;
 
     try {
       report(onProgress, {
@@ -164,7 +156,25 @@ export async function generateTour(
       });
       await resolvedDependencies.replayTimeline({
         loadedConfig,
+        onBeforeRun: async () => {
+          await resolvedDependencies.startScreencast({
+            outputPath: tempScreencastPath,
+            page: passTwoPage,
+            showActions: config.record.showActions,
+            viewport: config.viewport,
+          });
+          screencastStarted = true;
+          passTwoDebug = resolvedDependencies.attachDebugCapture({
+            outputDir,
+            page: passTwoPage,
+          });
+          recordingStartedAt = resolvedDependencies.now();
+        },
         onMatchedEvent: (event, index) => {
+          if (recordingStartedAt === undefined) {
+            return;
+          }
+
           if (event.kind === "chapter") {
             chapters.push({
               startMs: Math.max(0, resolvedDependencies.now() - recordingStartedAt),
@@ -214,12 +224,16 @@ export async function generateTour(
       });
     }
 
-    await resolvedDependencies.stopScreencast({
-      page: passTwoPage,
-      primaryError,
-    });
+    if (screencastStarted) {
+      await resolvedDependencies.stopScreencast({
+        page: passTwoPage,
+        primaryError,
+      });
+    } else if (primaryError !== undefined) {
+      throw primaryError;
+    }
 
-    passTwoDebug.dispose();
+    passTwoDebug?.dispose();
     passTwoDebug = undefined;
     report(onProgress, {
       phase: "muxing-video",
@@ -289,7 +303,7 @@ export async function generateTour(
 }
 
 async function capturePhaseFailure<T>(input: {
-  debugCapture: DebugCapture;
+  debugCapture: DebugCapture | undefined;
   getLastRuntimeEvent: () => TourRuntimeEvent | undefined;
   onProgress?: GenerationProgressReporter;
   phase: DebugPhase;
