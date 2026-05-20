@@ -60,56 +60,176 @@ jobs:
       - name: Bump package version
         id: bump
         run: |
+          set -euo pipefail
           if [[ "${{ inputs.bump }}" != "current" ]]; then
             npm version "${{ inputs.bump }}" --no-git-tag-version --preid rc
           fi
           NEW_VERSION=$(node -p "require('./package.json').version")
           echo "version=$NEW_VERSION" >> "$GITHUB_OUTPUT"
+          echo "tag=v$NEW_VERSION" >> "$GITHUB_OUTPUT"
           echo "Release version: v$NEW_VERSION"
         working-directory: packages/cli
 
-      - name: Fail if tag already exists
+      - name: Inspect release traceability state
+        id: release_state
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.bump.outputs.version }}
         run: |
-          TAG="v${{ steps.bump.outputs.version }}"
-          if git rev-parse "$TAG" >/dev/null 2>&1; then
-            echo "::error::Tag $TAG already exists. Aborting before any side-effects."
-            exit 1
-          fi
+          set -euo pipefail
+          TAG="v$VERSION"
+          git fetch --force origin --tags
 
-      - name: Fail if package version already exists
-        run: |
-          VERSION="${{ steps.bump.outputs.version }}"
           if npm view "demohunter@$VERSION" version >/dev/null 2>&1; then
-            echo "::error::demohunter@$VERSION already exists on npm. Aborting before any side-effects."
-            exit 1
+            echo "npm_exists=true" >> "$GITHUB_OUTPUT"
+            echo "npm already has demohunter@$VERSION"
+          else
+            echo "npm_exists=false" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Dry-run publish
-        run: npm publish --dry-run --access public
-        working-directory: packages/cli
+          if git ls-remote --exit-code --tags origin "refs/tags/$TAG" >/dev/null 2>&1; then
+            echo "tag_exists=true" >> "$GITHUB_OUTPUT"
+            git fetch --force origin "+refs/tags/$TAG:refs/tags/$TAG"
+            TAG_PACKAGE_VERSION=$(git show "$TAG:packages/cli/package.json" | node -e "let input = ''; process.stdin.on('data', chunk => input += chunk); process.stdin.on('end', () => console.log(JSON.parse(input).version));")
+            if [[ "$TAG_PACKAGE_VERSION" != "$VERSION" ]]; then
+              echo "::error::Tag $TAG points to packages/cli version $TAG_PACKAGE_VERSION, expected $VERSION."
+              exit 1
+            fi
+            echo "Git tag $TAG already exists and matches packages/cli@$VERSION"
+          else
+            echo "tag_exists=false" >> "$GITHUB_OUTPUT"
+          fi
 
-      - name: Commit, tag, and push
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "release_exists=true" >> "$GITHUB_OUTPUT"
+            echo "GitHub release $TAG already exists"
+          else
+            echo "release_exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Commit version bump
+        if: inputs.bump != 'current' && steps.release_state.outputs.tag_exists != 'true'
         run: |
+          set -euo pipefail
           VERSION="${{ steps.bump.outputs.version }}"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          if [[ "${{ inputs.bump }}" != "current" ]]; then
+
+          if git diff --quiet -- packages/cli/package.json; then
+            echo "No package version diff to commit."
+          else
             git add packages/cli/package.json
             git commit -m "chore(release): v$VERSION"
             git push origin HEAD:${{ github.ref_name }}
           fi
-          git tag -a "v$VERSION" -m "Release v$VERSION"
-          git push origin "v$VERSION"
+
+      - name: Dry-run publish
+        if: steps.release_state.outputs.npm_exists != 'true'
+        run: npm publish --dry-run --access public
+        working-directory: packages/cli
+
+      - name: Create and push git tag
+        if: steps.release_state.outputs.tag_exists != 'true'
+        run: |
+          set -euo pipefail
+          VERSION="${{ steps.bump.outputs.version }}"
+          TAG="v$VERSION"
+          PACKAGE_VERSION=$(node -p "require('./packages/cli/package.json').version")
+          if [[ "$PACKAGE_VERSION" != "$VERSION" ]]; then
+            echo "::error::packages/cli/package.json is $PACKAGE_VERSION, expected $VERSION before tagging."
+            exit 1
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -a "$TAG" -m "Release $TAG"
+          git push origin "$TAG"
 
       - name: Publish to npm
+        if: steps.release_state.outputs.npm_exists != 'true'
         run: npm publish --provenance --access public
         working-directory: packages/cli
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
-      - name: Create GitHub release
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: "v${{ steps.bump.outputs.version }}"
-          name: "v${{ steps.bump.outputs.version }}"
-          generate_release_notes: true
+      - name: Ensure GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.bump.outputs.version }}
+        run: |
+          set -euo pipefail
+          TAG="v$VERSION"
+          TAG_COMMIT=$(git rev-list -n 1 "$TAG")
+          TRACEABILITY_FILE="$RUNNER_TEMP/release-traceability.md"
+          NOTES_FILE="$RUNNER_TEMP/release-notes.md"
+          PRERELEASE_FLAG=()
+
+          if [[ "$VERSION" == *-* ]]; then
+            PRERELEASE_FLAG=(--prerelease)
+          fi
+
+          cat > "$TRACEABILITY_FILE" <<EOF
+          ## Traceability
+
+          - npm package: https://www.npmjs.com/package/demohunter/v/$VERSION
+          - Git tag: https://github.com/$GITHUB_REPOSITORY/releases/tag/$TAG
+          - Source commit: $TAG_COMMIT
+          EOF
+
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json body --jq .body > "$RUNNER_TEMP/current-release-body.md"
+            if grep -F "https://www.npmjs.com/package/demohunter/v/$VERSION" "$RUNNER_TEMP/current-release-body.md" >/dev/null; then
+              echo "GitHub release $TAG already contains npm traceability."
+            else
+              {
+                cat "$TRACEABILITY_FILE"
+                printf '\n'
+                cat "$RUNNER_TEMP/current-release-body.md"
+              } > "$NOTES_FILE"
+              gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --title "$TAG" --notes-file "$NOTES_FILE" "${PRERELEASE_FLAG[@]}"
+            fi
+          else
+            gh release create "$TAG" \
+              --repo "$GITHUB_REPOSITORY" \
+              --verify-tag \
+              --title "$TAG" \
+              --notes "$(cat "$TRACEABILITY_FILE")" \
+              --generate-notes \
+              "${PRERELEASE_FLAG[@]}"
+          fi
+
+      - name: Verify release traceability
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.bump.outputs.version }}
+        run: |
+          set -euo pipefail
+          TAG="v$VERSION"
+          git fetch --force origin "+refs/tags/$TAG:refs/tags/$TAG"
+
+          TAG_PACKAGE_VERSION=$(git show "$TAG:packages/cli/package.json" | node -e "let input = ''; process.stdin.on('data', chunk => input += chunk); process.stdin.on('end', () => console.log(JSON.parse(input).version));")
+          if [[ "$TAG_PACKAGE_VERSION" != "$VERSION" ]]; then
+            echo "::error::Tag $TAG points to packages/cli version $TAG_PACKAGE_VERSION, expected $VERSION."
+            exit 1
+          fi
+
+          NPM_VERSION=$(npm view "demohunter@$VERSION" version)
+          if [[ "$NPM_VERSION" != "$VERSION" ]]; then
+            echo "::error::npm returned demohunter@$NPM_VERSION, expected $VERSION."
+            exit 1
+          fi
+
+          RELEASE_TAG=$(gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json tagName --jq .tagName)
+          if [[ "$RELEASE_TAG" != "$TAG" ]]; then
+            echo "::error::GitHub release tag is $RELEASE_TAG, expected $TAG."
+            exit 1
+          fi
+
+          RELEASE_BODY=$(gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json body --jq .body)
+          if ! grep -F "https://www.npmjs.com/package/demohunter/v/$VERSION" <<< "$RELEASE_BODY" >/dev/null; then
+            echo "::error::GitHub release $TAG is missing the npm package traceability link."
+            exit 1
+          fi
+
+          RELEASE_URL=$(gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json url --jq .url)
+          echo "Traceability verified: demohunter@$VERSION <-> $TAG <-> $RELEASE_URL"
