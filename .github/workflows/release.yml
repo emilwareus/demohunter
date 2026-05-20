@@ -62,7 +62,7 @@ jobs:
         run: |
           set -euo pipefail
           if [[ "${{ inputs.bump }}" != "current" ]]; then
-            npm version "${{ inputs.bump }}" --no-git-tag-version --preid rc
+            npm version "${{ inputs.bump }}" --no-git-tag-version --preid rc --workspaces=false
           fi
           NEW_VERSION=$(node -p "require('./package.json').version")
           echo "version=$NEW_VERSION" >> "$GITHUB_OUTPUT"

@@ -65,6 +65,7 @@ describe("oss onboarding contract", () => {
     expect(workflow).toContain("- current");
     expect(workflow).toContain("default: current");
     expect(workflow).toContain('if [[ "${{ inputs.bump }}" != "current" ]]; then');
+    expect(workflow).toContain("--workspaces=false");
     expect(workflow).toContain("actions/checkout@v6");
     expect(workflow).toContain("actions/setup-node@v6");
     expect(workflow).toContain('npm view "demohunter@$VERSION" version');

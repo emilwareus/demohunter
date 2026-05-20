@@ -4,8 +4,8 @@ milestone: v1.0
 milestone_name: milestone
 status: milestone_complete
 stopped_at: v1.0 archived; no active milestone
-last_updated: "2026-05-20T08:52:03+02:00"
-last_activity: 2026-05-20 -- Quick task 260520-c80 fixed GitHub/npm release traceability
+last_updated: "2026-05-20T11:51:42+02:00"
+last_activity: 2026-05-20 -- Quick task 260520-ggc fixed release version bump workspace protocol failure
 progress:
   total_phases: 6
   completed_phases: 6
@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-04-14)
 Phase: none — milestone archived
 Plan: none
 Status: v1.0 complete
-Last activity: 2026-05-20 -- Quick task 260520-c80 fixed GitHub/npm release traceability
+Last activity: 2026-05-20 -- Quick task 260520-ggc fixed release version bump workspace protocol failure
 Progress: [██████████] 100%
 
 ## Performance Metrics
@@ -43,6 +43,7 @@ Progress: [██████████] 100%
 
 | Date | ID | Task | Summary |
 | --- | --- | --- | --- |
+| 2026-05-20 | 260520-ggc | Fix release version bump workspace protocol failure | Added `--workspaces=false` to the release workflow `npm version` step so npm bumps only `packages/cli` instead of failing on Bun `workspace:*` dependencies. |
 | 2026-05-20 | 260520-c80 | Fix GitHub/npm release traceability | Made the release workflow idempotently validate and create matching npm versions, git tags, GitHub releases, and release-body traceability links. |
 | 2026-05-19 | 260519-ql8 | Implement GitHub issue #5 | Added `narrateWhile` timed narration choreography, replay timing support, caption span timing, docs, and skill guidance. |
 
