@@ -13,7 +13,15 @@ Required fields:
 Optional lifecycle hooks:
 
 - `setup({ page, config, goto })`
+- `beforeRecord({ page, config, goto })`
 - `teardown({ page, config, goto })`
+
+Lifecycle order:
+
+- `setup` runs before each pass.
+- `beforeRecord` runs after `setup` and before the recorded portion of full generation.
+- `run` is the first authored hook included in the final screencast.
+- `teardown` runs after `run`.
 
 ## Run Context
 
@@ -53,6 +61,7 @@ Useful option details:
 - Use `narrate(...)` when the viewer should absorb a static state.
 - Use `narrateWhile(...)` when narration should bridge navigation, clicking, typing, waits, generation, highlights, or other visible motion.
 - Use `sleep(ms)` inside `narrateWhile(...)` when a UI action should happen at a specific moment in the voiceover.
+- Use `beforeRecord` for login, fixture creation, or navigation that should happen before the final video starts.
 - Only add `setup` or `teardown` when the flow genuinely needs shared preparation or cleanup.
 
 ## Config Awareness

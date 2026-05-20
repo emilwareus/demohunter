@@ -36,6 +36,7 @@ describe("generateCommand", () => {
         path: tourPath,
         tour: {
           id: "sample-smoke",
+          beforeRecord: expect.any(Function),
           setup: expect.any(Function),
           title: "Sample",
           teardown: expect.any(Function),
@@ -75,6 +76,7 @@ describe("generateCommand", () => {
         path: path.join(cwd, "demos", "sample.tour.ts"),
         tour: {
           id: "sample-smoke",
+          beforeRecord: expect.any(Function),
           setup: expect.any(Function),
           title: "Sample",
           teardown: expect.any(Function),
@@ -127,6 +129,20 @@ describe("generateCommand", () => {
       }),
     ).rejects.toThrow(
       `Tour file has invalid teardown export; expected a function when provided: ${path.join(cwd, "demos/invalid-teardown.tour.ts")}. Keep teardown as async teardown(runtime) {} or remove it.`,
+    );
+  });
+
+  test("rejects a non-function beforeRecord export with the tour path", async () => {
+    const cwd = await makeTempProject();
+
+    await expect(
+      generateCommand(cwd, "demos/invalid-before-record.tour.ts", {
+        generateTour: async () => ({ outputDir: "", videoPath: "" }),
+        loadConfig: async () => makeLoadedConfig(cwd),
+        log: () => {},
+      }),
+    ).rejects.toThrow(
+      `Tour file has invalid beforeRecord export; expected a function when provided: ${path.join(cwd, "demos/invalid-before-record.tour.ts")}. Keep beforeRecord as async beforeRecord(runtime) {} or remove it.`,
     );
   });
 
@@ -226,7 +242,7 @@ async function makeTempProject(): Promise<string> {
   await mkdir(path.join(tempRoot, "demos"), { recursive: true });
   await writeFile(
     path.join(tempRoot, "demos", "sample.tour.ts"),
-    'export default { id: "sample-smoke", title: "Sample", async setup() {}, async run() {}, async teardown() {} };\n',
+    'export default { id: "sample-smoke", title: "Sample", async setup() {}, async beforeRecord() {}, async run() {}, async teardown() {} };\n',
   );
   await writeFile(path.join(tempRoot, "demos", "invalid.tour.ts"), "export default { nope: true };\n");
   await writeFile(
@@ -236,6 +252,10 @@ async function makeTempProject(): Promise<string> {
   await writeFile(
     path.join(tempRoot, "demos", "invalid-teardown.tour.ts"),
     'export default { id: "sample-smoke", title: "Sample", async run() {}, teardown: \"later\" };\n',
+  );
+  await writeFile(
+    path.join(tempRoot, "demos", "invalid-before-record.tour.ts"),
+    'export default { id: "sample-smoke", title: "Sample", beforeRecord: "later", async run() {} };\n',
   );
   return tempRoot;
 }

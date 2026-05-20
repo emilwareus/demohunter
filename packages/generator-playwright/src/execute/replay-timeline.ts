@@ -5,12 +5,13 @@ import type { DemoHunterNarrationTimeline } from "@demohunter/sdk";
 import type { Page } from "playwright";
 
 import type { SmokeGenerateInput, SmokeTourModule } from "../smoke-generate.js";
-import { createSmokeTourRuntime } from "../runtime/create-smoke-tour-runtime.js";
+import { createSmokeLifecycleContext, createSmokeTourRuntime } from "../runtime/create-smoke-tour-runtime.js";
 import type { SmokeRuntime } from "../runtime/create-smoke-tour-runtime.js";
 import type { CollectedTimeline, CollectedTimelineEntry, TourRuntimeEvent } from "./generator-types.js";
 
 export type ReplayTimelineInput = {
   loadedConfig: SmokeGenerateInput["loadedConfig"];
+  onBeforeRun?: () => Promise<void> | void;
   onMatchedEvent?: (event: TourRuntimeEvent, index: number) => void;
   onRuntimeEvent?: (event: TourRuntimeEvent) => void;
   page: Page;
@@ -39,6 +40,7 @@ export class ReplayTimelineError extends Error {
 
 export async function replayTimeline({
   loadedConfig,
+  onBeforeRun,
   onMatchedEvent,
   onRuntimeEvent,
   page,
@@ -69,13 +71,16 @@ export async function replayTimeline({
     },
     getReplayPosition: () => nextExpectedIndex,
   });
+  const lifecycleContext = createSmokeLifecycleContext(runtime);
 
   await page.goto(new URL(config.baseURL).href);
 
   let primaryError: unknown;
 
   try {
-    await Promise.resolve(tourFile.tour.setup?.(runtime));
+    await Promise.resolve(tourFile.tour.setup?.(lifecycleContext));
+    await Promise.resolve(tourFile.tour.beforeRecord?.(lifecycleContext));
+    await Promise.resolve(onBeforeRun?.());
     await Promise.resolve(tourFile.tour.run(runtime));
   } catch (error) {
     primaryError = error;

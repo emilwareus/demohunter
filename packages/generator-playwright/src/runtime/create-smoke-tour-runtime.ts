@@ -18,6 +18,36 @@ type SnapshotInput = string | SnapshotOptions | undefined;
 
 export type SmokeTourRuntimeEvent = TourRuntimeEvent;
 
+const LIFECYCLE_BLOCKED_HELPERS = new Set<PropertyKey>([
+  "chapter",
+  "step",
+  "narrate",
+  "narrateWhile",
+  "waitForStable",
+  "highlight",
+  "snapshot",
+  "assertVisible",
+]);
+
+export function createSmokeLifecycleContext(runtime: SmokeRuntime): DemoHunterLifecycleContext {
+  return new Proxy(runtime, {
+    get(target, property, receiver) {
+      if (LIFECYCLE_BLOCKED_HELPERS.has(property)) {
+        return undefined;
+      }
+
+      return Reflect.get(target, property, receiver);
+    },
+    has(target, property) {
+      if (LIFECYCLE_BLOCKED_HELPERS.has(property)) {
+        return false;
+      }
+
+      return Reflect.has(target, property);
+    },
+  }) as DemoHunterLifecycleContext;
+}
+
 export function createSmokeTourRuntime(args: {
   config: ResolvedDemoHunterConfig;
   page: Page;

@@ -41,8 +41,9 @@ describe("generateTour", () => {
       calls.push("collect");
       return createTimeline();
     });
-    const replayTimeline = mock(async ({ onMatchedEvent, tourFile }) => {
+    const replayTimeline = mock(async ({ onBeforeRun, onMatchedEvent, tourFile }) => {
       calls.push("replay");
+      await onBeforeRun?.();
       onMatchedEvent?.(
         {
           chapterTitle: "Billing",
@@ -171,8 +172,8 @@ describe("generateTour", () => {
       "close-pass-1",
       "new-context",
       "new-page-pass-2",
-      "start",
       "replay",
+      "start",
       "chapter",
       "show-chapter-overlay",
       "stop",
@@ -375,7 +376,8 @@ describe("generateTour", () => {
             webkit: { launch: mock(async () => { throw new Error("unexpected browser"); }) },
           },
           prepareOutputDir: mock(async () => "/tmp/project/.demohunter/billing-overview"),
-          replayTimeline: mock(async () => {
+          replayTimeline: mock(async ({ onBeforeRun }) => {
+            await onBeforeRun?.();
             throw divergenceError;
           }),
           startScreencast: mock(async () => {}),
@@ -390,6 +392,60 @@ describe("generateTour", () => {
         primaryError: divergenceError,
       }),
     );
+    expect(muxVideo).not.toHaveBeenCalled();
+    expect(writeGenerationOutput).not.toHaveBeenCalled();
+  });
+
+  test("does not start recording or write debug artifacts when pre-record setup fails", async () => {
+    const beforeRecordError = new Error("beforeRecord failed");
+    const debugCapture = createDebugCapture();
+    const attachDebugCapture = mock(() => debugCapture);
+    const startScreencast = mock(async () => {});
+    const stopScreencast = mock(async () => {});
+    const muxVideo = mock(async () => {
+      throw new Error("should not mux after pre-record failure");
+    });
+    const writeGenerationOutput = mock(async () => {
+      throw new Error("should not write after pre-record failure");
+    });
+
+    await expect(
+      generateTour(
+        {
+          loadedConfig: createLoadedConfig("/tmp/project"),
+          tourFile: createTourFile("/tmp/project"),
+        },
+        {
+          attachDebugCapture,
+          collectTimeline: mock(async () => createTimeline()),
+          muxVideo,
+          playwright: {
+            chromium: {
+              launch: mock(async () => ({
+                close: mock(async () => {}),
+                newContext: mock(async () => ({
+                  close: mock(async () => {}),
+                  newPage: mock(async () => ({ goto: mock(async () => {}) })),
+                })),
+              })),
+            },
+            firefox: { launch: mock(async () => { throw new Error("unexpected browser"); }) },
+            webkit: { launch: mock(async () => { throw new Error("unexpected browser"); }) },
+          },
+          prepareOutputDir: mock(async () => "/tmp/project/.demohunter/billing-overview"),
+          replayTimeline: mock(async () => {
+            throw beforeRecordError;
+          }),
+          startScreencast,
+          stopScreencast,
+          writeGenerationOutput,
+        },
+      ),
+    ).rejects.toBe(beforeRecordError);
+
+    expect(startScreencast).not.toHaveBeenCalled();
+    expect(stopScreencast).not.toHaveBeenCalled();
+    expect(debugCapture.captureFailure).not.toHaveBeenCalled();
     expect(muxVideo).not.toHaveBeenCalled();
     expect(writeGenerationOutput).not.toHaveBeenCalled();
   });

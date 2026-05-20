@@ -8,7 +8,7 @@ import type { BrowserType, Page } from "playwright";
 import { attachDebugCapture } from "./debug/failure-artifacts.js";
 import type { DebugCapture } from "./debug/failure-artifacts.js";
 import type { GenerationProgressEvent, GenerationProgressReporter, TourRuntimeEvent } from "./execute/generator-types.js";
-import { createSmokeTourRuntime } from "./runtime/create-smoke-tour-runtime.js";
+import { createSmokeLifecycleContext, createSmokeTourRuntime } from "./runtime/create-smoke-tour-runtime.js";
 
 export type SmokeGenerateInput = {
   loadedConfig: {
@@ -96,6 +96,7 @@ export async function smokeGenerate(
       outputDir,
       page,
     });
+    const lifecycleContext = createSmokeLifecycleContext(runtime);
 
     try {
       await page.goto(new URL(config.baseURL).href);
@@ -103,7 +104,8 @@ export async function smokeGenerate(
         phase: "running-flow",
         message: `Validating ${tourFile.tour.id}`,
       });
-      await Promise.resolve(tourFile.tour.setup?.(runtime));
+      await Promise.resolve(tourFile.tour.setup?.(lifecycleContext));
+      await Promise.resolve(tourFile.tour.beforeRecord?.(lifecycleContext));
       await Promise.resolve(tourFile.tour.run(runtime));
     } catch (error) {
       primaryError = error;

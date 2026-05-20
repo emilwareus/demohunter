@@ -59,12 +59,14 @@ import { defineTour } from "demohunter";
 export default defineTour({
   id: "billing-overview",
   title: "Billing overview",
+  async beforeRecord({ goto, page }) {
+    await goto("/");
+    await page.getByRole("heading", { name: "Workspace" }).waitFor();
+  },
   async run({ page, chapter, step, narrate, narrateWhile }) {
     await chapter("Open the workspace");
 
     await step("Land on the dashboard", async () => {
-      await page.goto("/");
-      await page.getByRole("heading", { name: "Workspace" }).waitFor();
       await narrate("Welcome to the billing workspace. Invoices, exports, and credits all live here.");
       await narrateWhile("Now we open the invoice form while the overview stays in context.", async ({ sleep }) => {
         await sleep(800);

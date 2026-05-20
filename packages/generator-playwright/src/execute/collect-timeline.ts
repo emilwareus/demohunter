@@ -4,7 +4,7 @@ import type { Page } from "playwright";
 
 import { resolveNarrationSegment as defaultResolveNarrationSegment } from "../narration/resolve-narration.js";
 import type { SmokeGenerateInput, SmokeTourModule } from "../smoke-generate.js";
-import { createSmokeTourRuntime } from "../runtime/create-smoke-tour-runtime.js";
+import { createSmokeLifecycleContext, createSmokeTourRuntime } from "../runtime/create-smoke-tour-runtime.js";
 import type {
   CollectedNarration,
   CollectedTimeline,
@@ -16,6 +16,7 @@ import type {
 
 export type CollectTimelineInput = {
   loadedConfig: SmokeGenerateInput["loadedConfig"];
+  onBeforeRun?: () => Promise<void> | void;
   onRuntimeEvent?: (event: TourRuntimeEvent) => void;
   onProgress?: GenerationProgressReporter;
   page: Page;
@@ -25,6 +26,7 @@ export type CollectTimelineInput = {
 
 export async function collectTimeline({
   loadedConfig,
+  onBeforeRun,
   onRuntimeEvent,
   onProgress,
   page,
@@ -43,13 +45,16 @@ export async function collectTimeline({
     outputDir,
     page,
   });
+  const lifecycleContext = createSmokeLifecycleContext(runtime);
 
   await page.goto(new URL(config.baseURL).href);
 
   let primaryError: unknown;
 
   try {
-    await Promise.resolve(tourFile.tour.setup?.(runtime));
+    await Promise.resolve(tourFile.tour.setup?.(lifecycleContext));
+    await Promise.resolve(tourFile.tour.beforeRecord?.(lifecycleContext));
+    await Promise.resolve(onBeforeRun?.());
     await Promise.resolve(tourFile.tour.run(runtime));
   } catch (error) {
     primaryError = error;
