@@ -3,6 +3,7 @@ import path from "node:path";
 
 import {
   DEFAULT_DEMOHUNTER_CONFIG,
+  DEFAULT_ELEVENLABS_TTS_CONFIG,
   DEFAULT_RECORD_CONFIG,
   DEFAULT_TTS_CONFIG,
 } from "@demohunter/sdk";
@@ -39,10 +40,7 @@ export async function loadConfig(cwd: string): Promise<LoadedConfig> {
       ...DEFAULT_RECORD_CONFIG,
       ...authoredConfig.record,
     },
-    tts: {
-      ...DEFAULT_TTS_CONFIG,
-      ...authoredConfig.tts,
-    },
+    tts: resolveTTSConfig(authoredConfig.tts),
   };
 
   return {
@@ -78,4 +76,19 @@ function resolveProjectPath(projectRoot: string, authoredPath: string): string {
   }
 
   return path.resolve(projectRoot, authoredPath);
+}
+
+function resolveTTSConfig(authoredTTS: DemoHunterUserConfig["tts"]): ResolvedDemoHunterConfig["tts"] {
+  if (authoredTTS?.provider === "elevenlabs") {
+    return {
+      ...DEFAULT_ELEVENLABS_TTS_CONFIG,
+      ...authoredTTS,
+    };
+  }
+
+  return {
+    ...DEFAULT_TTS_CONFIG,
+    ...authoredTTS,
+    provider: "openai",
+  };
 }

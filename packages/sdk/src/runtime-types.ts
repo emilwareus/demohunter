@@ -1,5 +1,5 @@
 import type { Locator, Page, Response } from "playwright";
-import type { ResolvedDemoHunterConfig } from "./config.js";
+import type { ElevenLabsVoiceSettings, ResolvedDemoHunterConfig } from "./config.js";
 
 export type ChapterOptions = {
   id?: string;
@@ -7,7 +7,10 @@ export type ChapterOptions = {
 
 export type NarrateOptions = {
   voice?: string;
+  model?: string;
+  format?: string;
   instructions?: string;
+  voiceSettings?: ElevenLabsVoiceSettings;
   cacheKeyHint?: string;
 };
 

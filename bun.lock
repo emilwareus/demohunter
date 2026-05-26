@@ -39,7 +39,7 @@
     },
     "packages/cli": {
       "name": "demohunter",
-      "version": "0.1.0",
+      "version": "0.1.2",
       "bin": {
         "demohunter": "./dist/bin/demohunter.js",
       },
@@ -63,6 +63,7 @@
         "@demohunter/manifest": "workspace:*",
         "@demohunter/sdk": "workspace:*",
         "@demohunter/tts-core": "workspace:*",
+        "@demohunter/tts-elevenlabs": "workspace:*",
         "@demohunter/tts-openai": "workspace:*",
         "playwright": ">=1.59",
       },
@@ -88,6 +89,13 @@
       "name": "@demohunter/tts-core",
       "version": "0.0.0",
     },
+    "packages/tts-elevenlabs": {
+      "name": "@demohunter/tts-elevenlabs",
+      "version": "0.0.0",
+      "dependencies": {
+        "@demohunter/tts-core": "workspace:*",
+      },
+    },
     "packages/tts-openai": {
       "name": "@demohunter/tts-openai",
       "version": "0.0.0",
@@ -104,6 +112,8 @@
     "@demohunter/sdk": ["@demohunter/sdk@workspace:packages/sdk"],
 
     "@demohunter/tts-core": ["@demohunter/tts-core@workspace:packages/tts-core"],
+
+    "@demohunter/tts-elevenlabs": ["@demohunter/tts-elevenlabs@workspace:packages/tts-elevenlabs"],
 
     "@demohunter/tts-openai": ["@demohunter/tts-openai@workspace:packages/tts-openai"],
 

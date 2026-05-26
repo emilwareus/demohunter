@@ -182,6 +182,13 @@ function improveGenerateError(input: {
     );
   }
 
+  if (message.includes("ELEVENLABS_API_KEY")) {
+    return new Error(
+      `Narration requires uncached ElevenLabs speech, but ELEVENLABS_API_KEY is not set. Export ELEVENLABS_API_KEY and retry, or rerun after the narration cache has already been populated.\nOriginal error: ${message}`,
+      { cause: input.error },
+    );
+  }
+
   if (isBaseUrlReachabilityError(message)) {
     const baseURL = input.loadedConfig?.config.baseURL ?? readFirstUrl(message) ?? "your configured baseURL";
 

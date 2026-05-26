@@ -1,0 +1,170 @@
+import assert from "node:assert/strict";
+import { afterEach, describe, test } from "node:test";
+
+import { createElevenLabsNarrationProvider } from "./index.js";
+
+const originalApiKey = process.env.ELEVENLABS_API_KEY;
+
+afterEach(() => {
+  if (originalApiKey === undefined) {
+    delete process.env.ELEVENLABS_API_KEY;
+    return;
+  }
+
+  process.env.ELEVENLABS_API_KEY = originalApiKey;
+});
+
+describe("createElevenLabsNarrationProvider", () => {
+  test("throws only when synthesis is attempted without ELEVENLABS_API_KEY", async () => {
+    delete process.env.ELEVENLABS_API_KEY;
+    let fetchCalls = 0;
+    const provider = createElevenLabsNarrationProvider({
+      fetch: async () => {
+        fetchCalls += 1;
+        return new Response(new Uint8Array([1]));
+      },
+    });
+
+    await assert.rejects(
+      () =>
+        provider.synthesize(
+          createRequest({
+            text: "Explain billing",
+          }),
+        ),
+      /ELEVENLABS_API_KEY/,
+    );
+    assert.equal(fetchCalls, 0);
+  });
+
+  test("shapes the speech request with voice, model, format, and voice settings", async () => {
+    process.env.ELEVENLABS_API_KEY = "test-elevenlabs-key";
+    const calls: Array<{ input: RequestInfo | URL; init?: RequestInit }> = [];
+    const provider = createElevenLabsNarrationProvider({
+      fetch: async (input, init) => {
+        calls.push({ input, init });
+        return new Response(new Uint8Array([1, 2, 3]), {
+          headers: { "content-type": "audio/mpeg" },
+          status: 200,
+        });
+      },
+    });
+
+    const request = createRequest({
+      voice: "voice/id with spaces",
+      model: "eleven_flash_v2_5",
+      format: "mp3_44100_128",
+      sampleRate: 44_100,
+      text: "Explain billing",
+      providerOptions: {
+        voiceSettings: {
+          stability: 0.42,
+          similarityBoost: 0.86,
+          style: 0.15,
+          useSpeakerBoost: false,
+          speed: 1.05,
+        },
+      },
+    });
+
+    const result = await provider.synthesize(request);
+    const call = calls[0];
+    const url = new URL(String(call.input));
+    const headers = new Headers(call.init?.headers);
+    const body = JSON.parse(String(call.init?.body));
+
+    assert.equal(calls.length, 1);
+    assert.equal(url.origin + url.pathname, "https://api.elevenlabs.io/v1/text-to-speech/voice%2Fid%20with%20spaces");
+    assert.equal(url.searchParams.get("output_format"), "mp3_44100_128");
+    assert.equal(call.init?.method, "POST");
+    assert.equal(headers.get("xi-api-key"), "test-elevenlabs-key");
+    assert.equal(headers.get("content-type"), "application/json");
+    assert.deepEqual(body, {
+      text: "Explain billing",
+      model_id: "eleven_flash_v2_5",
+      voice_settings: {
+        stability: 0.42,
+        similarity_boost: 0.86,
+        style: 0.15,
+        use_speaker_boost: false,
+        speed: 1.05,
+      },
+    });
+    assert.deepEqual(result.metadata, {
+      provider: "elevenlabs",
+      model: "eleven_flash_v2_5",
+      voice: "voice/id with spaces",
+      format: "mp3_44100_128",
+      sampleRate: 44_100,
+      providerOptions: request.providerOptions,
+    });
+  });
+
+  test("returns raw audio bytes and provider metadata without cache-specific behavior", async () => {
+    process.env.ELEVENLABS_API_KEY = "test-key";
+    const provider = createElevenLabsNarrationProvider({
+      fetch: async () =>
+        new Response(new Uint8Array([9, 8, 7]), {
+          headers: { "content-type": "audio/mpeg" },
+          status: 200,
+        }),
+    });
+    const request = createRequest({
+      text: "Narrate the billing dashboard.",
+    });
+
+    const result = await provider.synthesize(request);
+
+    assert.deepEqual(result.request, request);
+    assert.deepEqual(result.output, {
+      kind: "bytes",
+      bytes: new Uint8Array([9, 8, 7]),
+    });
+    assert.equal("cacheKey" in (result as Record<string, unknown>), false);
+    assert.equal("path" in (result as Record<string, unknown>), false);
+  });
+
+  test("surfaces non-2xx ElevenLabs responses with status details", async () => {
+    process.env.ELEVENLABS_API_KEY = "test-key";
+    const provider = createElevenLabsNarrationProvider({
+      fetch: async () =>
+        new Response("bad request", {
+          status: 400,
+          statusText: "Bad Request",
+        }),
+    });
+
+    await assert.rejects(
+      () =>
+        provider.synthesize(
+          createRequest({
+            text: "Narrate the billing dashboard.",
+          }),
+        ),
+      /ElevenLabs speech synthesis failed \(400 Bad Request\): bad request/,
+    );
+  });
+});
+
+function createRequest(
+  input: Partial<{
+    model: string;
+    voice: string;
+    format: string;
+    sampleRate: number;
+    instructions: string;
+    providerOptions: Record<string, unknown>;
+    text: string;
+  }> = {},
+) {
+  return {
+    provider: "elevenlabs" as const,
+    model: input.model ?? "eleven_multilingual_v2",
+    voice: input.voice ?? "JBFqnCBsd6RMkjVDRZzb",
+    format: input.format ?? "mp3_44100_128",
+    sampleRate: input.sampleRate ?? 44_100,
+    instructions: input.instructions ?? "",
+    providerOptions: input.providerOptions,
+    text: input.text ?? "Explain billing",
+  };
+}

@@ -14,6 +14,9 @@
       "path": "./packages/tts-core"
     },
     {
+      "path": "./packages/tts-elevenlabs"
+    },
+    {
       "path": "./packages/tts-openai"
     }
   ]

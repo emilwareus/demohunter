@@ -6,6 +6,7 @@ import { pathToFileURL } from "node:url";
 
 import {
   DEFAULT_DEMOHUNTER_CONFIG,
+  DEFAULT_ELEVENLABS_TTS_CONFIG,
   DEFAULT_RECORD_CONFIG,
   DEFAULT_TTS_CONFIG,
 } from "../../../sdk/src/index.js";
@@ -157,6 +158,37 @@ describe("loadConfig", () => {
     expect(loaded.config.tts).toEqual({
       ...DEFAULT_TTS_CONFIG,
       ...override,
+    });
+  });
+
+  test("uses ElevenLabs provider defaults when tts.provider is elevenlabs", async () => {
+    const cwd = await writeConfig(`
+      export default {
+        baseURL: "http://localhost:4173",
+        tts: {
+          provider: "elevenlabs",
+          voice: "voice-id-from-library",
+          voiceSettings: {
+            stability: 0.42,
+            similarityBoost: 0.86,
+            style: 0.15,
+            useSpeakerBoost: false
+          }
+        }
+      };
+    `);
+
+    const loaded = await loadConfig(cwd);
+
+    expect(loaded.config.tts).toEqual({
+      ...DEFAULT_ELEVENLABS_TTS_CONFIG,
+      voice: "voice-id-from-library",
+      voiceSettings: {
+        stability: 0.42,
+        similarityBoost: 0.86,
+        style: 0.15,
+        useSpeakerBoost: false,
+      },
     });
   });
 

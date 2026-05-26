@@ -9,7 +9,7 @@ Two workflows are especially useful:
 - **Product, docs, and DevRel**: keep marketing pages, release notes, and onboarding videos in sync with the product by generating demos from repeatable scripts.
 - **AI coding agents**: let an agent attach a narrated demo of its work to a pull request so reviewers can see the changed flow in motion.
 
-DemoHunter is local-first. It does not require a hosted backend, and OpenAI is used only for text-to-speech when uncached narration needs to be generated.
+DemoHunter is local-first. It does not require a hosted backend, and OpenAI or ElevenLabs is used only for text-to-speech when uncached narration needs to be generated.
 
 ## Features
 
@@ -21,10 +21,11 @@ DemoHunter is local-first. It does not require a hosted backend, and OpenAI is u
 - [x] All three Playwright browsers: Chromium, Firefox, WebKit.
 - [x] Per-call voice and tone overrides on `narrate()`.
 - [x] OpenAI TTS (`gpt-4o-mini-tts`, `tts-1`, `tts-1-hd`).
+- [x] ElevenLabs TTS with configurable voice IDs and voice settings.
 - [x] Portable `manifest.json` with sha256 checksums.
 - [x] Offline regeneration when narration is fully cached.
 - [x] Agent skill for Claude and Codex.
-- [ ] Other AI voice providers (ElevenLabs, Cartesia, local Piper).
+- [ ] Other AI voice providers (Cartesia, local Piper).
 - [ ] Background music and sound effects.
 - [ ] Hosted / cloud generation.
 - [ ] Cursor agent skill.
@@ -38,9 +39,11 @@ PRs welcome on anything unchecked.
 npm install --save-dev demohunter
 npx playwright install chromium
 export OPENAI_API_KEY=sk-...
+# or, with tts.provider: "elevenlabs"
+export ELEVENLABS_API_KEY=...
 ```
 
-You also need `ffmpeg` and `ffprobe` on your `PATH`. `OPENAI_API_KEY` is only required when generating narration that is not already cached.
+You also need `ffmpeg` and `ffprobe` on your `PATH`. A provider API key is only required when generating narration that is not already cached.
 
 ## Quick start
 
@@ -104,6 +107,27 @@ export default defineConfig({
   // viewport: { width: 1440, height: 900 },
 });
 ```
+
+OpenAI remains the default TTS provider and reads `OPENAI_API_KEY` only when uncached narration is needed. To use ElevenLabs instead:
+
+```ts
+export default defineConfig({
+  baseURL: "http://localhost:3000",
+  tts: {
+    provider: "elevenlabs",
+    voice: "JBFqnCBsd6RMkjVDRZzb",
+    model: "eleven_multilingual_v2",
+    format: "mp3_44100_128",
+    voiceSettings: {
+      stability: 0.5,
+      similarityBoost: 0.75,
+      useSpeakerBoost: true,
+    },
+  },
+});
+```
+
+Export `ELEVENLABS_API_KEY` for uncached ElevenLabs narration. Individual calls can override voice, model, format, and voice settings: `narrate("...", { voice: "other-voice-id" })`.
 
 ## Output
 

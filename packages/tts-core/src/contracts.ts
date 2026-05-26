@@ -6,7 +6,11 @@ export const OPENAI_NARRATION_MODELS = [
 
 export const DEFAULT_OPENAI_NARRATION_MODEL = "gpt-4o-mini-tts";
 
-export type NarrationProviderName = "openai";
+export const DEFAULT_ELEVENLABS_NARRATION_MODEL = "eleven_multilingual_v2";
+
+export type NarrationProviderName = "openai" | "elevenlabs";
+
+export type NarrationProviderOptions = Record<string, unknown>;
 
 export type NarrationRequest = {
   provider: NarrationProviderName;
@@ -15,6 +19,7 @@ export type NarrationRequest = {
   format: string;
   sampleRate: number;
   instructions: string;
+  providerOptions?: NarrationProviderOptions;
   text: string;
 };
 
@@ -32,7 +37,7 @@ export type NarrationSynthesisOutput =
 
 export type NarrationSynthesisMetadata = Pick<
   NarrationRequest,
-  "provider" | "model" | "voice" | "format" | "sampleRate"
+  "provider" | "model" | "voice" | "format" | "sampleRate" | "providerOptions"
 >;
 
 export type NarrationSynthesisResult = {

@@ -3,6 +3,7 @@ import {
   resolveNarrationFromCache,
   type NarrationProvider,
 } from "@demohunter/tts-core";
+import { createElevenLabsNarrationProvider } from "@demohunter/tts-elevenlabs";
 import { createOpenAINarrationProvider } from "@demohunter/tts-openai";
 
 import type { NarrationRuntimeEvent, NarrationSegment } from "../execute/generator-types.js";
@@ -24,11 +25,15 @@ type ResolveNarrationSegmentDependencies = {
 
 const defaultDependencies: ResolveNarrationSegmentDependencies = {
   createProvider: (loadedConfig) => {
-    switch (loadedConfig.config.tts.provider) {
+    const providerName = loadedConfig.config.tts.provider;
+
+    switch (providerName) {
       case "openai":
         return createOpenAINarrationProvider();
+      case "elevenlabs":
+        return createElevenLabsNarrationProvider();
       default:
-        throw new Error(`Unsupported narration provider: ${loadedConfig.config.tts.provider}`);
+        throw new Error(`Unsupported narration provider: ${String(providerName)}`);
     }
   },
   resolveNarrationFromCache,
@@ -45,11 +50,12 @@ export async function resolveNarrationSegment(
   const { config } = input.loadedConfig;
   const request = createNarrationRequest({
     provider: config.tts.provider,
-    model: config.tts.model,
+    model: input.event.model ?? config.tts.model,
     voice: input.event.voice ?? config.tts.voice,
-    format: config.tts.format,
-    sampleRate: DEFAULT_NARRATION_SAMPLE_RATE,
+    format: input.event.format ?? config.tts.format,
+    sampleRate: resolveNarrationSampleRate(input.event.format ?? config.tts.format),
     instructions: input.event.instructions ?? config.tts.instructions,
+    providerOptions: resolveProviderOptions(config.tts, input.event),
     text: input.event.text,
   });
 
@@ -68,7 +74,10 @@ export async function resolveNarrationSegment(
       text: request.text,
     };
   } catch (error) {
-    if (error instanceof Error && error.message.includes("OPENAI_API_KEY")) {
+    if (
+      error instanceof Error &&
+      (error.message.includes("OPENAI_API_KEY") || error.message.includes("ELEVENLABS_API_KEY"))
+    ) {
       throw new Error(
         `Unable to resolve narration segment ${JSON.stringify(request.text)} because ${error.message}`,
         { cause: error },
@@ -77,4 +86,33 @@ export async function resolveNarrationSegment(
 
     throw error;
   }
+}
+
+function resolveProviderOptions(
+  tts: SmokeGenerateInput["loadedConfig"]["config"]["tts"],
+  event: NarrationRuntimeEvent,
+): Record<string, unknown> | undefined {
+  if (tts.provider !== "elevenlabs") {
+    return undefined;
+  }
+
+  const voiceSettings = event.voiceSettings ?? tts.voiceSettings;
+
+  if (voiceSettings === undefined) {
+    return undefined;
+  }
+
+  return {
+    voiceSettings,
+  };
+}
+
+function resolveNarrationSampleRate(format: string): number {
+  const match = /_(\d+)(?:_|$)/.exec(format);
+
+  if (match === null) {
+    return DEFAULT_NARRATION_SAMPLE_RATE;
+  }
+
+  return Number.parseInt(match[1], 10);
 }

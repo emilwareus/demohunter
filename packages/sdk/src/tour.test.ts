@@ -142,8 +142,13 @@ describe("defineTour", () => {
       await step("Open billing", async () => {
         await narrate("This is the billing dashboard.", {
           cacheKeyHint: "billing-dashboard",
+          format: "mp3_44100_128",
           instructions: "Speak clearly.",
+          model: "eleven_multilingual_v2",
           voice: "marin",
+          voiceSettings: {
+            stability: 0.45,
+          },
         });
         await narrateWhile("Now the dashboard updates while narration continues.", async ({ sleep }) => {
           expectType<DemoHunterNarrationTimeline["sleep"]>(sleep);
