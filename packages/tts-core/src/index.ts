@@ -1,4 +1,5 @@
 export {
+  DEFAULT_ELEVENLABS_NARRATION_MODEL,
   DEFAULT_OPENAI_NARRATION_MODEL,
   OPENAI_NARRATION_MODELS,
   createNarrationRequest,
@@ -22,6 +23,7 @@ export {
 export type {
   NarrationProvider,
   NarrationProviderName,
+  NarrationProviderOptions,
   NarrationRequest,
   NarrationRequestInput,
   NarrationSynthesisMetadata,

@@ -14,13 +14,38 @@ export type RecordConfig = {
   format: RecordFormat;
 };
 
-export type TTSConfig = {
+export type TTSProviderName = "openai" | "elevenlabs";
+
+export type ElevenLabsVoiceSettings = {
+  stability?: number;
+  similarityBoost?: number;
+  style?: number;
+  useSpeakerBoost?: boolean;
+  speed?: number;
+};
+
+export type OpenAITTSConfig = {
   provider: "openai";
   model: string;
   voice: string;
   format: string;
   instructions: string;
 };
+
+export type ElevenLabsTTSConfig = {
+  provider: "elevenlabs";
+  model: string;
+  voice: string;
+  format: string;
+  instructions: string;
+  voiceSettings?: ElevenLabsVoiceSettings;
+};
+
+export type TTSConfig = OpenAITTSConfig | ElevenLabsTTSConfig;
+
+export type DemoHunterUserTTSConfig =
+  | (Partial<Omit<OpenAITTSConfig, "provider">> & { provider?: "openai" })
+  | (Partial<Omit<ElevenLabsTTSConfig, "provider">> & { provider: "elevenlabs" });
 
 export type DemoHunterUserConfig = {
   baseURL: string;
@@ -30,7 +55,7 @@ export type DemoHunterUserConfig = {
   viewport?: ViewportConfig;
   holdPaddingMs?: number;
   record?: Partial<RecordConfig>;
-  tts?: Partial<TTSConfig>;
+  tts?: DemoHunterUserTTSConfig;
 };
 
 export type ResolvedDemoHunterConfig = {
@@ -50,7 +75,10 @@ export type ChapterOptions = {
 
 export type NarrateOptions = {
   voice?: string;
+  model?: string;
+  format?: string;
   instructions?: string;
+  voiceSettings?: ElevenLabsVoiceSettings;
   cacheKeyHint?: string;
 };
 
@@ -147,6 +175,19 @@ export const DEFAULT_TTS_CONFIG: TTSConfig = {
   voice: "marin",
   format: "mp3",
   instructions: "Speak clearly, calm, concise, product-demo style.",
+};
+
+export const DEFAULT_ELEVENLABS_TTS_CONFIG: ElevenLabsTTSConfig = {
+  provider: "elevenlabs",
+  model: "eleven_multilingual_v2",
+  voice: "JBFqnCBsd6RMkjVDRZzb",
+  format: "mp3_44100_128",
+  instructions: "",
+  voiceSettings: {
+    stability: 0.5,
+    similarityBoost: 0.75,
+    useSpeakerBoost: true,
+  },
 };
 
 export const DEFAULT_DEMOHUNTER_CONFIG: Omit<ResolvedDemoHunterConfig, "baseURL"> = {

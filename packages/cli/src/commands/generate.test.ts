@@ -196,6 +196,20 @@ describe("generateCommand", () => {
     ).rejects.toThrow(
       'Narration requires uncached OpenAI speech, but OPENAI_API_KEY is not set. Export OPENAI_API_KEY and retry, or rerun after the narration cache has already been populated.',
     );
+
+    await expect(
+      generateCommand(cwd, "demos/sample.tour.ts", {
+        generateTour: async () => {
+          throw new Error(
+            'Unable to resolve narration segment "Explain billing" because ELEVENLABS_API_KEY is required.',
+          );
+        },
+        loadConfig: async () => makeLoadedConfig(cwd),
+        log: () => {},
+      }),
+    ).rejects.toThrow(
+      'Narration requires uncached ElevenLabs speech, but ELEVENLABS_API_KEY is not set. Export ELEVENLABS_API_KEY and retry, or rerun after the narration cache has already been populated.',
+    );
   });
 
   test("turns unreachable baseURL navigation failures into an app-readiness hint", async () => {

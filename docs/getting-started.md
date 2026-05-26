@@ -7,7 +7,7 @@ This guide walks through installing DemoHunter, scaffolding a starter tour, and 
 - Node.js 20+
 - `ffmpeg` and `ffprobe` on your `PATH`
 - A Playwright Chromium runtime (installed once: `npx playwright install chromium`)
-- `OPENAI_API_KEY` only when generating uncached narration
+- `OPENAI_API_KEY` or `ELEVENLABS_API_KEY` only when generating uncached narration
 
 ## Install
 
@@ -84,6 +84,27 @@ export OPENAI_API_KEY=sk-...
 npx demohunter generate demos/billing-overview.tour.ts --dry-run
 npx demohunter generate demos/billing-overview.tour.ts
 ```
+
+OpenAI is the default narration provider. To use ElevenLabs, set `tts.provider` and a voice ID in `demohunter.config.ts`, then export `ELEVENLABS_API_KEY` before generating:
+
+```ts
+export default {
+  baseURL: "http://localhost:3000",
+  tts: {
+    provider: "elevenlabs",
+    voice: "JBFqnCBsd6RMkjVDRZzb",
+    model: "eleven_multilingual_v2",
+    format: "mp3_44100_128",
+    voiceSettings: {
+      stability: 0.5,
+      similarityBoost: 0.75,
+      useSpeakerBoost: true,
+    },
+  },
+};
+```
+
+Use `narrate("...", { voice: "other-voice-id" })` or `narrateWhile(...)` options when a single segment should use a different voice, model, format, or ElevenLabs voice settings.
 
 ## Install the agent skill (optional)
 

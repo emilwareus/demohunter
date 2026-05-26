@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 
 import {
   DEFAULT_DEMOHUNTER_CONFIG,
+  DEFAULT_ELEVENLABS_TTS_CONFIG,
   DEFAULT_RECORD_CONFIG,
   DEFAULT_TTS_CONFIG,
   defineConfig,
@@ -28,8 +29,27 @@ describe("sdk entrypoint", () => {
   test("re-exports config helpers and defaults", () => {
     expect(sdk.defineConfig).toBe(defineConfig);
     expect(sdk.DEFAULT_DEMOHUNTER_CONFIG).toBe(DEFAULT_DEMOHUNTER_CONFIG);
+    expect(sdk.DEFAULT_ELEVENLABS_TTS_CONFIG).toBe(DEFAULT_ELEVENLABS_TTS_CONFIG);
     expect(sdk.DEFAULT_RECORD_CONFIG).toBe(DEFAULT_RECORD_CONFIG);
     expect(sdk.DEFAULT_TTS_CONFIG).toBe(DEFAULT_TTS_CONFIG);
+  });
+});
+
+describe("tts defaults", () => {
+  test("keeps OpenAI as the default while exporting ElevenLabs defaults", () => {
+    expect(DEFAULT_TTS_CONFIG.provider).toBe("openai");
+    expect(DEFAULT_ELEVENLABS_TTS_CONFIG).toEqual({
+      provider: "elevenlabs",
+      model: "eleven_multilingual_v2",
+      voice: "JBFqnCBsd6RMkjVDRZzb",
+      format: "mp3_44100_128",
+      instructions: "",
+      voiceSettings: {
+        stability: 0.5,
+        similarityBoost: 0.75,
+        useSpeakerBoost: true,
+      },
+    });
   });
 });
 

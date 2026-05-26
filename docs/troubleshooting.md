@@ -23,15 +23,21 @@ ffprobe -version
 
 DemoHunter uses `ffmpeg` to mux audio into video and capture poster frames.
 
-## `OPENAI_API_KEY is not set`
+## `OPENAI_API_KEY is not set` or `ELEVENLABS_API_KEY is not set`
 
-DemoHunter only needs `OPENAI_API_KEY` when generating *uncached* narration.
+DemoHunter only needs a provider API key when generating *uncached* narration.
 
 - If every narration string is already in `.demohunter/cache/`, generation runs offline.
-- For new strings, export the key:
+- For new OpenAI strings, export:
 
 ```sh
 export OPENAI_API_KEY=sk-...
+```
+
+- For new ElevenLabs strings, export:
+
+```sh
+export ELEVENLABS_API_KEY=...
 ```
 
 DemoHunter does not store credentials.

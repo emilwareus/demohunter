@@ -1,5 +1,6 @@
 export {
   DEFAULT_DEMOHUNTER_CONFIG,
+  DEFAULT_ELEVENLABS_TTS_CONFIG,
   DEFAULT_RECORD_CONFIG,
   DEFAULT_TTS_CONFIG,
   DEFAULT_VIEWPORT_CONFIG,
@@ -7,11 +8,16 @@ export {
 } from "./config.js";
 export type {
   BrowserName,
+  DemoHunterUserTTSConfig,
+  ElevenLabsTTSConfig,
+  ElevenLabsVoiceSettings,
+  OpenAITTSConfig,
   DemoHunterUserConfig,
   RecordConfig,
   RecordFormat,
   ResolvedDemoHunterConfig,
   TTSConfig,
+  TTSProviderName,
   ViewportConfig,
 } from "./config.js";
 export { defineTour } from "./tour.js";

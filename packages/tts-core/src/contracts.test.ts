@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 
 import {
+  DEFAULT_ELEVENLABS_NARRATION_MODEL,
   DEFAULT_OPENAI_NARRATION_MODEL,
   OPENAI_NARRATION_MODELS,
   createNarrationRequest,
@@ -22,6 +23,11 @@ describe("narration contracts", () => {
       format: "wav",
       sampleRate: 24_000,
       instructions: "Keep it brisk.",
+      providerOptions: {
+        voiceSettings: {
+          stability: 0.4,
+        },
+      },
       text: "  Cafe\u0301 launch \r\n\t now  ",
     });
 
@@ -32,6 +38,11 @@ describe("narration contracts", () => {
       format: "wav",
       sampleRate: 24_000,
       instructions: "Keep it brisk.",
+      providerOptions: {
+        voiceSettings: {
+          stability: 0.4,
+        },
+      },
       text: "Café launch\nnow",
     });
   });
@@ -107,6 +118,7 @@ describe("narration contracts", () => {
 
   test("pins the supported OpenAI speech models with gpt-4o-mini-tts as the default", () => {
     assert.equal(DEFAULT_OPENAI_NARRATION_MODEL, "gpt-4o-mini-tts");
+    assert.equal(DEFAULT_ELEVENLABS_NARRATION_MODEL, "eleven_multilingual_v2");
     assert.deepEqual(OPENAI_NARRATION_MODELS, [
       "gpt-4o-mini-tts",
       "tts-1",

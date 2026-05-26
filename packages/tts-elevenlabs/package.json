@@ -1,5 +1,5 @@
 {
-  "name": "@demohunter/generator-playwright",
+  "name": "@demohunter/tts-elevenlabs",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -12,16 +12,11 @@
       "default": "./dist/index.js"
     }
   },
+  "dependencies": {
+    "@demohunter/tts-core": "workspace:*"
+  },
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json"
-  },
-  "dependencies": {
-    "@demohunter/manifest": "workspace:*",
-    "@demohunter/sdk": "workspace:*",
-    "@demohunter/tts-core": "workspace:*",
-    "@demohunter/tts-elevenlabs": "workspace:*",
-    "@demohunter/tts-openai": "workspace:*",
-    "playwright": ">=1.59"
   }
 }

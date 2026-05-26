@@ -40,6 +40,7 @@ describe("createNarrationCacheKey", () => {
       { ...BASE_REQUEST, instructions: "Speak like a warm launch keynote." },
       { ...BASE_REQUEST, format: "wav" },
       { ...BASE_REQUEST, sampleRate: 48_000 },
+      { ...BASE_REQUEST, providerOptions: { voiceSettings: { stability: 0.4 } } },
       { ...BASE_REQUEST, text: "Different narration text" },
     ];
 
@@ -65,6 +66,29 @@ describe("createNarrationCacheKey", () => {
     const second = createNarrationCacheKey(BASE_REQUEST);
 
     assert.match(first, /^[a-f0-9]{64}$/);
+    assert.equal(second, first);
+  });
+
+  test("normalizes provider option object key order before hashing", () => {
+    const first = createNarrationCacheKey({
+      ...BASE_REQUEST,
+      providerOptions: {
+        voiceSettings: {
+          stability: 0.35,
+          similarityBoost: 0.8,
+        },
+      },
+    });
+    const second = createNarrationCacheKey({
+      ...BASE_REQUEST,
+      providerOptions: {
+        voiceSettings: {
+          similarityBoost: 0.8,
+          stability: 0.35,
+        },
+      },
+    });
+
     assert.equal(second, first);
   });
 });

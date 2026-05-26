@@ -4,10 +4,12 @@ import os from "node:os";
 import path from "node:path";
 
 import { createNarrationRequest, resolveNarrationFromCache } from "@demohunter/tts-core";
+import type { ResolveNarrationFromCacheOptions } from "@demohunter/tts-core";
 
 import { resolveNarrationSegment } from "./resolve-narration.js";
 
 const originalApiKey = process.env.OPENAI_API_KEY;
+const originalElevenLabsApiKey = process.env.ELEVENLABS_API_KEY;
 const tempRoots: string[] = [];
 
 afterEach(async () => {
@@ -15,6 +17,12 @@ afterEach(async () => {
     delete process.env.OPENAI_API_KEY;
   } else {
     process.env.OPENAI_API_KEY = originalApiKey;
+  }
+
+  if (originalElevenLabsApiKey === undefined) {
+    delete process.env.ELEVENLABS_API_KEY;
+  } else {
+    process.env.ELEVENLABS_API_KEY = originalElevenLabsApiKey;
   }
 
   await Promise.all(tempRoots.splice(0).map((tempRoot) => rm(tempRoot, { force: true, recursive: true })));
@@ -92,6 +100,119 @@ describe("resolveNarrationSegment", () => {
       }),
     ).rejects.toThrow(/OPENAI_API_KEY/);
   });
+
+  test("builds ElevenLabs requests from config and per-call narration overrides", async () => {
+    const projectRoot = await makeTempProject();
+    let capturedRequest: ResolveNarrationFromCacheOptions["request"] | undefined;
+
+    const segment = await resolveNarrationSegment(
+      {
+        event: {
+          chapterTitle: "Billing",
+          format: "mp3_22050_32",
+          kind: "narrate",
+          model: "eleven_flash_v2_5",
+          text: "Explain the billing dashboard",
+          voice: "per-segment-voice",
+          voiceSettings: {
+            stability: 0.21,
+            similarityBoost: 0.92,
+          },
+        },
+        loadedConfig: createLoadedConfig(projectRoot, {
+          provider: "elevenlabs",
+          model: "eleven_multilingual_v2",
+          voice: "default-voice",
+          format: "mp3_44100_128",
+          instructions: "",
+          voiceSettings: {
+            stability: 0.5,
+            similarityBoost: 0.75,
+            useSpeakerBoost: true,
+          },
+        }),
+      },
+      {
+        createProvider: () => ({
+          async synthesize() {
+            throw new Error("provider should not be called by this test double");
+          },
+        }),
+        resolveNarrationFromCache: async (options) => {
+          capturedRequest = options.request;
+
+          return {
+            source: "provider",
+            entry: {
+              audioPath: path.join(projectRoot, ".demohunter", "cache", "elevenlabs.mp3"),
+              byteSize: 3,
+              durationMs: 654,
+              key: "elevenlabs-cache-key",
+              metadataPath: path.join(projectRoot, ".demohunter", "cache", "elevenlabs.json"),
+              metadata: {
+                createdAt: "2026-05-26T00:00:00.000Z",
+                key: "elevenlabs-cache-key",
+                output: {
+                  audioPath: path.join(projectRoot, ".demohunter", "cache", "elevenlabs.mp3"),
+                  byteSize: 3,
+                  durationMs: 654,
+                  format: "mp3_22050_32",
+                  sha256: "abc",
+                },
+                request: options.request,
+                version: 1,
+              },
+            },
+          };
+        },
+      },
+    );
+
+    expect(capturedRequest).toEqual({
+      provider: "elevenlabs",
+      model: "eleven_flash_v2_5",
+      voice: "per-segment-voice",
+      format: "mp3_22050_32",
+      sampleRate: 22_050,
+      instructions: "",
+      providerOptions: {
+        voiceSettings: {
+          stability: 0.21,
+          similarityBoost: 0.92,
+        },
+      },
+      text: "Explain the billing dashboard",
+    });
+    expect(segment).toEqual({
+      audioPath: path.join(projectRoot, ".demohunter", "cache", "elevenlabs.mp3"),
+      cacheKey: "elevenlabs-cache-key",
+      chapterTitle: "Billing",
+      durationMs: 654,
+      text: "Explain the billing dashboard",
+    });
+  });
+
+  test("fails clearly when uncached narration requires ELEVENLABS_API_KEY", async () => {
+    const projectRoot = await makeTempProject();
+    delete process.env.ELEVENLABS_API_KEY;
+
+    await expect(
+      resolveNarrationSegment({
+        event: {
+          chapterTitle: "Billing",
+          kind: "narrate",
+          text: "Explain the billing dashboard",
+        },
+        loadedConfig: createLoadedConfig(projectRoot, {
+          provider: "elevenlabs",
+          model: "eleven_multilingual_v2",
+          voice: "JBFqnCBsd6RMkjVDRZzb",
+          format: "mp3_44100_128",
+          instructions: "",
+        }),
+      }),
+    ).rejects.toThrow(/ELEVENLABS_API_KEY/);
+  });
 });
 
 async function makeTempProject(): Promise<string> {
@@ -100,7 +221,35 @@ async function makeTempProject(): Promise<string> {
   return tempRoot;
 }
 
-function createLoadedConfig(projectRoot: string) {
+function createLoadedConfig(
+  projectRoot: string,
+  tts: {
+    provider: "openai";
+    model: string;
+    voice: string;
+    format: string;
+    instructions: string;
+  } | {
+    provider: "elevenlabs";
+    model: string;
+    voice: string;
+    format: string;
+    instructions: string;
+    voiceSettings?: {
+      stability?: number;
+      similarityBoost?: number;
+      style?: number;
+      useSpeakerBoost?: boolean;
+      speed?: number;
+    };
+  } = {
+    provider: "openai" as const,
+    model: "gpt-4o-mini-tts",
+    voice: "marin",
+    format: "mp3",
+    instructions: "Speak clearly.",
+  },
+) {
   return {
     config: {
       baseURL: "http://localhost:3000",
@@ -110,13 +259,7 @@ function createLoadedConfig(projectRoot: string) {
       viewport: { width: 1280, height: 720 },
       holdPaddingMs: 300,
       record: { format: "mp4" as const, showActions: true, showChapters: true },
-      tts: {
-        provider: "openai" as const,
-        model: "gpt-4o-mini-tts",
-        voice: "marin",
-        format: "mp3",
-        instructions: "Speak clearly.",
-      },
+      tts,
     },
     configPath: path.join(projectRoot, "demohunter.config.ts"),
     projectRoot,
