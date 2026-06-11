@@ -43,7 +43,7 @@ export function createOpenAINarrationProvider(
         body: JSON.stringify({
           model: request.model,
           voice: request.voice,
-          instructions: request.instructions,
+          instructions: createInstructions(request),
           response_format: request.format,
           input: request.text,
         }),
@@ -72,10 +72,23 @@ export function createOpenAINarrationProvider(
           voice: request.voice,
           format: request.format,
           sampleRate: request.sampleRate,
+          language: request.language,
         },
       };
     },
   };
+}
+
+function createInstructions(request: NarrationRequest): string {
+  if (request.language === undefined || request.language.trim() === "") {
+    return request.instructions;
+  }
+
+  const languageInstruction = `Use the language and native accent matching ${request.language}.`;
+
+  return request.instructions.trim() === ""
+    ? languageInstruction
+    : `${request.instructions.trim()} ${languageInstruction}`;
 }
 
 async function readFailureDetail(response: Response): Promise<string> {

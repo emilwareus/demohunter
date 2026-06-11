@@ -103,7 +103,7 @@ import { defineConfig } from "demohunter";
 
 export default defineConfig({
   baseURL: "http://localhost:3000",
-  // tts: { voice: "marin", model: "gpt-4o-mini-tts" },
+  // tts: { voice: "marin", model: "gpt-4o-mini-tts", language: "sv" },
   // viewport: { width: 1440, height: 900 },
 });
 ```
@@ -118,6 +118,7 @@ export default defineConfig({
     voice: "JBFqnCBsd6RMkjVDRZzb",
     model: "eleven_multilingual_v2",
     format: "mp3_44100_128",
+    language: "sv",
     voiceSettings: {
       stability: 0.5,
       similarityBoost: 0.75,
@@ -127,7 +128,8 @@ export default defineConfig({
 });
 ```
 
-Export `ELEVENLABS_API_KEY` for uncached ElevenLabs narration. Individual calls can override voice, model, format, and voice settings: `narrate("...", { voice: "other-voice-id" })`.
+Export `ELEVENLABS_API_KEY` for uncached ElevenLabs narration. Individual calls can override voice, model, format, language, and voice settings: `narrate("...", { voice: "other-voice-id", language: "sv" })`.
+ElevenLabs receives `language` as the API's `language_code`. OpenAI does not expose a general language parameter for built-in TTS voices, so DemoHunter folds `language` into the voice instructions to steer language and accent.
 
 ## Output
 

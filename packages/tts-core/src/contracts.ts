@@ -19,6 +19,7 @@ export type NarrationRequest = {
   format: string;
   sampleRate: number;
   instructions: string;
+  language?: string;
   providerOptions?: NarrationProviderOptions;
   text: string;
 };
@@ -37,7 +38,7 @@ export type NarrationSynthesisOutput =
 
 export type NarrationSynthesisMetadata = Pick<
   NarrationRequest,
-  "provider" | "model" | "voice" | "format" | "sampleRate" | "providerOptions"
+  "provider" | "model" | "voice" | "format" | "sampleRate" | "language" | "providerOptions"
 >;
 
 export type NarrationSynthesisResult = {

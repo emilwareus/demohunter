@@ -111,6 +111,7 @@ describe("resolveNarrationSegment", () => {
           chapterTitle: "Billing",
           format: "mp3_22050_32",
           kind: "narrate",
+          language: "sv",
           model: "eleven_flash_v2_5",
           text: "Explain the billing dashboard",
           voice: "per-segment-voice",
@@ -125,6 +126,7 @@ describe("resolveNarrationSegment", () => {
           voice: "default-voice",
           format: "mp3_44100_128",
           instructions: "",
+          language: "en",
           voiceSettings: {
             stability: 0.5,
             similarityBoost: 0.75,
@@ -175,6 +177,7 @@ describe("resolveNarrationSegment", () => {
       format: "mp3_22050_32",
       sampleRate: 22_050,
       instructions: "",
+      language: "sv",
       providerOptions: {
         voiceSettings: {
           stability: 0.21,
@@ -229,12 +232,14 @@ function createLoadedConfig(
     voice: string;
     format: string;
     instructions: string;
+    language?: string;
   } | {
     provider: "elevenlabs";
     model: string;
     voice: string;
     format: string;
     instructions: string;
+    language?: string;
     voiceSettings?: {
       stability?: number;
       similarityBoost?: number;

@@ -55,6 +55,7 @@ export async function resolveNarrationSegment(
     format: input.event.format ?? config.tts.format,
     sampleRate: resolveNarrationSampleRate(input.event.format ?? config.tts.format),
     instructions: input.event.instructions ?? config.tts.instructions,
+    language: input.event.language ?? config.tts.language,
     providerOptions: resolveProviderOptions(config.tts, input.event),
     text: input.event.text,
   });

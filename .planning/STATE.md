@@ -4,8 +4,8 @@ milestone: v1.0
 milestone_name: milestone
 status: milestone_complete
 stopped_at: v1.0 archived; no active milestone
-last_updated: "2026-05-26T14:08:10+02:00"
-last_activity: 2026-05-26 -- Quick task 260526-jmt added ElevenLabs live integration test
+last_updated: "2026-06-11T13:50:56+02:00"
+last_activity: 2026-06-11 -- Quick task 260611-j3z added configurable TTS language
 progress:
   total_phases: 6
   completed_phases: 6
@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-04-14)
 Phase: none — milestone archived
 Plan: none
 Status: v1.0 complete
-Last activity: 2026-05-26 -- Quick task 260526-jmt added ElevenLabs live integration test
+Last activity: 2026-06-11 -- Quick task 260611-j3z added configurable TTS language
 Progress: [██████████] 100%
 
 ## Performance Metrics
@@ -43,6 +43,7 @@ Progress: [██████████] 100%
 
 | Date | ID | Task | Summary |
 | --- | --- | --- | --- |
+| 2026-06-11 | 260611-j3z | Add configurable narration language for OpenAI and ElevenLabs TTS | Added `tts.language` and per-call `language` overrides, mapped ElevenLabs to `language_code`, steered OpenAI through voice instructions, included language in cache identity, and updated docs/tests. |
 | 2026-05-26 | 260526-jmt | Add ElevenLabs live integration test | Added a gated real ElevenLabs synthesis test that verifies cache persistence and offline cache reuse after removing `ELEVENLABS_API_KEY`. |
 | 2026-05-26 | 260526-hky | Add ElevenLabs TTS provider support | Added configurable ElevenLabs narration with provider defaults, per-call voice/model/format/settings overrides, cache-keyed provider options, docs, and tests. |
 | 2026-05-20 | 260520-hgz | Add npm propagation retry to release traceability verification | Added a bounded retry around `npm view demohunter@$VERSION version` so final release verification tolerates brief npm propagation lag after publish. |

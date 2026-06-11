@@ -58,6 +58,7 @@ describe("createOpenAINarrationProvider", () => {
         format: "wav",
         sampleRate: 24_000,
         instructions: "Keep it brisk.",
+        language: "sv",
         text: "Explain billing",
       });
 
@@ -81,7 +82,7 @@ describe("createOpenAINarrationProvider", () => {
       assert.deepEqual(body, {
         model,
         voice: "alloy",
-        instructions: "Keep it brisk.",
+        instructions: "Keep it brisk. Use the language and native accent matching sv.",
         response_format: "wav",
         input: "Explain billing",
       });
@@ -91,6 +92,7 @@ describe("createOpenAINarrationProvider", () => {
         voice: "alloy",
         format: "wav",
         sampleRate: 24_000,
+        language: "sv",
       });
     });
   }
@@ -150,6 +152,7 @@ function createRequest(
     format: string;
     sampleRate: number;
     instructions: string;
+    language: string;
     text: string;
   }> = {},
 ) {
@@ -160,6 +163,7 @@ function createRequest(
     format: input.format ?? "mp3",
     sampleRate: input.sampleRate ?? 24_000,
     instructions: input.instructions ?? "Speak clearly.",
+    language: input.language,
     text: input.text ?? "Explain billing",
   };
 }

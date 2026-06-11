@@ -55,6 +55,7 @@ describe("createElevenLabsNarrationProvider", () => {
       model: "eleven_flash_v2_5",
       format: "mp3_44100_128",
       sampleRate: 44_100,
+      language: "sv",
       text: "Explain billing",
       providerOptions: {
         voiceSettings: {
@@ -82,6 +83,7 @@ describe("createElevenLabsNarrationProvider", () => {
     assert.deepEqual(body, {
       text: "Explain billing",
       model_id: "eleven_flash_v2_5",
+      language_code: "sv",
       voice_settings: {
         stability: 0.42,
         similarity_boost: 0.86,
@@ -96,6 +98,7 @@ describe("createElevenLabsNarrationProvider", () => {
       voice: "voice/id with spaces",
       format: "mp3_44100_128",
       sampleRate: 44_100,
+      language: "sv",
       providerOptions: request.providerOptions,
     });
   });
@@ -153,6 +156,7 @@ function createRequest(
     format: string;
     sampleRate: number;
     instructions: string;
+    language: string;
     providerOptions: Record<string, unknown>;
     text: string;
   }> = {},
@@ -164,6 +168,7 @@ function createRequest(
     format: input.format ?? "mp3_44100_128",
     sampleRate: input.sampleRate ?? 44_100,
     instructions: input.instructions ?? "",
+    language: input.language,
     providerOptions: input.providerOptions,
     text: input.text ?? "Explain billing",
   };

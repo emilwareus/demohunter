@@ -23,6 +23,7 @@ describe("narration contracts", () => {
       format: "wav",
       sampleRate: 24_000,
       instructions: "Keep it brisk.",
+      language: "sv",
       providerOptions: {
         voiceSettings: {
           stability: 0.4,
@@ -38,6 +39,7 @@ describe("narration contracts", () => {
       format: "wav",
       sampleRate: 24_000,
       instructions: "Keep it brisk.",
+      language: "sv",
       providerOptions: {
         voiceSettings: {
           stability: 0.4,

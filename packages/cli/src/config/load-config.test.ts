@@ -145,6 +145,7 @@ describe("loadConfig", () => {
     ["voice", '"voice": "alloy"', { voice: "alloy" }],
     ["format", '"format": "wav"', { format: "wav" }],
     ["instructions", '"instructions": "Keep it brisk."', { instructions: "Keep it brisk." }],
+    ["language", '"language": "sv"', { language: "sv" }],
   ])("merges partial tts overrides for %s while preserving defaults", async (_label, propertyLine, override) => {
     const cwd = await writeConfig(`
       export default {

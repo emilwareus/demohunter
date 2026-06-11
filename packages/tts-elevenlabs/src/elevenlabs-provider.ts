@@ -71,6 +71,7 @@ export function createElevenLabsNarrationProvider(
           voice: request.voice,
           format: request.format,
           sampleRate: request.sampleRate,
+          language: request.language,
           providerOptions: request.providerOptions,
         },
       };
@@ -90,6 +91,10 @@ function createSpeechBody(request: NarrationRequest): Record<string, unknown> {
     model_id: request.model,
   };
   const voiceSettings = readVoiceSettings(request.providerOptions);
+
+  if (request.language !== undefined && request.language.trim() !== "") {
+    body.language_code = request.language;
+  }
 
   if (voiceSettings !== undefined) {
     body.voice_settings = {

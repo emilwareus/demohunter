@@ -10,6 +10,7 @@ export type NarrateOptions = {
   model?: string;
   format?: string;
   instructions?: string;
+  language?: string;
   voiceSettings?: ElevenLabsVoiceSettings;
   cacheKeyHint?: string;
 };
