@@ -103,6 +103,24 @@ export type AssertVisibleOptions = {
   timeoutMs?: number;
 };
 
+export type TypeTextPace =
+  | "fast"
+  | "natural"
+  | "slow"
+  | {
+      minDelayMs: number;
+      maxDelayMs: number;
+      spacePauseMs?: number;
+      punctuationPauseMs?: number;
+    };
+
+export type TypeTextOptions = {
+  replace?: boolean;
+  pace?: TypeTextPace;
+  seed?: string | number;
+  timeoutMs?: number;
+};
+
 export type DemoHunterLifecycleContext = {
   config: ResolvedDemoHunterConfig;
   goto: DemoHunterGoto;
@@ -115,15 +133,29 @@ export type DemoHunterStep = <T>(title: string, fn: () => Promise<T> | T) => Pro
 
 export type DemoHunterNarrate = (text: string, options?: NarrateOptions) => Promise<void>;
 
+export type DemoHunterTypeText = (
+  target: Locator,
+  text: string,
+  options?: TypeTextOptions,
+) => Promise<void>;
+
 export type DemoHunterNarrationTimeline = {
   sleep(ms: number): Promise<void>;
 };
 
-export type DemoHunterNarrateWhile = <T>(
+export type DemoHunterNarrateWhileTimeline = DemoHunterNarrationTimeline & {
+  typeText: DemoHunterTypeText;
+};
+
+export type DemoHunterNarrateWhile<
+  TTimeline extends DemoHunterNarrationTimeline = DemoHunterNarrationTimeline,
+> = <T>(
   text: string,
-  fn: (timeline: DemoHunterNarrationTimeline) => Promise<T> | T,
+  fn: (timeline: TTimeline) => Promise<T> | T,
   options?: NarrateOptions,
 ) => Promise<T>;
+
+export type DemoHunterAuthorNarrateWhile = DemoHunterNarrateWhile<DemoHunterNarrateWhileTimeline>;
 
 export type DemoHunterWaitForStable = (options?: WaitForStableOptions) => Promise<void>;
 
@@ -141,23 +173,27 @@ export type DemoHunterGoto = (
   options?: Parameters<Page["goto"]>[1],
 ) => Promise<null | Response>;
 
-export type DemoHunterRunContext = DemoHunterLifecycleContext & {
+export type DemoHunterRunContext<
+  TTimeline extends DemoHunterNarrationTimeline = DemoHunterNarrationTimeline,
+> = DemoHunterLifecycleContext & {
   chapter: DemoHunterChapter;
   step: DemoHunterStep;
   narrate: DemoHunterNarrate;
-  narrateWhile: DemoHunterNarrateWhile;
+  narrateWhile: DemoHunterNarrateWhile<TTimeline>;
   waitForStable: DemoHunterWaitForStable;
   highlight: DemoHunterHighlight;
   snapshot: DemoHunterSnapshot;
   assertVisible: DemoHunterAssertVisible;
 };
 
+export type DemoHunterAuthorRunContext = DemoHunterRunContext<DemoHunterNarrateWhileTimeline>;
+
 export type DemoHunterTour = {
   id: string;
   title: string;
   setup?: (context: DemoHunterLifecycleContext) => Promise<void> | void;
   beforeRecord?: (context: DemoHunterLifecycleContext) => Promise<void> | void;
-  run: (context: DemoHunterRunContext) => Promise<void> | void;
+  run: (context: DemoHunterAuthorRunContext) => Promise<void> | void;
   teardown?: (context: DemoHunterLifecycleContext) => Promise<void> | void;
 };
 

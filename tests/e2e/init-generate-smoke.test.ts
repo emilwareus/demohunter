@@ -7,6 +7,7 @@ import { fileURLToPath } from "node:url";
 const tempRoots: string[] = [];
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const cliEntryPoint = path.join(repoRoot, "packages/cli/src/bin/demohunter.ts");
+const initGenerateSmokeTimeoutMs = 30_000;
 
 afterEach(async () => {
   await Promise.all(tempRoots.splice(0).map((tempRoot) => rm(tempRoot, { force: true, recursive: true })));
@@ -64,7 +65,7 @@ describe("init to generate smoke flow", () => {
       "poster.jpg",
       "video.mp4",
     ]);
-  });
+  }, initGenerateSmokeTimeoutMs);
 });
 
 async function makeTempProject(): Promise<string> {

@@ -170,6 +170,181 @@ describe("createSmokeTourRuntime", () => {
     ]);
   });
 
+  test("types text incrementally inside narrateWhile with deterministic sleep events", async () => {
+    const events: unknown[] = [];
+    const waitForTimeout = mock(async () => {});
+    const page = {
+      waitForTimeout,
+    } as never;
+    const press = mock(async () => {});
+    const pressSequentially = mock(async () => {});
+    const locator = {
+      press,
+      pressSequentially,
+    } as never;
+    const runtime = createSmokeTourRuntime({
+      config: createConfig(),
+      page,
+      outputDir: "/tmp/demohunter-output",
+      onEvent: (event) => {
+        events.push(event);
+      },
+    });
+
+    const pace = {
+      maxDelayMs: 10,
+      minDelayMs: 10,
+      punctuationPauseMs: 7,
+      spacePauseMs: 5,
+    };
+
+    await runtime.narrateWhile("Type the customer name", async ({ typeText }) => {
+      await typeText(locator, "A b.", {
+        pace,
+        replace: true,
+        timeoutMs: 1234,
+      });
+    });
+    pace.maxDelayMs = 999;
+
+    expect(press.mock.calls).toEqual([
+      ["ControlOrMeta+A", { timeout: 1234 }],
+      ["Backspace", { timeout: 1234 }],
+    ]);
+    expect(pressSequentially.mock.calls).toEqual([
+      ["A", { timeout: 1234 }],
+      [" ", { timeout: 1234 }],
+      ["b", { timeout: 1234 }],
+      [".", { timeout: 1234 }],
+    ]);
+    expect(waitForTimeout.mock.calls).toEqual([[10], [15], [10]]);
+    expect(events).toEqual([
+      {
+        kind: "narrate",
+        text: "Type the customer name",
+      },
+      {
+        delaysMs: [10, 15, 10],
+        kind: "type-text",
+        pace: {
+          maxDelayMs: 10,
+          minDelayMs: 10,
+          punctuationPauseMs: 7,
+          spacePauseMs: 5,
+        },
+        replace: true,
+        text: "A b.",
+        timeoutMs: 1234,
+      },
+      {
+        durationMs: 10,
+        kind: "narration-sleep",
+      },
+      {
+        durationMs: 15,
+        kind: "narration-sleep",
+      },
+      {
+        durationMs: 10,
+        kind: "narration-sleep",
+      },
+    ]);
+  });
+
+  test("rejects invalid custom typeText pace options with a clear error", async () => {
+    const runtime = createSmokeTourRuntime({
+      config: createConfig(),
+      page: {} as never,
+      outputDir: "/tmp/demohunter-output",
+    });
+    const locator = {
+      press: mock(async () => {}),
+      pressSequentially: mock(async () => {}),
+    } as never;
+
+    await expect(
+      runtime.narrateWhile("Type invalid text", async ({ typeText }) => {
+        await typeText(locator, "A", {
+          pace: {
+            maxDelayMs: 10,
+            minDelayMs: 20,
+          },
+        });
+      }),
+    ).rejects.toThrow("typeText pace.minDelayMs must be less than or equal to pace.maxDelayMs");
+
+    await expect(
+      runtime.narrateWhile("Type missing min delay", async ({ typeText }) => {
+        await typeText(locator, "A", {
+          pace: {
+            maxDelayMs: 10,
+          } as never,
+        });
+      }),
+    ).rejects.toThrow("typeText pace.minDelayMs must be a non-negative finite number: undefined");
+
+    await expect(
+      runtime.narrateWhile("Type null pace", async ({ typeText }) => {
+        await typeText(locator, "A", {
+          pace: null as never,
+        });
+      }),
+    ).rejects.toThrow('typeText pace must be "fast", "natural", "slow", or a custom pace object.');
+
+    await expect(
+      runtime.narrateWhile("Type non-string text", async ({ typeText }) => {
+        await typeText(locator, 123 as never);
+      }),
+    ).rejects.toThrow("typeText text must be a string: 123");
+
+    await expect(
+      runtime.narrateWhile("Type primitive options", async ({ typeText }) => {
+        await typeText(locator, "A", "natural" as never);
+      }),
+    ).rejects.toThrow("typeText options must be an object when provided.");
+
+    await expect(
+      runtime.narrateWhile("Type invalid seed", async ({ typeText }) => {
+        await typeText(locator, "A", {
+          seed: {} as never,
+        });
+      }),
+    ).rejects.toThrow("typeText seed must be a string or number when provided");
+
+    await expect(
+      runtime.narrateWhile("Type symbol text", async ({ typeText }) => {
+        await typeText(locator, Symbol("bad") as never);
+      }),
+    ).rejects.toThrow("typeText text must be a string: Symbol(bad)");
+
+    await expect(
+      runtime.narrateWhile("Type symbol seed", async ({ typeText }) => {
+        await typeText(locator, "A", {
+          seed: Symbol("bad") as never,
+        });
+      }),
+    ).rejects.toThrow("typeText seed must be a string or number when provided: Symbol(bad)");
+
+    const unformattableValue = {
+      get [Symbol.toStringTag]() {
+        throw new Error("toStringTag failed");
+      },
+      toString() {
+        throw new Error("toString failed");
+      },
+    };
+
+    await expect(
+      runtime.narrateWhile("Type unformattable seed", async ({ typeText }) => {
+        await typeText(locator, "A", {
+          seed: unformattableValue as never,
+        });
+      }),
+    ).rejects.toThrow(
+      "typeText seed must be a string or number when provided: [unformattable value]",
+    );
+  });
+
   test("shares Phase 3 event and timeline contracts with the runtime helpers", async () => {
     const chapterEvent = assertTourRuntimeEvent({
       chapterTitle: "Billing",
@@ -216,6 +391,7 @@ describe("createSmokeTourRuntime", () => {
       "step-start",
       "step-end",
       "narrate",
+      "type-text",
       "narration-sleep",
       "wait-for-stable",
       "highlight",
