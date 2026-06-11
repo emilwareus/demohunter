@@ -193,6 +193,36 @@ describe("loadConfig", () => {
     });
   });
 
+  test("does not infer tts language from locale environment variables", async () => {
+    const originalDemoLocale = process.env.DEMO_LOCALE;
+    process.env.DEMO_LOCALE = "sv";
+
+    try {
+      const cwd = await writeConfig(`
+        export default {
+          baseURL: "http://localhost:4173",
+          tts: {
+            provider: "elevenlabs",
+            voice: "voice-id-from-library"
+          }
+        };
+      `);
+
+      const loaded = await loadConfig(cwd);
+
+      expect(loaded.config.tts).toEqual({
+        ...DEFAULT_ELEVENLABS_TTS_CONFIG,
+        voice: "voice-id-from-library",
+      });
+    } finally {
+      if (originalDemoLocale === undefined) {
+        delete process.env.DEMO_LOCALE;
+      } else {
+        process.env.DEMO_LOCALE = originalDemoLocale;
+      }
+    }
+  });
+
   test("throws the exact missing-config error", async () => {
     const cwd = await makeTempProject();
 
