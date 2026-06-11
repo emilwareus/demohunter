@@ -7,6 +7,7 @@ import type { Page } from "playwright";
 import type { SmokeGenerateInput, SmokeTourModule } from "../smoke-generate.js";
 import { createSmokeLifecycleContext, createSmokeTourRuntime } from "../runtime/create-smoke-tour-runtime.js";
 import type { SmokeRuntime } from "../runtime/create-smoke-tour-runtime.js";
+import { typeTextIntoLocator } from "../runtime/type-text.js";
 import type { CollectedTimeline, CollectedTimelineEntry, TourRuntimeEvent } from "./generator-types.js";
 
 export type ReplayTimelineInput = {
@@ -225,6 +226,12 @@ function createReplayRuntime(args: {
           sleep: async (durationMs) => {
             await timeline.sleep(durationMs);
             sleepElapsedMs += durationMs;
+          },
+          typeText: async (target, text, options) => {
+            await typeTextIntoLocator(target, text, options, async (durationMs) => {
+              await timeline.sleep(durationMs);
+              sleepElapsedMs += durationMs;
+            });
           },
         };
 

@@ -170,6 +170,94 @@ describe("createSmokeTourRuntime", () => {
     ]);
   });
 
+  test("types text incrementally inside narrateWhile with deterministic sleep events", async () => {
+    const events: unknown[] = [];
+    const waitForTimeout = mock(async () => {});
+    const page = {
+      waitForTimeout,
+    } as never;
+    const press = mock(async () => {});
+    const pressSequentially = mock(async () => {});
+    const locator = {
+      press,
+      pressSequentially,
+    } as never;
+    const runtime = createSmokeTourRuntime({
+      config: createConfig(),
+      page,
+      outputDir: "/tmp/demohunter-output",
+      onEvent: (event) => {
+        events.push(event);
+      },
+    });
+
+    await runtime.narrateWhile("Type the customer name", async ({ typeText }) => {
+      await typeText(locator, "A b.", {
+        pace: {
+          maxDelayMs: 10,
+          minDelayMs: 10,
+          punctuationPauseMs: 7,
+          spacePauseMs: 5,
+        },
+        replace: true,
+        timeoutMs: 1234,
+      });
+    });
+
+    expect(press.mock.calls).toEqual([
+      ["ControlOrMeta+A", { timeout: 1234 }],
+      ["Backspace", { timeout: 1234 }],
+    ]);
+    expect(pressSequentially.mock.calls).toEqual([
+      ["A", { timeout: 1234 }],
+      [" ", { timeout: 1234 }],
+      ["b", { timeout: 1234 }],
+      [".", { timeout: 1234 }],
+    ]);
+    expect(waitForTimeout.mock.calls).toEqual([[10], [15], [10]]);
+    expect(events).toEqual([
+      {
+        kind: "narrate",
+        text: "Type the customer name",
+      },
+      {
+        durationMs: 10,
+        kind: "narration-sleep",
+      },
+      {
+        durationMs: 15,
+        kind: "narration-sleep",
+      },
+      {
+        durationMs: 10,
+        kind: "narration-sleep",
+      },
+    ]);
+  });
+
+  test("rejects invalid custom typeText pace options with a clear error", async () => {
+    const runtime = createSmokeTourRuntime({
+      config: createConfig(),
+      page: {} as never,
+      outputDir: "/tmp/demohunter-output",
+    });
+    const locator = {
+      press: mock(async () => {}),
+      pressSequentially: mock(async () => {}),
+    } as never;
+
+    await expect(
+      runtime.narrateWhile("Type invalid text", async ({ typeText }) => {
+        await typeText(locator, "A", {
+          pace: {
+            maxDelayMs: 10,
+            minDelayMs: 20,
+          },
+        });
+      }),
+    ).rejects.toThrow("typeText pace.minDelayMs must be less than or equal to pace.maxDelayMs");
+  });
+
   test("shares Phase 3 event and timeline contracts with the runtime helpers", async () => {
     const chapterEvent = assertTourRuntimeEvent({
       chapterTitle: "Billing",

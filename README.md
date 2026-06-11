@@ -79,10 +79,10 @@ export default defineTour({
     });
 
     await step("Create a new invoice", async () => {
-      await narrateWhile("Creating an invoice is one step now. The customer field has type-ahead search built in.", async ({ sleep }) => {
+      await narrateWhile("Creating an invoice is one step now. The customer field has type-ahead search built in.", async ({ sleep, typeText }) => {
         await page.getByRole("button", { name: "New invoice" }).click();
         await sleep(700);
-        await page.getByLabel("Customer").fill("Acme");
+        await typeText(page.getByLabel("Customer"), "Acme", { replace: true });
       });
     });
   },
@@ -94,6 +94,8 @@ npx demohunter generate demos/billing-overview.tour.ts
 ```
 
 You get `.demohunter/billing-overview/video.mp4` with narration timed to each step or choreographed over visible motion, plus captions and a manifest.
+
+Use Playwright's `.fill()` for setup or hidden prep. When text entry should be visible in the final recording, use `typeText(...)` inside `narrateWhile(...)` so the field is typed incrementally with deterministic natural pacing.
 
 ## Config
 

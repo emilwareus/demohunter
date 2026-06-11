@@ -36,9 +36,12 @@ export type {
   DemoHunterRunContext,
   DemoHunterSnapshot,
   DemoHunterStep,
+  DemoHunterTypeText,
   DemoHunterWaitForStable,
   HighlightOptions,
   NarrateOptions,
   SnapshotOptions,
+  TypeTextOptions,
+  TypeTextPace,
   WaitForStableOptions,
 } from "./runtime-types.js";

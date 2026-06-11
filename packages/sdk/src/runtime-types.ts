@@ -33,6 +33,24 @@ export type AssertVisibleOptions = {
   timeoutMs?: number;
 };
 
+export type TypeTextPace =
+  | "fast"
+  | "natural"
+  | "slow"
+  | {
+      minDelayMs: number;
+      maxDelayMs: number;
+      spacePauseMs?: number;
+      punctuationPauseMs?: number;
+    };
+
+export type TypeTextOptions = {
+  replace?: boolean;
+  pace?: TypeTextPace;
+  seed?: string | number;
+  timeoutMs?: number;
+};
+
 export type DemoHunterLifecycleContext = {
   config: ResolvedDemoHunterConfig;
   goto: DemoHunterGoto;
@@ -45,8 +63,15 @@ export type DemoHunterStep = <T>(title: string, fn: () => Promise<T> | T) => Pro
 
 export type DemoHunterNarrate = (text: string, options?: NarrateOptions) => Promise<void>;
 
+export type DemoHunterTypeText = (
+  target: Locator,
+  text: string,
+  options?: TypeTextOptions,
+) => Promise<void>;
+
 export type DemoHunterNarrationTimeline = {
   sleep(ms: number): Promise<void>;
+  typeText: DemoHunterTypeText;
 };
 
 export type DemoHunterNarrateWhile = <T>(

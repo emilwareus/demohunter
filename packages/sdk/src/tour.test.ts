@@ -14,6 +14,8 @@ import type {
   DemoHunterNarrateWhile,
   DemoHunterNarrationTimeline,
   SnapshotOptions,
+  TypeTextOptions,
+  TypeTextPace,
   WaitForStableOptions,
 } from "./runtime-types.js";
 import * as sdk from "./index.js";
@@ -62,6 +64,8 @@ describe("defineTour", () => {
     expect(declarations).toContain("NarrateOptions");
     expect(declarations).toContain("DemoHunterNarrateWhile");
     expect(declarations).toContain("DemoHunterNarrationTimeline");
+    expect(declarations).toContain("TypeTextOptions");
+    expect(declarations).toContain("TypeTextPace");
     expect(declarations).toContain("WaitForStableOptions");
     expect(declarations).toContain("HighlightOptions");
     expect(declarations).toContain("SnapshotOptions");
@@ -150,9 +154,13 @@ describe("defineTour", () => {
             stability: 0.45,
           },
         });
-        await narrateWhile("Now the dashboard updates while narration continues.", async ({ sleep }) => {
+        await narrateWhile("Now the dashboard updates while narration continues.", async ({ sleep, typeText }) => {
           expectType<DemoHunterNarrationTimeline["sleep"]>(sleep);
+          expectType<DemoHunterNarrationTimeline["typeText"]>(typeText);
+          expectType<TypeTextPace>("natural");
+          expectType<TypeTextOptions>({ pace: "natural", replace: true, seed: "billing", timeoutMs: 1500 });
           await sleep(750);
+          await typeText(locator, "Acme", { pace: "natural", replace: true });
         });
         await waitForStable({ state: "networkidle", timeoutMs: 5000 });
         await highlight(locator, { name: "Primary CTA", paddingPx: 12 });
@@ -183,7 +191,11 @@ describe("defineTour", () => {
         await fn();
       },
       narrate: async () => undefined,
-      narrateWhile: async (_text, fn) => fn({ sleep: async () => undefined }),
+      narrateWhile: async (_text, fn) =>
+        fn({
+          sleep: async () => undefined,
+          typeText: async () => undefined,
+        }),
       waitForStable: async () => undefined,
       highlight: async () => undefined,
       snapshot: async () => undefined,

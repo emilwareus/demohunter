@@ -33,7 +33,7 @@ The current SDK exposes these helpers on `run(...)`:
 - `chapter(title, options?)`
 - `step(title, fn)`
 - `narrate(text, options?)`
-- `narrateWhile(text, async ({ sleep }) => { ... }, options?)`
+- `narrateWhile(text, async ({ sleep, typeText }) => { ... }, options?)`
 - `waitForStable(options?)`
 - `highlight(locator, options?)`
 - `snapshot(options?)`
@@ -45,6 +45,7 @@ Useful option details:
 - `narrate(..., { voice?, model?, format?, instructions?, language?, voiceSettings?, cacheKeyHint? })`
 - `narrateWhile(..., { voice?, model?, format?, instructions?, language?, voiceSettings?, cacheKeyHint? })`
 - `sleep(ms)` inside `narrateWhile(...)` waits inside the narration window
+- `typeText(locator, text, { replace?, pace?, seed?, timeoutMs? })` inside `narrateWhile(...)` types visible text incrementally
 - `waitForStable(..., { state?, timeoutMs? })`
 - `highlight(..., { name?, paddingPx? })`
 - `snapshot(..., { name? })`
@@ -61,6 +62,7 @@ Useful option details:
 - Use `narrate(...)` when the viewer should absorb a static state.
 - Use `narrateWhile(...)` when narration should bridge navigation, clicking, typing, waits, generation, highlights, or other visible motion.
 - Use `sleep(ms)` inside `narrateWhile(...)` when a UI action should happen at a specific moment in the voiceover.
+- Use `typeText(...)` inside `narrateWhile(...)` when typed text should be visible; keep Playwright `.fill(...)` for setup, beforeRecord, or other non-visible prep.
 - Use `beforeRecord` for login, fixture creation, or navigation that should happen before the final video starts.
 - Only add `setup` or `teardown` when the flow genuinely needs shared preparation or cleanup.
 
@@ -97,6 +99,19 @@ await narrateWhile("Now we open the workflow builder and switch to the right mod
   await sleep(1200);
   await page.getByTestId("agent-menu-button").click();
   await page.getByTestId("mode-option-builder").click();
+});
+```
+
+Use `typeText(...)` for visible text entry:
+
+```ts
+await narrateWhile("Now we enter the customer name and pick the matching account.", async ({ sleep, typeText }) => {
+  await page.getByRole("button", { name: "New invoice" }).click();
+  await sleep(700);
+  await typeText(page.getByLabel("Customer"), "Acme Corporation", {
+    replace: true,
+    pace: "natural",
+  });
 });
 ```
 

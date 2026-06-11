@@ -4,8 +4,8 @@ milestone: v1.0
 milestone_name: milestone
 status: milestone_complete
 stopped_at: v1.0 archived; no active milestone
-last_updated: "2026-06-11T14:43:13+02:00"
-last_activity: 2026-06-11 -- Quick task 260611-kc0 fixed TTS language review findings
+last_updated: "2026-06-11T15:24:22+02:00"
+last_activity: 2026-06-11 -- Quick task 260611-l8l added natural text entry for narrated typing
 progress:
   total_phases: 6
   completed_phases: 6
@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-04-14)
 Phase: none — milestone archived
 Plan: none
 Status: v1.0 complete
-Last activity: 2026-06-11 -- Quick task 260611-kc0 fixed TTS language review findings
+Last activity: 2026-06-11 -- Quick task 260611-l8l added natural text entry for narrated typing
 Progress: [██████████] 100%
 
 ## Performance Metrics
@@ -43,6 +43,7 @@ Progress: [██████████] 100%
 
 | Date | ID | Task | Summary |
 | --- | --- | --- | --- |
+| 2026-06-11 | 260611-l8l | Add natural text entry API for narrated typing | Added `typeText` inside `narrateWhile` with deterministic paced Playwright typing, replay timing support, public types, docs, and focused runtime/replay/type tests. |
 | 2026-06-11 | 260611-kc0 | Fix TTS language review findings | Normalized narration language in core/provider requests, added config-level language fallback coverage, clarified ISO 639-1 docs, and reran review plus full verification. |
 | 2026-06-11 | 260611-jyk | Make narration language explicit and not env-driven | Updated starter/getting-started guidance to use explicit `tts.language` or per-call `language`, and added regression coverage proving `DEMO_LOCALE` does not influence TTS language. |
 | 2026-06-11 | 260611-j3z | Add configurable narration language for OpenAI and ElevenLabs TTS | Added `tts.language` and per-call `language` overrides, mapped ElevenLabs to `language_code`, steered OpenAI through voice instructions, included language in cache identity, and updated docs/tests. |

@@ -2,6 +2,7 @@ import type {
   AssertVisibleOptions,
   ChapterOptions,
   DemoHunterLifecycleContext,
+  DemoHunterNarrationTimeline,
   DemoHunterRunContext,
   HighlightOptions,
   NarrateOptions,
@@ -11,6 +12,7 @@ import type {
 } from "@demohunter/sdk";
 import type { Locator, Page } from "playwright";
 import type { TourRuntimeEvent } from "../execute/generator-types.js";
+import { typeTextIntoLocator } from "./type-text.js";
 
 export type SmokeRuntime = DemoHunterRunContext & DemoHunterLifecycleContext;
 
@@ -126,11 +128,16 @@ export function createSmokeTourRuntime(args: {
     },
     async narrateWhile<T>(
       text: string,
-      fn: (timeline: { sleep(ms: number): Promise<void> }) => Promise<T> | T,
+      fn: (timeline: DemoHunterNarrationTimeline) => Promise<T> | T,
       options?: NarrateOptions,
     ): Promise<T> {
       emitNarration(text, options);
-      return fn({ sleep });
+      return fn({
+        sleep,
+        typeText: async (target, text, options) => {
+          await typeTextIntoLocator(target, text, options, sleep);
+        },
+      });
     },
     async waitForStable(options?: WaitForStableOptions): Promise<void> {
       const state = options?.state ?? "networkidle";
