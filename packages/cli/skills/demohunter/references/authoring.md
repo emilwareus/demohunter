@@ -42,8 +42,8 @@ The current SDK exposes these helpers on `run(...)`:
 Useful option details:
 
 - `chapter(..., { id?: string })`
-- `narrate(..., { voice?, model?, format?, instructions?, voiceSettings?, cacheKeyHint? })`
-- `narrateWhile(..., { voice?, model?, format?, instructions?, voiceSettings?, cacheKeyHint? })`
+- `narrate(..., { voice?, model?, format?, instructions?, language?, voiceSettings?, cacheKeyHint? })`
+- `narrateWhile(..., { voice?, model?, format?, instructions?, language?, voiceSettings?, cacheKeyHint? })`
 - `sleep(ms)` inside `narrateWhile(...)` waits inside the narration window
 - `waitForStable(..., { state?, timeoutMs? })`
 - `highlight(..., { name?, paddingPx? })`
@@ -71,7 +71,8 @@ Inspect `demohunter.config.ts` before editing:
 - `baseURL` tells you which app entrypoint the tour expects.
 - `outputDir` and `cacheDir` affect where generated artifacts land.
 - `holdPaddingMs`, `record`, and `tts` can explain timing or narration behavior.
-- `tts.provider` is either `openai` or `elevenlabs`; ElevenLabs voices are configured by voice ID and optional `voiceSettings`.
+- `tts.provider` is either `openai` or `elevenlabs`; `tts.language` accepts ISO 639-1 language codes and can steer language/accent. ElevenLabs receives it as `language_code`; OpenAI receives it through voice instructions.
+- ElevenLabs voices are configured by voice ID and optional `voiceSettings`.
 
 Treat config as an input to the tour. Do not duplicate config values inside the tour unless the repo already does that intentionally.
 

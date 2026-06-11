@@ -9,6 +9,7 @@ export type NarrationCacheIdentity = {
   model: string;
   voice: string;
   instructions: string;
+  language?: string;
   format: string;
   sampleRate: number;
   providerOptions?: Record<string, unknown>;
@@ -29,6 +30,7 @@ export function createNarrationCacheIdentity(
     model: request.model,
     voice: request.voice,
     instructions: request.instructions,
+    language: request.language,
     format: request.format,
     sampleRate: request.sampleRate,
     providerOptions: normalizeProviderOptions(request.providerOptions),

@@ -23,6 +23,7 @@ describe("narration contracts", () => {
       format: "wav",
       sampleRate: 24_000,
       instructions: "Keep it brisk.",
+      language: " sv ",
       providerOptions: {
         voiceSettings: {
           stability: 0.4,
@@ -38,6 +39,7 @@ describe("narration contracts", () => {
       format: "wav",
       sampleRate: 24_000,
       instructions: "Keep it brisk.",
+      language: "sv",
       providerOptions: {
         voiceSettings: {
           stability: 0.4,
@@ -45,6 +47,21 @@ describe("narration contracts", () => {
       },
       text: "Café launch\nnow",
     });
+  });
+
+  test("normalizes blank narration language to an absent option", () => {
+    const request = createNarrationRequest({
+      provider: "openai",
+      model: DEFAULT_OPENAI_NARRATION_MODEL,
+      voice: "marin",
+      format: "mp3",
+      sampleRate: 24_000,
+      instructions: "Speak clearly, calm, concise, product-demo style.",
+      language: "   ",
+      text: "Narrate the billing dashboard.",
+    });
+
+    assert.equal("language" in request, false);
   });
 
   test("exports provider and synthesis result types that do not require provider-specific branching", async () => {

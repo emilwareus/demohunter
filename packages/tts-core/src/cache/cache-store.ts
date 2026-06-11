@@ -523,6 +523,7 @@ function assertSynthesisMatchesRequest(
     || synthesized.metadata.voice !== request.voice
     || synthesized.metadata.format !== request.format
     || synthesized.metadata.sampleRate !== request.sampleRate
+    || synthesized.metadata.language !== request.language
   ) {
     throw new Error("Narration provider returned metadata that does not match the requested cache identity.");
   }

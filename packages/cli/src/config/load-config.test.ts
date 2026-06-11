@@ -145,6 +145,7 @@ describe("loadConfig", () => {
     ["voice", '"voice": "alloy"', { voice: "alloy" }],
     ["format", '"format": "wav"', { format: "wav" }],
     ["instructions", '"instructions": "Keep it brisk."', { instructions: "Keep it brisk." }],
+    ["language", '"language": "sv"', { language: "sv" }],
   ])("merges partial tts overrides for %s while preserving defaults", async (_label, propertyLine, override) => {
     const cwd = await writeConfig(`
       export default {
@@ -190,6 +191,36 @@ describe("loadConfig", () => {
         useSpeakerBoost: false,
       },
     });
+  });
+
+  test("does not infer tts language from locale environment variables", async () => {
+    const originalDemoLocale = process.env.DEMO_LOCALE;
+    process.env.DEMO_LOCALE = "sv";
+
+    try {
+      const cwd = await writeConfig(`
+        export default {
+          baseURL: "http://localhost:4173",
+          tts: {
+            provider: "elevenlabs",
+            voice: "voice-id-from-library"
+          }
+        };
+      `);
+
+      const loaded = await loadConfig(cwd);
+
+      expect(loaded.config.tts).toEqual({
+        ...DEFAULT_ELEVENLABS_TTS_CONFIG,
+        voice: "voice-id-from-library",
+      });
+    } finally {
+      if (originalDemoLocale === undefined) {
+        delete process.env.DEMO_LOCALE;
+      } else {
+        process.env.DEMO_LOCALE = originalDemoLocale;
+      }
+    }
   });
 
   test("throws the exact missing-config error", async () => {

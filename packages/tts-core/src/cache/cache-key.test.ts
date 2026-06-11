@@ -38,6 +38,7 @@ describe("createNarrationCacheKey", () => {
       { ...BASE_REQUEST, model: "tts-1" },
       { ...BASE_REQUEST, voice: "alloy" },
       { ...BASE_REQUEST, instructions: "Speak like a warm launch keynote." },
+      { ...BASE_REQUEST, language: "sv" },
       { ...BASE_REQUEST, format: "wav" },
       { ...BASE_REQUEST, sampleRate: 48_000 },
       { ...BASE_REQUEST, providerOptions: { voiceSettings: { stability: 0.4 } } },
@@ -88,6 +89,19 @@ describe("createNarrationCacheKey", () => {
         },
       },
     });
+
+    assert.equal(second, first);
+  });
+
+  test("normalizes language whitespace before hashing", () => {
+    const first = createNarrationCacheKey(createNarrationRequest({
+      ...BASE_REQUEST,
+      language: "sv",
+    }));
+    const second = createNarrationCacheKey(createNarrationRequest({
+      ...BASE_REQUEST,
+      language: " sv ",
+    }));
 
     assert.equal(second, first);
   });

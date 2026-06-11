@@ -95,6 +95,7 @@ export default {
     voice: "JBFqnCBsd6RMkjVDRZzb",
     model: "eleven_multilingual_v2",
     format: "mp3_44100_128",
+    language: "sv",
     voiceSettings: {
       stability: 0.5,
       similarityBoost: 0.75,
@@ -104,7 +105,7 @@ export default {
 };
 ```
 
-Use `narrate("...", { voice: "other-voice-id" })` or `narrateWhile(...)` options when a single segment should use a different voice, model, format, or ElevenLabs voice settings.
+Use `tts.language` for the demo's narration language, with ISO 639-1 codes such as `sv` for Swedish. Use `narrate("...", { voice: "other-voice-id", language: "sv" })` or `narrateWhile(...)` options when a single segment should use a different voice, model, format, language, or ElevenLabs voice settings. DemoHunter does not infer narration language from locale environment variables such as `DEMO_LOCALE`.
 
 ## Install the agent skill (optional)
 

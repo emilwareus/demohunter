@@ -111,6 +111,7 @@ describe("resolveNarrationSegment", () => {
           chapterTitle: "Billing",
           format: "mp3_22050_32",
           kind: "narrate",
+          language: "sv",
           model: "eleven_flash_v2_5",
           text: "Explain the billing dashboard",
           voice: "per-segment-voice",
@@ -125,6 +126,7 @@ describe("resolveNarrationSegment", () => {
           voice: "default-voice",
           format: "mp3_44100_128",
           instructions: "",
+          language: "en",
           voiceSettings: {
             stability: 0.5,
             similarityBoost: 0.75,
@@ -175,6 +177,7 @@ describe("resolveNarrationSegment", () => {
       format: "mp3_22050_32",
       sampleRate: 22_050,
       instructions: "",
+      language: "sv",
       providerOptions: {
         voiceSettings: {
           stability: 0.21,
@@ -190,6 +193,65 @@ describe("resolveNarrationSegment", () => {
       durationMs: 654,
       text: "Explain the billing dashboard",
     });
+  });
+
+  test("uses config-level narration language when an event does not override it", async () => {
+    const projectRoot = await makeTempProject();
+    let capturedRequest: ResolveNarrationFromCacheOptions["request"] | undefined;
+
+    await resolveNarrationSegment(
+      {
+        event: {
+          chapterTitle: "Billing",
+          kind: "narrate",
+          text: "Explain the billing dashboard",
+        },
+        loadedConfig: createLoadedConfig(projectRoot, {
+          provider: "elevenlabs",
+          model: "eleven_multilingual_v2",
+          voice: "default-voice",
+          format: "mp3_44100_128",
+          instructions: "",
+          language: " sv ",
+        }),
+      },
+      {
+        createProvider: () => ({
+          async synthesize() {
+            throw new Error("provider should not be called by this test double");
+          },
+        }),
+        resolveNarrationFromCache: async (options) => {
+          capturedRequest = options.request;
+
+          return {
+            source: "provider",
+            entry: {
+              audioPath: path.join(projectRoot, ".demohunter", "cache", "elevenlabs.mp3"),
+              byteSize: 3,
+              durationMs: 654,
+              key: "elevenlabs-cache-key",
+              metadataPath: path.join(projectRoot, ".demohunter", "cache", "elevenlabs.json"),
+              metadata: {
+                createdAt: "2026-05-26T00:00:00.000Z",
+                key: "elevenlabs-cache-key",
+                output: {
+                  audioPath: path.join(projectRoot, ".demohunter", "cache", "elevenlabs.mp3"),
+                  byteSize: 3,
+                  durationMs: 654,
+                  format: "mp3_44100_128",
+                  sha256: "abc",
+                },
+                request: options.request,
+                version: 1,
+              },
+            },
+          };
+        },
+      },
+    );
+
+    expect(capturedRequest?.language).toBe("sv");
   });
 
   test("fails clearly when uncached narration requires ELEVENLABS_API_KEY", async () => {
@@ -229,12 +291,14 @@ function createLoadedConfig(
     voice: string;
     format: string;
     instructions: string;
+    language?: string;
   } | {
     provider: "elevenlabs";
     model: string;
     voice: string;
     format: string;
     instructions: string;
+    language?: string;
     voiceSettings?: {
       stability?: number;
       similarityBoost?: number;

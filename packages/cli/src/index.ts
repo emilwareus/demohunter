@@ -30,6 +30,7 @@ export type OpenAITTSConfig = {
   voice: string;
   format: string;
   instructions: string;
+  language?: string;
 };
 
 export type ElevenLabsTTSConfig = {
@@ -38,6 +39,7 @@ export type ElevenLabsTTSConfig = {
   voice: string;
   format: string;
   instructions: string;
+  language?: string;
   voiceSettings?: ElevenLabsVoiceSettings;
 };
 
@@ -78,6 +80,7 @@ export type NarrateOptions = {
   model?: string;
   format?: string;
   instructions?: string;
+  language?: string;
   voiceSettings?: ElevenLabsVoiceSettings;
   cacheKeyHint?: string;
 };
