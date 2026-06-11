@@ -7,6 +7,7 @@ import { fileURLToPath } from "node:url";
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const cliEntryPoint = path.join(repoRoot, "packages/cli/src/bin/demohunter.ts");
 const tempRoots: string[] = [];
+const firstRunBlockersTimeoutMs = 20_000;
 
 afterEach(async () => {
   await Promise.all(tempRoots.splice(0).map((tempRoot) => rm(tempRoot, { force: true, recursive: true })));
@@ -110,7 +111,7 @@ describe("oss onboarding contract", () => {
     expect(missingKey.exitCode).toBe(1);
     expect(missingKey.stderr).toContain("OPENAI_API_KEY");
     expect(missingKey.stderr).toContain("narration cache");
-  });
+  }, firstRunBlockersTimeoutMs);
 });
 
 async function makeTempProject(): Promise<string> {

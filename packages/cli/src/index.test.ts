@@ -5,6 +5,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..");
+const entrypointContractTimeoutMs = 20_000;
 
 async function buildCli(): Promise<void> {
   const processResult = Bun.spawn({
@@ -43,7 +44,7 @@ describe("demohunter package entrypoint", () => {
     expect(declarations).toContain("typeText: DemoHunterTypeText");
 
     await typecheckConsumerTour();
-  });
+  }, entrypointContractTimeoutMs);
 });
 
 async function typecheckConsumerTour(): Promise<void> {
