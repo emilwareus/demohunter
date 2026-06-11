@@ -1,7 +1,8 @@
-import type {
-  NarrationProvider,
-  NarrationRequest,
-  NarrationSynthesisResult,
+import {
+  createNarrationRequest,
+  type NarrationProvider,
+  type NarrationRequest,
+  type NarrationSynthesisResult,
 } from "@demohunter/tts-core";
 
 const OPENAI_SPEECH_ENDPOINT = "https://api.openai.com/v1/audio/speech";
@@ -26,7 +27,9 @@ export function createOpenAINarrationProvider(
         throw new Error("OpenAI narration requires a fetch implementation in the current runtime.");
       }
 
-      assertSupportedModel(request.model);
+      const normalizedRequest = createNarrationRequest(request);
+
+      assertSupportedModel(normalizedRequest.model);
 
       const apiKey = process.env.OPENAI_API_KEY;
 
@@ -41,11 +44,11 @@ export function createOpenAINarrationProvider(
           "content-type": "application/json",
         },
         body: JSON.stringify({
-          model: request.model,
-          voice: request.voice,
-          instructions: createInstructions(request),
-          response_format: request.format,
-          input: request.text,
+          model: normalizedRequest.model,
+          voice: normalizedRequest.voice,
+          instructions: createInstructions(normalizedRequest),
+          response_format: normalizedRequest.format,
+          input: normalizedRequest.text,
         }),
       });
 
@@ -61,18 +64,18 @@ export function createOpenAINarrationProvider(
       }
 
       return {
-        request,
+        request: normalizedRequest,
         output: {
           kind: "bytes",
           bytes: new Uint8Array(await response.arrayBuffer()),
         },
         metadata: {
-          provider: request.provider,
-          model: request.model,
-          voice: request.voice,
-          format: request.format,
-          sampleRate: request.sampleRate,
-          language: request.language,
+          provider: normalizedRequest.provider,
+          model: normalizedRequest.model,
+          voice: normalizedRequest.voice,
+          format: normalizedRequest.format,
+          sampleRate: normalizedRequest.sampleRate,
+          language: normalizedRequest.language,
         },
       };
     },
@@ -80,11 +83,13 @@ export function createOpenAINarrationProvider(
 }
 
 function createInstructions(request: NarrationRequest): string {
-  if (request.language === undefined || request.language.trim() === "") {
+  const language = request.language?.trim();
+
+  if (language === undefined || language === "") {
     return request.instructions;
   }
 
-  const languageInstruction = `Use the language and native accent matching ${request.language}.`;
+  const languageInstruction = `Use the language and native accent matching ${language}.`;
 
   return request.instructions.trim() === ""
     ? languageInstruction

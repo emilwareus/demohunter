@@ -195,6 +195,65 @@ describe("resolveNarrationSegment", () => {
     });
   });
 
+  test("uses config-level narration language when an event does not override it", async () => {
+    const projectRoot = await makeTempProject();
+    let capturedRequest: ResolveNarrationFromCacheOptions["request"] | undefined;
+
+    await resolveNarrationSegment(
+      {
+        event: {
+          chapterTitle: "Billing",
+          kind: "narrate",
+          text: "Explain the billing dashboard",
+        },
+        loadedConfig: createLoadedConfig(projectRoot, {
+          provider: "elevenlabs",
+          model: "eleven_multilingual_v2",
+          voice: "default-voice",
+          format: "mp3_44100_128",
+          instructions: "",
+          language: " sv ",
+        }),
+      },
+      {
+        createProvider: () => ({
+          async synthesize() {
+            throw new Error("provider should not be called by this test double");
+          },
+        }),
+        resolveNarrationFromCache: async (options) => {
+          capturedRequest = options.request;
+
+          return {
+            source: "provider",
+            entry: {
+              audioPath: path.join(projectRoot, ".demohunter", "cache", "elevenlabs.mp3"),
+              byteSize: 3,
+              durationMs: 654,
+              key: "elevenlabs-cache-key",
+              metadataPath: path.join(projectRoot, ".demohunter", "cache", "elevenlabs.json"),
+              metadata: {
+                createdAt: "2026-05-26T00:00:00.000Z",
+                key: "elevenlabs-cache-key",
+                output: {
+                  audioPath: path.join(projectRoot, ".demohunter", "cache", "elevenlabs.mp3"),
+                  byteSize: 3,
+                  durationMs: 654,
+                  format: "mp3_44100_128",
+                  sha256: "abc",
+                },
+                request: options.request,
+                version: 1,
+              },
+            },
+          };
+        },
+      },
+    );
+
+    expect(capturedRequest?.language).toBe("sv");
+  });
+
   test("fails clearly when uncached narration requires ELEVENLABS_API_KEY", async () => {
     const projectRoot = await makeTempProject();
     delete process.env.ELEVENLABS_API_KEY;

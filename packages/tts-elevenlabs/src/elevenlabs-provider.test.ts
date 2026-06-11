@@ -55,7 +55,7 @@ describe("createElevenLabsNarrationProvider", () => {
       model: "eleven_flash_v2_5",
       format: "mp3_44100_128",
       sampleRate: 44_100,
-      language: "sv",
+      language: " sv ",
       text: "Explain billing",
       providerOptions: {
         voiceSettings: {
@@ -168,7 +168,7 @@ function createRequest(
     format: input.format ?? "mp3_44100_128",
     sampleRate: input.sampleRate ?? 44_100,
     instructions: input.instructions ?? "",
-    language: input.language,
+    ...(input.language === undefined ? {} : { language: input.language }),
     providerOptions: input.providerOptions,
     text: input.text ?? "Explain billing",
   };

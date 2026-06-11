@@ -68,8 +68,18 @@ export function createNarrationRequest(input: NarrationRequestInput): NarrationR
     throw new Error("Narration sampleRate must be a positive integer.");
   }
 
+  const { language, ...request } = input;
+  const normalizedLanguage = normalizeNarrationLanguage(language);
+
   return {
-    ...input,
+    ...request,
+    ...(normalizedLanguage === undefined ? {} : { language: normalizedLanguage }),
     text: normalizeNarrationText(input.text),
   };
+}
+
+function normalizeNarrationLanguage(language: string | undefined): string | undefined {
+  const normalized = language?.trim();
+
+  return normalized === "" ? undefined : normalized;
 }

@@ -129,7 +129,7 @@ export default defineConfig({
 ```
 
 Export `ELEVENLABS_API_KEY` for uncached ElevenLabs narration. Individual calls can override voice, model, format, language, and voice settings: `narrate("...", { voice: "other-voice-id", language: "sv" })`.
-ElevenLabs receives `language` as the API's `language_code`. OpenAI does not expose a general language parameter for built-in TTS voices, so DemoHunter folds `language` into the voice instructions to steer language and accent.
+Use ISO 639-1 language codes such as `sv` for Swedish. ElevenLabs receives `language` as the API's `language_code`. OpenAI does not expose a general language parameter for built-in TTS voices, so DemoHunter folds `language` into the voice instructions to steer language and accent.
 
 ## Output
 

@@ -71,7 +71,7 @@ Inspect `demohunter.config.ts` before editing:
 - `baseURL` tells you which app entrypoint the tour expects.
 - `outputDir` and `cacheDir` affect where generated artifacts land.
 - `holdPaddingMs`, `record`, and `tts` can explain timing or narration behavior.
-- `tts.provider` is either `openai` or `elevenlabs`; `tts.language` can steer language/accent. ElevenLabs receives it as `language_code`; OpenAI receives it through voice instructions.
+- `tts.provider` is either `openai` or `elevenlabs`; `tts.language` accepts ISO 639-1 language codes and can steer language/accent. ElevenLabs receives it as `language_code`; OpenAI receives it through voice instructions.
 - ElevenLabs voices are configured by voice ID and optional `voiceSettings`.
 
 Treat config as an input to the tour. Do not duplicate config values inside the tour unless the repo already does that intentionally.

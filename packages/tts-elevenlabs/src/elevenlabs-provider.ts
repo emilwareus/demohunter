@@ -1,7 +1,8 @@
-import type {
-  NarrationProvider,
-  NarrationRequest,
-  NarrationSynthesisResult,
+import {
+  createNarrationRequest,
+  type NarrationProvider,
+  type NarrationRequest,
+  type NarrationSynthesisResult,
 } from "@demohunter/tts-core";
 
 const ELEVENLABS_SPEECH_ENDPOINT = "https://api.elevenlabs.io/v1/text-to-speech";
@@ -33,19 +34,21 @@ export function createElevenLabsNarrationProvider(
         throw new Error(`ElevenLabs narration received unsupported provider: ${request.provider}`);
       }
 
+      const normalizedRequest = createNarrationRequest(request);
+
       const apiKey = process.env.ELEVENLABS_API_KEY;
 
       if (!apiKey) {
         throw new Error("ELEVENLABS_API_KEY is required to synthesize narration with ElevenLabs.");
       }
 
-      const response = await fetchImplementation(createSpeechUrl(request), {
+      const response = await fetchImplementation(createSpeechUrl(normalizedRequest), {
         method: "POST",
         headers: {
           "content-type": "application/json",
           "xi-api-key": apiKey,
         },
-        body: JSON.stringify(createSpeechBody(request)),
+        body: JSON.stringify(createSpeechBody(normalizedRequest)),
       });
 
       if (!response.ok) {
@@ -60,19 +63,19 @@ export function createElevenLabsNarrationProvider(
       }
 
       return {
-        request,
+        request: normalizedRequest,
         output: {
           kind: "bytes",
           bytes: new Uint8Array(await response.arrayBuffer()),
         },
         metadata: {
-          provider: request.provider,
-          model: request.model,
-          voice: request.voice,
-          format: request.format,
-          sampleRate: request.sampleRate,
-          language: request.language,
-          providerOptions: request.providerOptions,
+          provider: normalizedRequest.provider,
+          model: normalizedRequest.model,
+          voice: normalizedRequest.voice,
+          format: normalizedRequest.format,
+          sampleRate: normalizedRequest.sampleRate,
+          language: normalizedRequest.language,
+          providerOptions: normalizedRequest.providerOptions,
         },
       };
     },
@@ -90,10 +93,11 @@ function createSpeechBody(request: NarrationRequest): Record<string, unknown> {
     text: request.text,
     model_id: request.model,
   };
+  const language = request.language?.trim();
   const voiceSettings = readVoiceSettings(request.providerOptions);
 
-  if (request.language !== undefined && request.language.trim() !== "") {
-    body.language_code = request.language;
+  if (language !== undefined && language !== "") {
+    body.language_code = language;
   }
 
   if (voiceSettings !== undefined) {

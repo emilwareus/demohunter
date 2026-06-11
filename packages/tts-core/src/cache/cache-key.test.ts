@@ -92,4 +92,17 @@ describe("createNarrationCacheKey", () => {
 
     assert.equal(second, first);
   });
+
+  test("normalizes language whitespace before hashing", () => {
+    const first = createNarrationCacheKey(createNarrationRequest({
+      ...BASE_REQUEST,
+      language: "sv",
+    }));
+    const second = createNarrationCacheKey(createNarrationRequest({
+      ...BASE_REQUEST,
+      language: " sv ",
+    }));
+
+    assert.equal(second, first);
+  });
 });

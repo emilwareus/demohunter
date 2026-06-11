@@ -58,7 +58,7 @@ describe("createOpenAINarrationProvider", () => {
         format: "wav",
         sampleRate: 24_000,
         instructions: "Keep it brisk.",
-        language: "sv",
+        language: " sv ",
         text: "Explain billing",
       });
 
@@ -163,7 +163,7 @@ function createRequest(
     format: input.format ?? "mp3",
     sampleRate: input.sampleRate ?? 24_000,
     instructions: input.instructions ?? "Speak clearly.",
-    language: input.language,
+    ...(input.language === undefined ? {} : { language: input.language }),
     text: input.text ?? "Explain billing",
   };
 }
