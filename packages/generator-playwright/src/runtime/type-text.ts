@@ -19,6 +19,13 @@ type IntlWithSegmenter = typeof Intl & {
   Segmenter?: SegmenterConstructor;
 };
 
+export type ResolvedTypeTextAction = {
+  delaysMs: number[];
+  options?: TypeTextOptions;
+  text: string;
+  units: string[];
+};
+
 const BUILT_IN_PACES = {
   fast: {
     maxDelayMs: 65,
@@ -45,66 +52,143 @@ export async function typeTextIntoLocator(
   text: string,
   options: TypeTextOptions | undefined,
   sleep: (durationMs: number) => Promise<void>,
+  onResolvedAction?: (action: ResolvedTypeTextAction) => void,
 ): Promise<void> {
-  const pace = resolveTypeTextPace(options?.pace);
-  const units = splitTextIntoUnits(text);
-  const timeoutOptions = options?.timeoutMs === undefined ? undefined : { timeout: options.timeoutMs };
-  const seed = options?.seed ?? text;
+  const action = resolveTypeTextAction(text, options);
+  const timeoutOptions =
+    action.options?.timeoutMs === undefined ? undefined : { timeout: action.options.timeoutMs };
+  onResolvedAction?.(action);
 
-  assertNonNegativeFiniteNumber("typeText timeoutMs", options?.timeoutMs);
-
-  if (options?.replace === true) {
+  if (action.options?.replace === true) {
     await press(target, "ControlOrMeta+A", timeoutOptions);
     await press(target, "Backspace", timeoutOptions);
   }
 
-  for (const [index, unit] of units.entries()) {
+  for (const [index, unit] of action.units.entries()) {
     await pressSequentially(target, unit, timeoutOptions);
 
-    if (index === units.length - 1) {
-      continue;
-    }
+    const delayMs = action.delaysMs[index];
 
-    const delayMs = resolveDelayMs(pace, seed, unit, index);
-
-    if (delayMs > 0) {
+    if (delayMs !== undefined && delayMs > 0) {
       await sleep(delayMs);
     }
   }
 }
 
-function resolveTypeTextPace(pace: TypeTextOptions["pace"]): ResolvedTypeTextPace {
+export function resolveTypeTextAction(text: unknown, options: unknown): ResolvedTypeTextAction {
+  assertString("typeText text", text);
+
+  const normalizedOptions = normalizeTypeTextOptions(options);
+  const pace = resolveTypeTextPace(normalizedOptions?.pace);
+  const units = splitTextIntoUnits(text);
+  const seed = normalizedOptions?.seed ?? text;
+  const delaysMs = units.slice(0, -1).map((unit, index) => resolveDelayMs(pace, seed, unit, index));
+
+  return {
+    delaysMs,
+    options: normalizedOptions,
+    text,
+    units,
+  };
+}
+
+function normalizeTypeTextOptions(options: unknown): TypeTextOptions | undefined {
+  if (options === undefined) {
+    return undefined;
+  }
+
+  if (options === null || typeof options !== "object" || Array.isArray(options)) {
+    throw new Error("typeText options must be an object when provided.");
+  }
+
+  const input = options as Partial<TypeTextOptions>;
+  const normalized: TypeTextOptions = {};
+
+  if (input.replace !== undefined) {
+    if (typeof input.replace !== "boolean") {
+      throw new Error(
+        `typeText replace must be a boolean when provided: ${formatUnknownValue(input.replace)}`,
+      );
+    }
+
+    normalized.replace = input.replace;
+  }
+
+  if (input.pace !== undefined) {
+    normalized.pace = cloneTypeTextPace(input.pace);
+  }
+
+  if (input.seed !== undefined) {
+    if (typeof input.seed !== "string" && typeof input.seed !== "number") {
+      throw new Error(
+        `typeText seed must be a string or number when provided: ${formatUnknownValue(input.seed)}`,
+      );
+    }
+
+    normalized.seed = input.seed;
+  }
+
+  assertNonNegativeFiniteNumber("typeText timeoutMs", input.timeoutMs);
+
+  if (input.timeoutMs !== undefined) {
+    normalized.timeoutMs = input.timeoutMs;
+  }
+
+  return normalized;
+}
+
+function resolveTypeTextPace(pace: unknown): ResolvedTypeTextPace {
   if (pace === undefined) {
     return BUILT_IN_PACES.natural;
   }
 
-  if (typeof pace === "string") {
-    const resolved = BUILT_IN_PACES[pace];
-
-    if (resolved === undefined) {
-      throw new Error(`typeText pace must be "fast", "natural", "slow", or a custom pace object.`);
-    }
-
-    return resolved;
+  if (isBuiltInPaceName(pace)) {
+    return BUILT_IN_PACES[pace];
   }
 
-  assertNonNegativeFiniteNumber("typeText pace.minDelayMs", pace.minDelayMs);
-  assertNonNegativeFiniteNumber("typeText pace.maxDelayMs", pace.maxDelayMs);
-  assertNonNegativeFiniteNumber("typeText pace.spacePauseMs", pace.spacePauseMs);
-  assertNonNegativeFiniteNumber("typeText pace.punctuationPauseMs", pace.punctuationPauseMs);
+  if (typeof pace === "string") {
+    throw new Error(`typeText pace must be "fast", "natural", "slow", or a custom pace object.`);
+  }
 
-  if (pace.minDelayMs > pace.maxDelayMs) {
+  if (pace === null || typeof pace !== "object") {
+    throw new Error(`typeText pace must be "fast", "natural", "slow", or a custom pace object.`);
+  }
+
+  const customPace = pace as Partial<Extract<TypeTextPace, object>>;
+
+  assertRequiredNonNegativeFiniteNumber("typeText pace.minDelayMs", customPace.minDelayMs);
+  assertRequiredNonNegativeFiniteNumber("typeText pace.maxDelayMs", customPace.maxDelayMs);
+  assertNonNegativeFiniteNumber("typeText pace.spacePauseMs", customPace.spacePauseMs);
+  assertNonNegativeFiniteNumber("typeText pace.punctuationPauseMs", customPace.punctuationPauseMs);
+
+  if (customPace.minDelayMs > customPace.maxDelayMs) {
     throw new Error(
-      `typeText pace.minDelayMs must be less than or equal to pace.maxDelayMs: ${pace.minDelayMs} > ${pace.maxDelayMs}`,
+      `typeText pace.minDelayMs must be less than or equal to pace.maxDelayMs: ${customPace.minDelayMs} > ${customPace.maxDelayMs}`,
     );
   }
 
   return {
-    maxDelayMs: pace.maxDelayMs,
-    minDelayMs: pace.minDelayMs,
-    punctuationPauseMs: pace.punctuationPauseMs ?? 0,
-    spacePauseMs: pace.spacePauseMs ?? 0,
+    maxDelayMs: customPace.maxDelayMs,
+    minDelayMs: customPace.minDelayMs,
+    punctuationPauseMs: customPace.punctuationPauseMs ?? 0,
+    spacePauseMs: customPace.spacePauseMs ?? 0,
   };
+}
+
+function isBuiltInPaceName(pace: unknown): pace is keyof typeof BUILT_IN_PACES {
+  return pace === "fast" || pace === "natural" || pace === "slow";
+}
+
+function cloneTypeTextPace(pace: TypeTextPace): TypeTextPace {
+  if (isBuiltInPaceName(pace)) {
+    return pace;
+  }
+
+  if (pace === null || typeof pace !== "object") {
+    return pace;
+  }
+
+  return { ...pace };
 }
 
 function resolveDelayMs(
@@ -153,6 +237,14 @@ function splitTextIntoUnits(text: string): string[] {
   return Array.from(text);
 }
 
+function assertString(name: string, value: unknown): asserts value is string {
+  if (typeof value === "string") {
+    return;
+  }
+
+  throw new Error(`${name} must be a string: ${formatUnknownValue(value)}`);
+}
+
 async function press(
   target: Locator,
   key: string,
@@ -179,14 +271,45 @@ async function pressSequentially(
   await target.pressSequentially(text, options);
 }
 
-function assertNonNegativeFiniteNumber(name: string, value: number | undefined): void {
+function assertNonNegativeFiniteNumber(name: string, value: unknown): void {
   if (value === undefined) {
     return;
   }
 
-  if (Number.isFinite(value) && value >= 0) {
+  if (typeof value === "number" && Number.isFinite(value) && value >= 0) {
     return;
   }
 
-  throw new Error(`${name} must be a non-negative finite number: ${value}`);
+  throw new Error(`${name} must be a non-negative finite number: ${formatUnknownValue(value)}`);
+}
+
+function assertRequiredNonNegativeFiniteNumber(
+  name: string,
+  value: unknown,
+): asserts value is number {
+  if (typeof value === "number" && Number.isFinite(value) && value >= 0) {
+    return;
+  }
+
+  throw new Error(`${name} must be a non-negative finite number: ${formatUnknownValue(value)}`);
+}
+
+function formatUnknownValue(value: unknown): string {
+  if (typeof value === "symbol") {
+    return value.toString();
+  }
+
+  if (typeof value === "function") {
+    return `[function ${value.name || "anonymous"}]`;
+  }
+
+  try {
+    return String(value);
+  } catch {
+    try {
+      return Object.prototype.toString.call(value);
+    } catch {
+      return "[unformattable value]";
+    }
+  }
 }

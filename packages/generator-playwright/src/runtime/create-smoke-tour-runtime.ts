@@ -1,8 +1,9 @@
 import type {
   AssertVisibleOptions,
   ChapterOptions,
+  DemoHunterAuthorRunContext,
   DemoHunterLifecycleContext,
-  DemoHunterNarrationTimeline,
+  DemoHunterNarrateWhileTimeline,
   DemoHunterRunContext,
   HighlightOptions,
   NarrateOptions,
@@ -14,7 +15,7 @@ import type { Locator, Page } from "playwright";
 import type { TourRuntimeEvent } from "../execute/generator-types.js";
 import { typeTextIntoLocator } from "./type-text.js";
 
-export type SmokeRuntime = DemoHunterRunContext & DemoHunterLifecycleContext;
+export type SmokeRuntime = DemoHunterAuthorRunContext & DemoHunterLifecycleContext;
 
 type SnapshotInput = string | SnapshotOptions | undefined;
 
@@ -128,14 +129,22 @@ export function createSmokeTourRuntime(args: {
     },
     async narrateWhile<T>(
       text: string,
-      fn: (timeline: DemoHunterNarrationTimeline) => Promise<T> | T,
+      fn: (timeline: DemoHunterNarrateWhileTimeline) => Promise<T> | T,
       options?: NarrateOptions,
     ): Promise<T> {
       emitNarration(text, options);
       return fn({
         sleep,
         typeText: async (target, text, options) => {
-          await typeTextIntoLocator(target, text, options, sleep);
+          await typeTextIntoLocator(target, text, options, sleep, (action) => {
+            emit({
+              chapterTitle: currentChapter,
+              delaysMs: action.delaysMs,
+              kind: "type-text",
+              text: action.text,
+              ...action.options,
+            });
+          });
         },
       });
     },

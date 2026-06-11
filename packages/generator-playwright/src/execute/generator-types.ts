@@ -3,6 +3,7 @@ import type {
   HighlightOptions,
   NarrateOptions,
   SnapshotOptions,
+  TypeTextOptions,
   WaitForStableOptions,
 } from "@demohunter/sdk";
 
@@ -11,6 +12,7 @@ export const TOUR_RUNTIME_EVENT_KINDS = [
   "step-start",
   "step-end",
   "narrate",
+  "type-text",
   "narration-sleep",
   "wait-for-stable",
   "highlight",
@@ -36,6 +38,12 @@ export type TourRuntimeEvent =
       text: string;
       chapterTitle?: string;
     } & NarrateOptions)
+  | ({
+      kind: "type-text";
+      delaysMs: number[];
+      text: string;
+      chapterTitle?: string;
+    } & TypeTextOptions)
   | {
       kind: "narration-sleep";
       durationMs: number;

@@ -222,11 +222,25 @@ describe("replayTimeline", () => {
           {
             event: {
               chapterTitle: undefined,
+              delaysMs: [200],
+              kind: "type-text",
+              pace: {
+                maxDelayMs: 200,
+                minDelayMs: 200,
+              },
+              text: "AB",
+            },
+            kind: "event",
+            order: 2,
+          },
+          {
+            event: {
+              chapterTitle: undefined,
               durationMs: 200,
               kind: "narration-sleep",
             },
             kind: "event",
-            order: 2,
+            order: 3,
           },
         ],
         narrations: [],
@@ -254,6 +268,102 @@ describe("replayTimeline", () => {
     expect(waitForTimeout).toHaveBeenCalledTimes(2);
     expect(waitForTimeout).toHaveBeenNthCalledWith(1, 200);
     expect(waitForTimeout).toHaveBeenNthCalledWith(2, 1100);
+  });
+
+  test("fails replay when typeText input diverges while delays still match", async () => {
+    const page = {
+      goto: mock(async () => {}),
+      waitForTimeout: mock(async () => {}),
+    };
+    const locator = {
+      press: mock(async () => {}),
+      pressSequentially: mock(async () => {}),
+    };
+
+    await expect(
+      replayTimeline({
+        loadedConfig: createLoadedConfig("/tmp/workspace"),
+        page: page as never,
+        timeline: {
+          entries: [
+            {
+              event: {
+                chapterTitle: undefined,
+                kind: "narrate",
+                text: "Narrate over typing",
+              },
+              kind: "narration",
+              order: 1,
+              segment: {
+                audioPath: "/tmp/workspace/.demohunter/cache/typing.mp3",
+                cacheKey: "typing",
+                chapterTitle: undefined,
+                durationMs: 1000,
+                text: "Narrate over typing",
+              },
+            },
+            {
+              event: {
+                chapterTitle: undefined,
+                delaysMs: [200],
+                kind: "type-text",
+                pace: {
+                  maxDelayMs: 200,
+                  minDelayMs: 200,
+                },
+                text: "AB",
+              },
+              kind: "event",
+              order: 2,
+            },
+            {
+              event: {
+                chapterTitle: undefined,
+                durationMs: 200,
+                kind: "narration-sleep",
+              },
+              kind: "event",
+              order: 3,
+            },
+          ],
+          narrations: [],
+        },
+        tourFile: {
+          path: "/tmp/workspace/demos/billing.tour.ts",
+          tour: {
+            id: "billing-overview",
+            title: "Billing overview",
+            run: async ({ narrateWhile }) => {
+              await narrateWhile("Narrate over typing", async ({ typeText }) => {
+                await typeText(locator as never, "AC", {
+                  pace: {
+                    maxDelayMs: 200,
+                    minDelayMs: 200,
+                  },
+                });
+              });
+            },
+          },
+        },
+      }),
+    ).rejects.toEqual(
+      expect.objectContaining({
+        cause: expect.objectContaining({
+          actual: expect.objectContaining({
+            kind: "type-text",
+            text: "AC",
+          }),
+          expected: expect.objectContaining({
+            kind: "type-text",
+            text: "AB",
+          }),
+          index: 2,
+        }),
+        message: expect.stringContaining("Recorded pass diverged at entry 2"),
+        name: ReplayTimelineError.name,
+      }),
+    );
+    expect(locator.pressSequentially).not.toHaveBeenCalled();
   });
 
   test("keeps only hold padding when narrateWhile actions run longer than the narration", async () => {

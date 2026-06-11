@@ -71,14 +71,21 @@ export type DemoHunterTypeText = (
 
 export type DemoHunterNarrationTimeline = {
   sleep(ms: number): Promise<void>;
+};
+
+export type DemoHunterNarrateWhileTimeline = DemoHunterNarrationTimeline & {
   typeText: DemoHunterTypeText;
 };
 
-export type DemoHunterNarrateWhile = <T>(
+export type DemoHunterNarrateWhile<
+  TTimeline extends DemoHunterNarrationTimeline = DemoHunterNarrationTimeline,
+> = <T>(
   text: string,
-  fn: (timeline: DemoHunterNarrationTimeline) => Promise<T> | T,
+  fn: (timeline: TTimeline) => Promise<T> | T,
   options?: NarrateOptions,
 ) => Promise<T>;
+
+export type DemoHunterAuthorNarrateWhile = DemoHunterNarrateWhile<DemoHunterNarrateWhileTimeline>;
 
 export type DemoHunterWaitForStable = (options?: WaitForStableOptions) => Promise<void>;
 
@@ -96,13 +103,17 @@ export type DemoHunterGoto = (
   options?: Parameters<Page["goto"]>[1],
 ) => Promise<null | Response>;
 
-export type DemoHunterRunContext = DemoHunterLifecycleContext & {
+export type DemoHunterRunContext<
+  TTimeline extends DemoHunterNarrationTimeline = DemoHunterNarrationTimeline,
+> = DemoHunterLifecycleContext & {
   chapter: DemoHunterChapter;
   step: DemoHunterStep;
   narrate: DemoHunterNarrate;
-  narrateWhile: DemoHunterNarrateWhile;
+  narrateWhile: DemoHunterNarrateWhile<TTimeline>;
   waitForStable: DemoHunterWaitForStable;
   highlight: DemoHunterHighlight;
   snapshot: DemoHunterSnapshot;
   assertVisible: DemoHunterAssertVisible;
 };
+
+export type DemoHunterAuthorRunContext = DemoHunterRunContext<DemoHunterNarrateWhileTimeline>;

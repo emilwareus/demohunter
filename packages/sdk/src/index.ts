@@ -25,6 +25,8 @@ export type { DemoHunterTour } from "./tour.js";
 export type {
   AssertVisibleOptions,
   ChapterOptions,
+  DemoHunterAuthorNarrateWhile,
+  DemoHunterAuthorRunContext,
   DemoHunterAssertVisible,
   DemoHunterChapter,
   DemoHunterGoto,
@@ -33,6 +35,7 @@ export type {
   DemoHunterNarrate,
   DemoHunterNarrateWhile,
   DemoHunterNarrationTimeline,
+  DemoHunterNarrateWhileTimeline,
   DemoHunterRunContext,
   DemoHunterSnapshot,
   DemoHunterStep,

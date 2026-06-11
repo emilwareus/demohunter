@@ -1,10 +1,13 @@
-import type { DemoHunterLifecycleContext, DemoHunterRunContext } from "./runtime-types.js";
+import type { DemoHunterAuthorRunContext, DemoHunterLifecycleContext } from "./runtime-types.js";
 
 export type {
+  DemoHunterAuthorNarrateWhile,
+  DemoHunterAuthorRunContext,
   DemoHunterLifecycleContext,
   DemoHunterNarrate,
   DemoHunterNarrateWhile,
   DemoHunterNarrationTimeline,
+  DemoHunterNarrateWhileTimeline,
   DemoHunterRunContext,
 } from "./runtime-types.js";
 
@@ -13,7 +16,7 @@ export type DemoHunterTour = {
   title: string;
   setup?: (context: DemoHunterLifecycleContext) => Promise<void> | void;
   beforeRecord?: (context: DemoHunterLifecycleContext) => Promise<void> | void;
-  run: (context: DemoHunterRunContext) => Promise<void> | void;
+  run: (context: DemoHunterAuthorRunContext) => Promise<void> | void;
   teardown?: (context: DemoHunterLifecycleContext) => Promise<void> | void;
 };
 
