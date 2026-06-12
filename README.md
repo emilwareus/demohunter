@@ -11,15 +11,7 @@ Two workflows are especially useful:
 
 DemoHunter is local-first. It does not require a hosted backend, and OpenAI or ElevenLabs is used only for text-to-speech when uncached narration needs to be generated.
 
-## Showcase
-
-This repository includes a short DemoHunter-made demo of DemoHunter itself:
-
-- [Watch the 1.25x showcase video](.demohunter/demohunter-github/video-1.25x.mp4)
-- [Inspect the generated demo output](.demohunter/demohunter-github/)
-- [Read the tour source](demos/demohunter-github.tour.ts)
-
-The tour scrolls through this README, explains where DemoHunter fits, opens a real `.tour.ts` example, and ends on the CLI command that generated it.
+<video src=".demohunter/demohunter-github/video-1.25x.mp4" controls width="100%"></video>
 
 ## Features
 
