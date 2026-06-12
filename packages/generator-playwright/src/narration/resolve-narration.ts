@@ -1,12 +1,17 @@
 import {
   createNarrationRequest,
+  normalizeNarrationText,
   resolveNarrationFromCache,
   type NarrationProvider,
 } from "@demohunter/tts-core";
 import { createElevenLabsNarrationProvider } from "@demohunter/tts-elevenlabs";
 import { createOpenAINarrationProvider } from "@demohunter/tts-openai";
 
-import type { NarrationRuntimeEvent, NarrationSegment } from "../execute/generator-types.js";
+import type {
+  NarrationResolverContext,
+  NarrationRuntimeEvent,
+  NarrationSegment,
+} from "../execute/generator-types.js";
 import type { SmokeGenerateInput } from "../smoke-generate.js";
 
 const DEFAULT_NARRATION_SAMPLE_RATE = 24_000;
@@ -14,6 +19,7 @@ const DEFAULT_NARRATION_SAMPLE_RATE = 24_000;
 export type ResolveNarrationSegmentInput = {
   event: NarrationRuntimeEvent;
   loadedConfig: SmokeGenerateInput["loadedConfig"];
+  context?: NarrationResolverContext;
 };
 
 type ResolveNarrationSegmentDependencies = {
@@ -56,7 +62,7 @@ export async function resolveNarrationSegment(
     sampleRate: resolveNarrationSampleRate(input.event.format ?? config.tts.format),
     instructions: input.event.instructions ?? config.tts.instructions,
     language: input.event.language ?? config.tts.language,
-    providerOptions: resolveProviderOptions(config.tts, input.event),
+    providerOptions: resolveProviderOptions(config.tts, input.event, input.context),
     text: input.event.text,
   });
 
@@ -92,20 +98,31 @@ export async function resolveNarrationSegment(
 function resolveProviderOptions(
   tts: SmokeGenerateInput["loadedConfig"]["config"]["tts"],
   event: NarrationRuntimeEvent,
+  context: NarrationResolverContext | undefined,
 ): Record<string, unknown> | undefined {
   if (tts.provider !== "elevenlabs") {
     return undefined;
   }
 
+  const providerOptions: Record<string, unknown> = {};
   const voiceSettings = event.voiceSettings ?? tts.voiceSettings;
+  const supportsRequestStitching = (event.model ?? tts.model) !== "eleven_v3";
+  const previousText = supportsRequestStitching ? normalizeContextText(context?.previousText) : undefined;
+  const nextText = supportsRequestStitching ? normalizeContextText(context?.nextText) : undefined;
 
-  if (voiceSettings === undefined) {
-    return undefined;
+  if (voiceSettings !== undefined) {
+    providerOptions.voiceSettings = voiceSettings;
   }
 
-  return {
-    voiceSettings,
-  };
+  if (previousText !== undefined) {
+    providerOptions.previousText = previousText;
+  }
+
+  if (nextText !== undefined) {
+    providerOptions.nextText = nextText;
+  }
+
+  return Object.keys(providerOptions).length === 0 ? undefined : providerOptions;
 }
 
 function resolveNarrationSampleRate(format: string): number {
@@ -116,4 +133,14 @@ function resolveNarrationSampleRate(format: string): number {
   }
 
   return Number.parseInt(match[1], 10);
+}
+
+function normalizeContextText(text: string | undefined): string | undefined {
+  if (text === undefined) {
+    return undefined;
+  }
+
+  const normalized = normalizeNarrationText(text);
+
+  return normalized === "" ? undefined : normalized;
 }

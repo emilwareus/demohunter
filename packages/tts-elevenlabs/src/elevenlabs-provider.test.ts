@@ -58,6 +58,8 @@ describe("createElevenLabsNarrationProvider", () => {
       language: " sv ",
       text: "Explain billing",
       providerOptions: {
+        nextText: "Next, export the report.",
+        previousText: "First, open billing.",
         voiceSettings: {
           stability: 0.42,
           similarityBoost: 0.86,
@@ -84,6 +86,8 @@ describe("createElevenLabsNarrationProvider", () => {
       text: "Explain billing",
       model_id: "eleven_flash_v2_5",
       language_code: "sv",
+      previous_text: "First, open billing.",
+      next_text: "Next, export the report.",
       voice_settings: {
         stability: 0.42,
         similarity_boost: 0.86,

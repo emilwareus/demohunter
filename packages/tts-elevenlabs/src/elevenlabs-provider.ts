@@ -95,9 +95,19 @@ function createSpeechBody(request: NarrationRequest): Record<string, unknown> {
   };
   const language = request.language?.trim();
   const voiceSettings = readVoiceSettings(request.providerOptions);
+  const previousText = readNonBlankProviderOption(request.providerOptions, "previousText");
+  const nextText = readNonBlankProviderOption(request.providerOptions, "nextText");
 
   if (language !== undefined && language !== "") {
     body.language_code = language;
+  }
+
+  if (previousText !== undefined) {
+    body.previous_text = previousText;
+  }
+
+  if (nextText !== undefined) {
+    body.next_text = nextText;
   }
 
   if (voiceSettings !== undefined) {
@@ -123,6 +133,21 @@ function readVoiceSettings(
   }
 
   return value as ElevenLabsVoiceSettings;
+}
+
+function readNonBlankProviderOption(
+  providerOptions: NarrationRequest["providerOptions"],
+  key: string,
+): string | undefined {
+  const value = providerOptions?.[key];
+
+  if (typeof value !== "string") {
+    return undefined;
+  }
+
+  const normalized = value.trim();
+
+  return normalized === "" ? undefined : normalized;
 }
 
 function pruneUndefined<T extends Record<string, unknown>>(value: T): T {

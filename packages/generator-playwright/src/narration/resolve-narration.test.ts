@@ -133,6 +133,10 @@ describe("resolveNarrationSegment", () => {
             useSpeakerBoost: true,
           },
         }),
+        context: {
+          previousText: "  First, open billing.\r\n",
+          nextText: "Next, export the report.",
+        },
       },
       {
         createProvider: () => ({
@@ -179,6 +183,8 @@ describe("resolveNarrationSegment", () => {
       instructions: "",
       language: "sv",
       providerOptions: {
+        nextText: "Next, export the report.",
+        previousText: "First, open billing.",
         voiceSettings: {
           stability: 0.21,
           similarityBoost: 0.92,
@@ -252,6 +258,62 @@ describe("resolveNarrationSegment", () => {
     );
 
     expect(capturedRequest?.language).toBe("sv");
+  });
+
+  test("does not attach narration continuity context to OpenAI requests", async () => {
+    const projectRoot = await makeTempProject();
+    let capturedRequest: ResolveNarrationFromCacheOptions["request"] | undefined;
+
+    await resolveNarrationSegment(
+      {
+        event: {
+          chapterTitle: "Billing",
+          kind: "narrate",
+          text: "Explain the billing dashboard",
+        },
+        loadedConfig: createLoadedConfig(projectRoot),
+        context: {
+          previousText: "First, open billing.",
+          nextText: "Next, export the report.",
+        },
+      },
+      {
+        createProvider: () => ({
+          async synthesize() {
+            throw new Error("provider should not be called by this test double");
+          },
+        }),
+        resolveNarrationFromCache: async (options) => {
+          capturedRequest = options.request;
+
+          return {
+            source: "provider",
+            entry: {
+              audioPath: path.join(projectRoot, ".demohunter", "cache", "openai.mp3"),
+              byteSize: 3,
+              durationMs: 654,
+              key: "openai-cache-key",
+              metadataPath: path.join(projectRoot, ".demohunter", "cache", "openai.json"),
+              metadata: {
+                createdAt: "2026-05-26T00:00:00.000Z",
+                key: "openai-cache-key",
+                output: {
+                  audioPath: path.join(projectRoot, ".demohunter", "cache", "openai.mp3"),
+                  byteSize: 3,
+                  durationMs: 654,
+                  format: "mp3",
+                  sha256: "abc",
+                },
+                request: options.request,
+                version: 1,
+              },
+            },
+          };
+        },
+      },
+    );
+
+    expect(capturedRequest?.providerOptions).toBeUndefined();
   });
 
   test("fails clearly when uncached narration requires ELEVENLABS_API_KEY", async () => {
