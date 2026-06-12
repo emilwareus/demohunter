@@ -16,11 +16,11 @@ export default defineTour({
 
     await step("Introduce the README", async () => {
       await narrateWhile(
-        "DemoHunter turns Playwright style automation into narrated product demos you can regenerate locally.",
+        "Demohunter helps you agents to programatically generate videos with narration",
         async ({ sleep }) => {
-          await sleep(800);
+          await sleep(300);
           await page.mouse.wheel(0, 520);
-          await sleep(7200);
+          await sleep(6700);
         },
       );
       await snapshot({ name: "readme-intro" });
@@ -31,9 +31,9 @@ export default defineTour({
         "Use it for docs, DevRel, release notes, and pull requests where the reviewer needs to see the flow, not just read about it.",
         async ({ sleep }) => {
           await page.mouse.wheel(0, 620);
-          await sleep(1800);
+          await sleep(1300);
           await page.mouse.wheel(0, 620);
-          await sleep(8200);
+          await sleep(7700);
         },
       );
     });
@@ -47,9 +47,9 @@ export default defineTour({
           await page.goto(exampleTourUrl, { waitUntil: "domcontentloaded" });
           await waitForStable({ state: "domcontentloaded", timeoutMs: 10_000 });
           await page.getByText("defineTour").first().waitFor();
-          await sleep(900);
+          await sleep(400);
           await page.mouse.wheel(0, 520);
-          await sleep(10_100);
+          await sleep(9600);
         },
       );
       await snapshot({ name: "example-tour-source" });
@@ -65,7 +65,7 @@ export default defineTour({
           await waitForStable({ state: "domcontentloaded", timeoutMs: 10_000 });
           await page.getByText("npx demohunter generate <tour-file>").first().waitFor();
           await page.getByText("npx demohunter generate <tour-file>").first().scrollIntoViewIfNeeded();
-          await sleep(7500);
+          await sleep(7000);
         },
       );
       await snapshot({ name: "cli-command" });

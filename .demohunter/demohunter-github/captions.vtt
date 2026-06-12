@@ -1,17 +1,17 @@
 WEBVTT
 
 1
-00:00:00.003 --> 00:00:06.551
-DemoHunter turns Playwright style automation into narrated product demos you can regenerate locally.
+00:00:00.056 --> 00:00:04.746
+Demohunter helps you agents to programatically generate videos with narration
 
 2
-00:00:08.824 --> 00:00:16.905
+00:00:07.875 --> 00:00:16.002
 Use it for docs, DevRel, release notes, and pull requests where the reviewer needs to see the flow, not just read about it.
 
 3
-00:00:20.154 --> 00:00:28.467
+00:00:18.199 --> 00:00:27.115
 A demo is just a dot tour dot ts file: chapters, steps, Playwright locators, and narration around real UI motion.
 
 4
-00:00:32.573 --> 00:00:38.750
+00:00:29.643 --> 00:00:35.912
 Then run npx demohunter generate with the tour file. Always keep your documation videos up-to-date!

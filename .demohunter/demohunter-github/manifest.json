@@ -5,7 +5,7 @@
     "title": "DemoHunter GitHub overview"
   },
   "playback": {
-    "durationMs": 40560
+    "durationMs": 37120
   },
   "artifacts": {
     "videos": {
@@ -14,8 +14,8 @@
         "mediaType": "video/mp4",
         "checksum": {
           "algorithm": "sha256",
-          "byteSize": 1599935,
-          "hex": "06622ce767deaba8caf6a2ef519e20b8d9507abd5d75e61dcc03ae58f686000b"
+          "byteSize": 1513330,
+          "hex": "79544b35172a8fa9409f4cb107bc7cc99b84000b23fb6f956be16f6b67dfe605"
         }
       }
     },
@@ -24,8 +24,8 @@
       "mediaType": "image/jpeg",
       "checksum": {
         "algorithm": "sha256",
-        "byteSize": 92240,
-        "hex": "b7cca551ecaa31ec7d5a7ca7180e5e5212101a8d325a76f6a027dc0e66b27428"
+        "byteSize": 91227,
+        "hex": "3c1a79f6d1825c1bf4d6c9496ae3762e00c4cbcf5a1227e60c47463f6e587e60"
       },
       "captureTimestampMs": 1000
     },
@@ -35,8 +35,8 @@
         "mediaType": "text/plain",
         "checksum": {
           "algorithm": "sha256",
-          "byteSize": 569,
-          "hex": "4b6de8142d5fa677710f5cacfffb4bacb4e8791d20a5504e258bab36b3d12496"
+          "byteSize": 546,
+          "hex": "1cf15f67469c50d88abc0d7de74ae667e5b2319ee7a3c671d0abd75e11e9ec1f"
         }
       },
       "vtt": {
@@ -44,8 +44,8 @@
         "mediaType": "text/vtt",
         "checksum": {
           "algorithm": "sha256",
-          "byteSize": 577,
-          "hex": "0d54e7a6fdd725cd36227b2645b052de4e1f4e1e32ae1e9e5491712dd2cbb3d2"
+          "byteSize": 554,
+          "hex": "5bf0baacf0224a6355de50702f5b4b59589d60757f35b594ae9b26ddcb6b1b27"
         }
       }
     },
@@ -55,53 +55,53 @@
       "checksum": {
         "algorithm": "sha256",
         "byteSize": 177,
-        "hex": "18703dfad0b0a2132491319899c94d9163f57b3291196f06aa78eff761faeb3f"
+        "hex": "472b7a56ea1ed8eb6d9d3c820f205c0fb623086c21cd2aa497b154fb90e254c8"
       }
     },
     "audio": [
       {
-        "path": "audio/3a342eebd6538c682e657bfc3b20b8c59103fa8e6a358eb55e6b45fc0f7347bb.mp3_44100_128",
+        "path": "audio/86c00e15c74617876b02735b4ee9518ff82cf2a8c2f771c059e5ef5c471124f0.mp3_44100_128",
         "mediaType": "application/octet-stream",
         "checksum": {
           "algorithm": "sha256",
-          "byteSize": 105787,
-          "hex": "703bf9fa0239d81171e578a78e0d426b2e6e91a786bde7fff805a9b7c985911f"
+          "byteSize": 76112,
+          "hex": "fd8b1781d50f58f6513e061bd3fc48a67edad6d3455d4d0e10cd652a8780e4ae"
         },
-        "cacheKey": "3a342eebd6538c682e657bfc3b20b8c59103fa8e6a358eb55e6b45fc0f7347bb",
-        "durationMs": 6548
+        "cacheKey": "86c00e15c74617876b02735b4ee9518ff82cf2a8c2f771c059e5ef5c471124f0",
+        "durationMs": 4690
       },
       {
-        "path": "audio/a893cbf76b4bb2358bc797420392c8d2054b358d41e07c160063e14a5d93201b.mp3_44100_128",
+        "path": "audio/e9af5dfdac5f86254754e57c2da0b1eb39ba719d495100f1ed8dc2c72861abc0.mp3_44100_128",
         "mediaType": "application/octet-stream",
         "checksum": {
           "algorithm": "sha256",
-          "byteSize": 130447,
-          "hex": "50e0bda7a5154542f1fe07c0fe7baec003044fc709d7ce95c924f76c0208f3cb"
+          "byteSize": 131283,
+          "hex": "775143171e3fd083e75f60a7490d1a2d6181ef663cc4df63b19ef6c3e0247851"
         },
-        "cacheKey": "a893cbf76b4bb2358bc797420392c8d2054b358d41e07c160063e14a5d93201b",
-        "durationMs": 8081
+        "cacheKey": "e9af5dfdac5f86254754e57c2da0b1eb39ba719d495100f1ed8dc2c72861abc0",
+        "durationMs": 8127
       },
       {
         "path": "audio/7555c2e26520bbad298d1fe76232c9090205411ca2ac1256e95dc0582eaca3e9.mp3_44100_128",
         "mediaType": "application/octet-stream",
         "checksum": {
           "algorithm": "sha256",
-          "byteSize": 134208,
-          "hex": "c4b3a384d7833ce691e662d67a45b780a52358bbeb9965a617388c9b5a91a1b0"
+          "byteSize": 143822,
+          "hex": "b4c8ca352456296cff24403aea744fe502d2ed9dfba7373277063d5aac21a93d"
         },
         "cacheKey": "7555c2e26520bbad298d1fe76232c9090205411ca2ac1256e95dc0582eaca3e9",
-        "durationMs": 8313
+        "durationMs": 8916
       },
       {
         "path": "audio/7af1f4f54db5e06271365b375bf9c1a71ccfe1749b04f90ee933e9b45c030c47.mp3_44100_128",
         "mediaType": "application/octet-stream",
         "checksum": {
           "algorithm": "sha256",
-          "byteSize": 99936,
-          "hex": "5d8dcc1c67c6b577bcbc2fcad9f6f92e899e325b0931b5f171c72faf86a8ccb1"
+          "byteSize": 101190,
+          "hex": "b8d0496c16f9160f17acc8e0869634c595798fbf46fe9b775978254e7e36482c"
         },
         "cacheKey": "7af1f4f54db5e06271365b375bf9c1a71ccfe1749b04f90ee933e9b45c030c47",
-        "durationMs": 6177
+        "durationMs": 6269
       }
     ]
   },
@@ -113,45 +113,45 @@
       },
       {
         "title": "How it is written",
-        "startMs": 20153
+        "startMs": 18197
       },
       {
         "title": "Generate it",
-        "startMs": 32571
+        "startMs": 29641
       }
     ],
     "narrations": [
       {
-        "cacheKey": "3a342eebd6538c682e657bfc3b20b8c59103fa8e6a358eb55e6b45fc0f7347bb",
-        "text": "DemoHunter turns Playwright style automation into narrated product demos you can regenerate locally.",
+        "cacheKey": "86c00e15c74617876b02735b4ee9518ff82cf2a8c2f771c059e5ef5c471124f0",
+        "text": "Demohunter helps you agents to programatically generate videos with narration",
         "chapterTitle": "What it is",
-        "startMs": 3,
-        "endMs": 6551,
-        "durationMs": 6548
+        "startMs": 56,
+        "endMs": 4746,
+        "durationMs": 4690
       },
       {
-        "cacheKey": "a893cbf76b4bb2358bc797420392c8d2054b358d41e07c160063e14a5d93201b",
+        "cacheKey": "e9af5dfdac5f86254754e57c2da0b1eb39ba719d495100f1ed8dc2c72861abc0",
         "text": "Use it for docs, DevRel, release notes, and pull requests where the reviewer needs to see the flow, not just read about it.",
         "chapterTitle": "What it is",
-        "startMs": 8824,
-        "endMs": 16905,
-        "durationMs": 8081
+        "startMs": 7875,
+        "endMs": 16002,
+        "durationMs": 8127
       },
       {
         "cacheKey": "7555c2e26520bbad298d1fe76232c9090205411ca2ac1256e95dc0582eaca3e9",
         "text": "A demo is just a dot tour dot ts file: chapters, steps, Playwright locators, and narration around real UI motion.",
         "chapterTitle": "How it is written",
-        "startMs": 20154,
-        "endMs": 28467,
-        "durationMs": 8313
+        "startMs": 18199,
+        "endMs": 27115,
+        "durationMs": 8916
       },
       {
         "cacheKey": "7af1f4f54db5e06271365b375bf9c1a71ccfe1749b04f90ee933e9b45c030c47",
         "text": "Then run npx demohunter generate with the tour file. Always keep your documation videos up-to-date!",
         "chapterTitle": "Generate it",
-        "startMs": 32573,
-        "endMs": 38750,
-        "durationMs": 6177
+        "startMs": 29643,
+        "endMs": 35912,
+        "durationMs": 6269
       }
     ]
   }
