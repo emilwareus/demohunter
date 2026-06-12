@@ -10,10 +10,12 @@ Generated a short DemoHunter GitHub demo that scrolls the README, pitches local-
 
 Added the generated demo as a README showcase with links to the 1.25x video, generated output directory, and tour source.
 
+Regenerated the committed demo output with ElevenLabs Bella narration (`eleven_multilingual_v2`, `mp3_44100_128`) after rebasing on latest `origin/main`.
+
 Artifacts:
 
-- `.demohunter/demohunter-github/video.mp4` - original DemoHunter output, 40.68 seconds.
-- `.demohunter/demohunter-github/video-1.25x.mp4` - requested 1.25x export, 32.60 seconds.
+- `.demohunter/demohunter-github/video.mp4` - original DemoHunter output, 40.56 seconds.
+- `.demohunter/demohunter-github/video-1.25x.mp4` - requested 1.25x export, 32.48 seconds.
 
 Verification:
 

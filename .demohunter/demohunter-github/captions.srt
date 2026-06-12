@@ -1,15 +1,15 @@
 1
-00:00:00,003 --> 00:00:06,173
+00:00:00,003 --> 00:00:06,551
 DemoHunter turns Playwright style automation into narrated product demos you can regenerate locally.
 
 2
-00:00:08,817 --> 00:00:17,085
+00:00:08,824 --> 00:00:16,905
 Use it for docs, DevRel, release notes, and pull requests where the reviewer needs to see the flow, not just read about it.
 
 3
-00:00:20,136 --> 00:00:28,931
+00:00:20,154 --> 00:00:28,467
 A demo is just a dot tour dot ts file: chapters, steps, Playwright locators, and narration around real UI motion.
 
 4
-00:00:32,138 --> 00:00:38,775
+00:00:32,573 --> 00:00:38,750
 Then run npx demohunter generate with the tour file. Always keep your documation videos up-to-date!

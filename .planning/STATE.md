@@ -43,7 +43,7 @@ Progress: [██████████] 100%
 
 | Date | ID | Task | Summary |
 | --- | --- | --- | --- |
-| 2026-06-12 | 260612-jackson | Generate DemoHunter GitHub demo | Added a root DemoHunter tour for the GitHub README and example source flow, generated the full `.demohunter/demohunter-github/video.mp4`, and exported a 1.25x `video-1.25x.mp4` at 32.60 seconds. |
+| 2026-06-12 | 260612-jackson | Generate DemoHunter GitHub demo | Added a root DemoHunter tour for the GitHub README and example source flow, regenerated it with ElevenLabs Bella narration, and exported a 1.25x `video-1.25x.mp4` at 32.48 seconds. |
 | 2026-06-12 | 260612-frj | Implement automatic ElevenLabs narration continuity | Added automatic adjacent narration context for compatible ElevenLabs clips, serialized `previous_text` and `next_text`, skipped unsupported `eleven_v3` stitching, and verified with focused tests, typecheck, and full verification. |
 | 2026-06-11 | 260611-lsi | Review and fix natural text entry implementation until clean | Ran full verification and iterative subagent review, added strict type-text replay events, hardened runtime validation, preserved sleep-only type compatibility, and added SDK/CLI consumer declaration fixtures. |
 | 2026-06-11 | 260611-l8l | Add natural text entry API for narrated typing | Added `typeText` inside `narrateWhile` with deterministic paced Playwright typing, replay timing support, public types, docs, and focused runtime/replay/type tests. |
