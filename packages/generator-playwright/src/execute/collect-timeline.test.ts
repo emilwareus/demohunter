@@ -89,7 +89,7 @@ describe("collectTimeline", () => {
       kind: "narrate",
       text: "Explain the invoice screen",
       voice: "marin",
-    });
+    }, undefined);
     expect(calls).toEqual(["setup:true", "beforeRecord:true", "before-run", "run:true", "step", "teardown:true"]);
     expect(contexts).toHaveLength(4);
     expect(contexts[0]).toBe(contexts[1]);
@@ -274,6 +274,92 @@ describe("collectTimeline", () => {
     }
   });
 
+  test("passes adjacent ElevenLabs narration text only between compatible resolved identities", async () => {
+    const page = {
+      goto: mock(async () => {}),
+    };
+    const calls: Array<{
+      text: string;
+      context: unknown;
+    }> = [];
+    const resolveNarrationSegment = mock(async (event, context) => {
+      calls.push({
+        text: event.text,
+        context,
+      });
+
+      return {
+        audioPath: `/tmp/workspace/.demohunter/cache/${event.text}.mp3`,
+        cacheKey: event.text,
+        chapterTitle: event.chapterTitle,
+        durationMs: 1200,
+        text: event.text,
+      };
+    });
+
+    await collectTimeline({
+      loadedConfig: createLoadedConfig("/tmp/workspace", {
+        provider: "elevenlabs",
+        model: "eleven_multilingual_v2",
+        voice: "default-voice",
+        format: "mp3_44100_128",
+        instructions: "",
+        voiceSettings: {
+          stability: 0.5,
+          similarityBoost: 0.75,
+          useSpeakerBoost: true,
+        },
+      }),
+      page: page as never,
+      resolveNarrationSegment,
+      tourFile: {
+        path: "/tmp/workspace/demos/billing.tour.ts",
+        tour: {
+          id: "billing-overview",
+          title: "Billing overview",
+          run: async ({ narrate }) => {
+            await narrate("First");
+            await narrate("Second");
+            await narrate("Third", { voice: "alternate-voice" });
+            await narrate("Fourth", { voice: "alternate-voice" });
+            await narrate("Fifth", { model: "eleven_flash_v2_5" });
+          },
+        },
+      },
+    });
+
+    expect(calls).toEqual([
+      {
+        text: "First",
+        context: {
+          nextText: "Second",
+        },
+      },
+      {
+        text: "Second",
+        context: {
+          previousText: "First",
+        },
+      },
+      {
+        text: "Third",
+        context: {
+          nextText: "Fourth",
+        },
+      },
+      {
+        text: "Fourth",
+        context: {
+          previousText: "Third",
+        },
+      },
+      {
+        text: "Fifth",
+        context: undefined,
+      },
+    ]);
+  });
+
   test("still runs teardown when the tour fails and rethrows the primary error", async () => {
     const page = {
       goto: mock(async () => {}),
@@ -309,7 +395,37 @@ describe("collectTimeline", () => {
   });
 });
 
-function createLoadedConfig(projectRoot: string) {
+function createLoadedConfig(
+  projectRoot: string,
+  tts: {
+    provider: "openai";
+    model: string;
+    voice: string;
+    format: string;
+    instructions: string;
+    language?: string;
+  } | {
+    provider: "elevenlabs";
+    model: string;
+    voice: string;
+    format: string;
+    instructions: string;
+    language?: string;
+    voiceSettings?: {
+      stability?: number;
+      similarityBoost?: number;
+      style?: number;
+      useSpeakerBoost?: boolean;
+      speed?: number;
+    };
+  } = {
+    provider: "openai" as const,
+    model: "gpt-4o-mini-tts",
+    voice: "marin",
+    format: "mp3",
+    instructions: "Speak clearly.",
+  },
+) {
   return {
     config: {
       baseURL: "http://localhost:3000",
@@ -319,13 +435,7 @@ function createLoadedConfig(projectRoot: string) {
       viewport: { width: 1280, height: 720 },
       holdPaddingMs: 300,
       record: { format: "mp4" as const, showActions: true, showChapters: true },
-      tts: {
-        provider: "openai" as const,
-        model: "gpt-4o-mini-tts",
-        voice: "marin",
-        format: "mp3",
-        instructions: "Speak clearly.",
-      },
+      tts,
     },
     configPath: path.join(projectRoot, "demohunter.config.ts"),
     projectRoot,

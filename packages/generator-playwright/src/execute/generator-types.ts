@@ -77,6 +77,11 @@ export type NarrationSegment = {
   cacheKey: string;
 };
 
+export type NarrationResolverContext = {
+  previousText?: string;
+  nextText?: string;
+};
+
 export type PortableVideoOutputs = {
   mp4: {
     fileName: "video.mp4";
@@ -97,6 +102,7 @@ export type RecordedNarration = NarrationSegment & {
 
 export type NarrationSegmentResolver = (
   event: NarrationRuntimeEvent,
+  context?: NarrationResolverContext,
 ) => NarrationSegment | Promise<NarrationSegment>;
 
 export type CollectedNarration = {
