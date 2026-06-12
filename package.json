@@ -20,6 +20,7 @@
     "uninstall:global": "bun run --cwd packages/cli unlink:global"
   },
   "devDependencies": {
+    "demohunter": "workspace:*",
     "@types/node": "25.6.0",
     "typescript": "5.9.3"
   }

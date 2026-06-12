@@ -11,6 +11,8 @@ Two workflows are especially useful:
 
 DemoHunter is local-first. It does not require a hosted backend, and OpenAI or ElevenLabs is used only for text-to-speech when uncached narration needs to be generated.
 
+<video src=".demohunter/demohunter-github/video-1.10x.mp4" controls width="100%"></video>
+
 ## Features
 
 - [x] Cached narration. Same text never hits the TTS API twice.

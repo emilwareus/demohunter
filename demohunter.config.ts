@@ -1,4 +1,17 @@
-// Disposable starter config: replace this with your real demo target once setup is proven.
 export default {
-  baseURL: new URL("./demos/sample-site/index.html", import.meta.url).href,
+  baseURL: "https://github.com/emilwareus/demohunter",
+  viewport: { width: 1440, height: 900 },
+  tts: {
+    provider: "elevenlabs",
+    voice: "hpp4J3VqNfWAUOO0d1Us",
+    model: "eleven_multilingual_v2",
+    format: "mp3_44100_128",
+    instructions: "Speak clearly, confidently, and naturally for a polished product documentation demo.",
+    voiceSettings: {
+      stability: 0.55,
+      similarityBoost: 0.85,
+      style: 0.12,
+      useSpeakerBoost: true,
+    },
+  },
 };
