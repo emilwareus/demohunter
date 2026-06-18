@@ -7,11 +7,14 @@ export default defineTour({
     await chapter("Welcome", { id: "welcome" });
 
     await step("Greet the viewer", async () => {
-      await page.getByRole("heading", { name: "Hello DemoHunter!" }).waitFor();
+      const heading = page.getByRole("heading", { name: "Hello DemoHunter!" });
+      await heading.waitFor();
       await narrateWhile(
-        "Welcome to DemoHunter. A lightweight Vite app is enough to record a narrated tour locally.",
+        "This showcase video is demonstrating DemoHunter's recording effects. The blue ring around the heading is a Pass 2 highlight, added only to the video while the strict replay timeline stays unchanged.",
         async () => {
-          await highlight(page.getByRole("heading", { name: "Hello DemoHunter!" }), {
+          await highlight(heading, {
+            durationMs: 1_400,
+            paddingPx: 10,
             style: "ring",
           });
         },
@@ -22,15 +25,37 @@ export default defineTour({
     await chapter("Finale", { id: "finale" });
 
     await step("Reveal the finale", async () => {
-      await page.getByRole("button", { name: "Show the finale" }).click();
-      await page.getByRole("status").getByText("Hope you enjoyed the video!").waitFor();
+      const button = page.getByRole("button", { name: "Show the finale" });
       await narrateWhile(
-        "One click reveals the finale, and the portable output lands in dot demohunter, ready to replay.",
+        "Now watch the injected cursor move to the button. The click creates a visible ripple, then the spotlight highlight dims the page and cuts out the result message.",
         async () => {
-          await highlight(page.getByRole("status"), { style: "spotlight", paddingPx: 12 });
+          await moveMouseToLocator(page, button);
+          await page.waitForTimeout(300);
+          await button.click();
+
+          const status = page.getByRole("status").getByText("Hope you enjoyed the video!");
+          await status.waitFor();
+          await highlight(status, {
+            durationMs: 1_800,
+            paddingPx: 12,
+            style: "spotlight",
+          });
         },
       );
       await snapshot({ name: "finale" });
     });
   },
 });
+
+async function moveMouseToLocator(
+  page: Parameters<Parameters<typeof defineTour>[0]["run"]>[0]["page"],
+  locator: Parameters<Parameters<Parameters<typeof defineTour>[0]["run"]>[0]["highlight"]>[0],
+): Promise<void> {
+  const box = await locator.boundingBox();
+
+  if (box === null) {
+    return;
+  }
+
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2, { steps: 12 });
+}
