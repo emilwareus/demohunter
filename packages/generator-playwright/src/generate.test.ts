@@ -4,6 +4,7 @@ import path from "node:path";
 import type { CollectedTimeline } from "./execute/generator-types.js";
 import { ReplayTimelineError } from "./execute/replay-timeline.js";
 import { generateTour } from "./generate.js";
+import type { GenerateLoadedConfig } from "./generate.js";
 
 describe("generateTour", () => {
   test("runs pass 1, recorded replay, muxing, and output writing in order", async () => {
@@ -343,6 +344,74 @@ describe("generateTour", () => {
     });
   });
 
+  test("installs highlight effects even when cursor and ripple are disabled", async () => {
+    const installRecordingEffects = mock(async () => {});
+    const startScreencast = mock(async () => {});
+
+    await generateTour(
+      {
+        loadedConfig: createLoadedConfig("/tmp/project", {
+          record: {
+            format: "mp4",
+            showActions: true,
+            showChapters: true,
+            showCursor: false,
+            showClickRipple: false,
+            highlightStyle: "ring",
+          },
+        }),
+        tourFile: createTourFile("/tmp/project"),
+      },
+      {
+        attachDebugCapture: mock(() => createDebugCapture()),
+        collectTimeline: mock(async () => createTimeline()),
+        installRecordingEffects,
+        muxVideo: mock(async () => ({
+          mp4: { fileName: "video.mp4" as const, format: "mp4" as const, path: "/tmp/video.mp4" },
+        })),
+        playwright: {
+          chromium: {
+            launch: mock(async () => ({
+              close: mock(async () => {}),
+              newContext: mock(async () => ({
+                close: mock(async () => {}),
+                newPage: mock(async () => ({ goto: mock(async () => {}) })),
+              })),
+            })),
+          },
+          firefox: { launch: mock(async () => { throw new Error("unexpected browser"); }) },
+          webkit: { launch: mock(async () => { throw new Error("unexpected browser"); }) },
+        },
+        prepareOutputDir: mock(async () => "/tmp/project/.demohunter/billing-overview"),
+        replayTimeline: mock(async ({ onBeforeRun }) => {
+          await onBeforeRun?.();
+        }),
+        startScreencast,
+        stopScreencast: mock(async () => {}),
+        writeGenerationOutput: mock(async () => ({
+          captionsSrtPath: "/tmp/captions.srt",
+          captionsVttPath: "/tmp/captions.vtt",
+          outputDir: "/tmp/project/.demohunter/billing-overview",
+          videoPath: "/tmp/video.mp4",
+        })),
+      },
+    );
+
+    expect(installRecordingEffects).toHaveBeenCalledWith(
+      expect.any(Object),
+      {
+        showCursor: false,
+        showClickRipple: false,
+      },
+    );
+    expect(startScreencast).toHaveBeenCalledWith(
+      expect.objectContaining({
+        actionCursor: "pointer",
+        showActions: true,
+      }),
+    );
+  });
+
   test("fails directly when pass 1 navigation fails instead of retrying readiness checks", async () => {
     const navigationError = new Error("page.goto: net::ERR_CONNECTION_REFUSED http://localhost:3000/");
     const collectTimeline = mock(async () => {
@@ -549,24 +618,30 @@ describe("generateTour", () => {
   });
 });
 
-function createLoadedConfig(projectRoot: string) {
-  return {
-    config: {
-      baseURL: "http://localhost:3000",
-      outputDir: path.join(projectRoot, ".demohunter"),
-      cacheDir: path.join(projectRoot, ".demohunter/cache"),
-      browser: "chromium" as const,
-      viewport: { height: 720, width: 1280 },
-      holdPaddingMs: 300,
-      record: { format: "mp4" as const, showActions: true, showChapters: true },
-      tts: {
-        provider: "openai" as const,
-        model: "gpt-4o-mini-tts",
-        voice: "marin",
-        format: "mp3",
-        instructions: "Speak clearly.",
-      },
+function createLoadedConfig(
+  projectRoot: string,
+  overrides: Partial<GenerateLoadedConfig["config"]> = {},
+) {
+  const config = {
+    baseURL: "http://localhost:3000",
+    outputDir: path.join(projectRoot, ".demohunter"),
+    cacheDir: path.join(projectRoot, ".demohunter/cache"),
+    browser: "chromium" as const,
+    viewport: { height: 720, width: 1280 },
+    holdPaddingMs: 300,
+    record: { format: "mp4" as const, showActions: true, showChapters: true },
+    tts: {
+      provider: "openai" as const,
+      model: "gpt-4o-mini-tts",
+      voice: "marin",
+      format: "mp3",
+      instructions: "Speak clearly.",
     },
+    ...overrides,
+  };
+
+  return {
+    config,
     configPath: path.join(projectRoot, "demohunter.config.ts"),
     projectRoot,
   };

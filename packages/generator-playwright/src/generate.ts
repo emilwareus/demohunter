@@ -157,12 +157,10 @@ export async function generateTour(
     const showCursor = config.record.showCursor ?? true;
     const showClickRipple = config.record.showClickRipple ?? true;
 
-    if (showCursor || showClickRipple) {
-      await resolvedDependencies.installRecordingEffects(passTwoContext, {
-        showCursor,
-        showClickRipple,
-      });
-    }
+    await resolvedDependencies.installRecordingEffects(passTwoContext, {
+      showCursor,
+      showClickRipple,
+    });
 
     const passTwoPage = await passTwoContext.newPage();
     let recordingStartedAt: number | undefined;

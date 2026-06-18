@@ -42,6 +42,12 @@ describe("demohunter package entrypoint", () => {
     expect(declarations).toContain("DemoHunterAuthorRunContext");
     expect(declarations).toContain("DemoHunterAuthorNarrateWhile");
     expect(declarations).toContain("typeText: DemoHunterTypeText");
+    expect(declarations).toContain("HighlightStyle");
+    expect(declarations).toContain("showCursor?: boolean");
+    expect(declarations).toContain("showClickRipple?: boolean");
+    expect(declarations).toContain("highlightStyle?: HighlightStyle");
+    expect(declarations).toContain('style?: "ring" | "spotlight"');
+    expect(declarations).toContain("durationMs?: number");
 
     await typecheckConsumerTour();
   }, entrypointContractTimeoutMs);
@@ -57,9 +63,12 @@ async function typecheckConsumerTour(): Promise<void> {
       fixturePath,
       `import {
   defineTour,
+  defineConfig,
   type DemoHunterNarrateWhile,
   type DemoHunterNarrationTimeline,
   type DemoHunterRunContext,
+  type HighlightOptions,
+  type RecordConfig,
   type TypeTextOptions,
 } from "demohunter";
 
@@ -69,10 +78,30 @@ const sleepOnlyTimeline: DemoHunterNarrationTimeline = {
 
 const legacyNarrateWhile: DemoHunterNarrateWhile = async (_text, fn) => fn(sleepOnlyTimeline);
 
+const recordConfig: RecordConfig = {
+  format: "mp4",
+  showActions: false,
+  showChapters: true,
+  showCursor: false,
+  showClickRipple: false,
+  highlightStyle: "spotlight",
+};
+
+const highlightOptions: HighlightOptions = {
+  style: "ring",
+  durationMs: 1600,
+  paddingPx: 12,
+};
+
+export const config = defineConfig({
+  baseURL: "http://localhost:3000",
+  record: recordConfig,
+});
+
 export default defineTour({
   id: "consumer-natural-typing",
   title: "Consumer natural typing",
-  async run({ page, narrateWhile }) {
+  async run({ page, narrateWhile, highlight }) {
     await narrateWhile("Enter the customer name.", async ({ sleep, typeText }) => {
       const options: TypeTextOptions = {
         pace: "natural",
@@ -84,6 +113,7 @@ export default defineTour({
       await sleep(250);
       await typeText(page.getByLabel("Customer"), "Acme", options);
     });
+    await highlight(page.getByLabel("Customer"), highlightOptions);
   },
 });
 
@@ -98,6 +128,9 @@ const legacyRunContext = {
       format: "mp4",
       showActions: true,
       showChapters: true,
+      showCursor: true,
+      showClickRipple: true,
+      highlightStyle: "ring",
     },
     tts: {
       format: "mp3",
