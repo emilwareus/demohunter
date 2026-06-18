@@ -120,6 +120,8 @@ describe("installRecordingEffectsRuntime", () => {
       | undefined;
     expect(typeof api?.setCursorEnabled).toBe("function");
     expect(typeof api?.setRippleEnabled).toBe("function");
+    expect(typeof api?.showRing).toBe("function");
+    expect(typeof api?.clearRing).toBe("function");
     expect(typeof api?.showSpotlight).toBe("function");
     expect(typeof api?.clearSpotlight).toBe("function");
     expect(dom.document.getElementById("demohunter-cursor")).not.toBeNull();
@@ -204,6 +206,31 @@ describe("installRecordingEffectsRuntime", () => {
     expect(
       dom.document.body.children.some((child) => child.className === "demohunter-click-ripple"),
     ).toBe(false);
+  });
+
+  test("positions the ring highlight from the target box plus padding and clears it", () => {
+    const dom = createFakeDom();
+    withFakeDom(dom);
+    installRecordingEffectsRuntime({ showCursor: true, showClickRipple: true });
+    const api = (dom.window as unknown as {
+      __demohunterEffects: {
+        showRing: (x: number, y: number, w: number, h: number, p: number) => void;
+        clearRing: () => void;
+      };
+    }).__demohunterEffects;
+
+    api.showRing(30, 40, 200, 60, 10);
+    const ring = dom.document.getElementById("demohunter-highlight-ring");
+    expect(ring?.style.left).toBe("20px");
+    expect(ring?.style.top).toBe("30px");
+    expect(ring?.style.width).toBe("220px");
+    expect(ring?.style.height).toBe("80px");
+    expect(ring?.style.display).toBe("block");
+    expect(ring?.style.opacity).toBe("1");
+
+    api.clearRing();
+    expect(ring?.style.opacity).toBe("0");
+    expect(ring?.style.display).toBe("none");
   });
 
   test("positions the spotlight cutout from the target box plus padding and clears it", () => {

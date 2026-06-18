@@ -13,7 +13,7 @@ export default defineTour({
         "This showcase video is demonstrating DemoHunter's recording effects. The blue ring around the heading is a Pass 2 highlight, added only to the video while the strict replay timeline stays unchanged.",
         async () => {
           await highlight(heading, {
-            durationMs: 1_400,
+            durationMs: 4_000,
             paddingPx: 10,
             style: "ring",
           });
@@ -29,14 +29,14 @@ export default defineTour({
       await narrateWhile(
         "Now watch the injected cursor move to the button. The click creates a visible ripple, then the spotlight highlight dims the page and cuts out the result message.",
         async () => {
-          await moveMouseToLocator(page, button);
-          await page.waitForTimeout(300);
+          await gestureAroundLocator(page, button);
+          await page.waitForTimeout(450);
           await button.click();
 
           const status = page.getByRole("status").getByText("Hope you enjoyed the video!");
           await status.waitFor();
           await highlight(status, {
-            durationMs: 1_800,
+            durationMs: 4_000,
             paddingPx: 12,
             style: "spotlight",
           });
@@ -47,7 +47,7 @@ export default defineTour({
   },
 });
 
-async function moveMouseToLocator(
+async function gestureAroundLocator(
   page: Parameters<Parameters<typeof defineTour>[0]["run"]>[0]["page"],
   locator: Parameters<Parameters<Parameters<typeof defineTour>[0]["run"]>[0]["highlight"]>[0],
 ): Promise<void> {
@@ -57,5 +57,26 @@ async function moveMouseToLocator(
     return;
   }
 
-  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2, { steps: 12 });
+  const centerX = box.x + box.width / 2;
+  const centerY = box.y + box.height / 2;
+  const radiusX = box.width / 2 + 24;
+  const radiusY = box.height / 2 + 20;
+
+  await page.mouse.move(centerX - radiusX - 120, centerY - radiusY - 40, { steps: 18 });
+  await page.waitForTimeout(180);
+  await page.mouse.move(centerX, centerY, { steps: 28 });
+  await page.waitForTimeout(220);
+
+  for (let index = 0; index <= 24; index += 1) {
+    const angle = (Math.PI * 2 * index) / 24;
+    await page.mouse.move(
+      centerX + Math.cos(angle) * radiusX,
+      centerY + Math.sin(angle) * radiusY,
+      { steps: 2 },
+    );
+    await page.waitForTimeout(24);
+  }
+
+  await page.waitForTimeout(180);
+  await page.mouse.move(centerX, centerY, { steps: 18 });
 }

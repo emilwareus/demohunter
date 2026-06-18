@@ -11,9 +11,6 @@ export type ApplyHighlightVisualInput = {
   waitForTimeout?: (page: Page, durationMs: number) => Promise<void>;
 };
 
-const ringStyle = (paddingPx: number): string =>
-  `outline: 2px solid rgba(59, 130, 246, 0.9); outline-offset: ${paddingPx}px; border-radius: 6px; box-shadow: 0 0 0 ${paddingPx + 4}px rgba(59, 130, 246, 0.25);`;
-
 const defaultWaitForTimeout = (page: Page, durationMs: number): Promise<void> =>
   page.waitForTimeout(durationMs);
 
@@ -27,17 +24,24 @@ export async function applyHighlightVisual(input: ApplyHighlightVisualInput): Pr
 
   await clearHighlightVisual(input.page);
 
-  if (input.style === "ring") {
-    await input.target.highlight({ style: ringStyle(input.paddingPx) });
-    await wait(input.page, input.durationMs);
-    await input.page.hideHighlight();
-    return;
-  }
-
   const box = await input.target.boundingBox();
 
   if (box === null) {
-    // Element has no layout box (e.g. detached or display:none); skip the spotlight gracefully.
+    // Element has no layout box (e.g. detached or display:none); skip the highlight gracefully.
+    return;
+  }
+
+  if (input.style === "ring") {
+    await input.page.evaluate(
+      ({ x, y, width, height, padding }) => {
+        window.__demohunterEffects?.showRing(x, y, width, height, padding);
+      },
+      { ...box, padding: input.paddingPx },
+    );
+    await wait(input.page, input.durationMs);
+    await input.page.evaluate(() => {
+      window.__demohunterEffects?.clearRing();
+    });
     return;
   }
 
@@ -57,6 +61,7 @@ export async function applyHighlightVisual(input: ApplyHighlightVisualInput): Pr
 export async function clearHighlightVisual(page: Page): Promise<void> {
   await page.hideHighlight();
   await page.evaluate(() => {
+    window.__demohunterEffects?.clearRing();
     window.__demohunterEffects?.clearSpotlight();
   });
 }

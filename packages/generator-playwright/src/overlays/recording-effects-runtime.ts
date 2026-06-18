@@ -6,6 +6,8 @@ export type RecordingEffectsFlags = {
 export type RecordingEffectsApi = {
   setCursorEnabled: (enabled: boolean) => void;
   setRippleEnabled: (enabled: boolean) => void;
+  showRing: (x: number, y: number, width: number, height: number, padding: number) => void;
+  clearRing: () => void;
   showSpotlight: (x: number, y: number, width: number, height: number, padding: number) => void;
   clearSpotlight: () => void;
 };
@@ -34,10 +36,12 @@ export function installRecordingEffectsRuntime(flags: RecordingEffectsFlags): vo
   }
 
   const CURSOR_ID = "demohunter-cursor";
+  const RING_ID = "demohunter-highlight-ring";
   const SPOTLIGHT_ID = "demohunter-spotlight";
   const STYLE_ID = "demohunter-effects-style";
   const RIPPLE_CLASS = "demohunter-click-ripple";
   const CURSOR_Z_INDEX = "2147483647";
+  const RING_Z_INDEX = "2147483645";
   const SPOTLIGHT_Z_INDEX = "2147483646";
 
   const state = {
@@ -147,6 +151,30 @@ export function installRecordingEffectsRuntime(flags: RecordingEffectsFlags): vo
     true,
   );
 
+  const ensureRing = (): HTMLElement => {
+    let ring = document.getElementById(RING_ID);
+
+    if (ring === null) {
+      ring = document.createElement("div");
+      ring.id = RING_ID;
+      ring.style.cssText = `
+        position: fixed;
+        margin: 0;
+        border-radius: 8px;
+        outline: 2px solid rgba(59, 130, 246, 0.95);
+        box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.22), 0 0 22px rgba(59, 130, 246, 0.45);
+        pointer-events: none;
+        z-index: ${RING_Z_INDEX};
+        transition: opacity 150ms ease;
+        opacity: 0;
+        display: none;
+      `;
+      root().appendChild(ring);
+    }
+
+    return ring;
+  };
+
   const ensureSpotlight = (): HTMLElement => {
     let spotlight = document.getElementById(SPOTLIGHT_ID);
 
@@ -181,6 +209,24 @@ export function installRecordingEffectsRuntime(flags: RecordingEffectsFlags): vo
     },
     setRippleEnabled(enabled: boolean): void {
       state.rippleEnabled = enabled;
+    },
+    showRing(x: number, y: number, width: number, height: number, padding: number): void {
+      const pad = padding > 0 ? padding : 0;
+      const ring = ensureRing();
+      ring.style.left = `${x - pad}px`;
+      ring.style.top = `${y - pad}px`;
+      ring.style.width = `${width + pad * 2}px`;
+      ring.style.height = `${height + pad * 2}px`;
+      ring.style.display = "block";
+      ring.style.opacity = "1";
+    },
+    clearRing(): void {
+      const ring = document.getElementById(RING_ID);
+
+      if (ring !== null) {
+        ring.style.opacity = "0";
+        ring.style.display = "none";
+      }
     },
     showSpotlight(x: number, y: number, width: number, height: number, padding: number): void {
       const pad = padding > 0 ? padding : 0;

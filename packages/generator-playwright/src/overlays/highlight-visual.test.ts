@@ -12,19 +12,18 @@ function createWaitForTimeout() {
 }
 
 describe("applyHighlightVisual", () => {
-  test("draws a ring with padding-derived style and clears it after the hold", async () => {
-    const order: string[] = [];
-    const highlight = mock(async (options: { style?: string }) => {
-      order.push(`highlight:${options.style ?? ""}`);
-    });
-    const hideHighlight = mock(async () => {
-      order.push("hideHighlight");
-    });
-    const evaluate = mock(async () => {
-      order.push("evaluate");
+  test("draws a ring without Playwright selector labels and clears it after the hold", async () => {
+    const evaluateArgs: unknown[] = [];
+    const highlight = mock(async () => {});
+    const hideHighlight = mock(async () => {});
+    const evaluate = mock(async (_fn: unknown, arg?: unknown) => {
+      evaluateArgs.push(arg);
     });
     const page = { evaluate, hideHighlight };
-    const target = { boundingBox: mock(async () => null), highlight };
+    const target = {
+      boundingBox: mock(async () => ({ x: 30, y: 40, width: 200, height: 60 })),
+      highlight,
+    };
     const { calls, waitForTimeout } = createWaitForTimeout();
 
     await applyHighlightVisual({
@@ -36,14 +35,11 @@ describe("applyHighlightVisual", () => {
       waitForTimeout,
     });
 
-    expect(highlight).toHaveBeenCalledTimes(1);
-    const style = highlight.mock.calls[0]?.[0]?.style as string;
-    expect(style).toContain("outline-offset: 8px");
-    expect(style).toContain("box-shadow: 0 0 0 12px");
+    expect(highlight).not.toHaveBeenCalled();
     expect(calls).toEqual([800]);
-    // Clears (hideHighlight + clearSpotlight evaluate) before drawing, then hides after the hold.
-    expect(order).toEqual(["hideHighlight", "evaluate", `highlight:${style}`, "hideHighlight"]);
-    expect(target.boundingBox).not.toHaveBeenCalled();
+    // One evaluate clears the previous highlight, one shows the ring, one clears it afterwards.
+    expect(evaluate.mock.calls.length).toBe(3);
+    expect(evaluateArgs).toContainEqual({ x: 30, y: 40, width: 200, height: 60, padding: 8 });
   });
 
   test("renders a spotlight from the bounding box and clears it after the hold", async () => {
@@ -92,7 +88,7 @@ describe("applyHighlightVisual", () => {
       waitForTimeout,
     });
 
-    // Only the initial clear evaluate runs; no show/clear spotlight and no hold.
+    // Only the initial clear evaluate runs; no show/clear highlight and no hold.
     expect(evaluate).toHaveBeenCalledTimes(1);
     expect(calls).toEqual([]);
   });
