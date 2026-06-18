@@ -35,6 +35,58 @@ describe("doctorCommand", () => {
     expect(parsed.checks.map((check) => check.name)).toContain("baseURL");
   });
 
+  test("warns without failing when the installed Playwright is older than 1.61", async () => {
+    const log = mock(() => {});
+
+    await doctorCommand("/tmp/project", {
+      checkCommand: mock(async () => {}),
+      fetch: mock(async () => new Response("ok", { status: 200 })) as never,
+      getPlaywrightVersion: () => "1.59.1",
+      loadConfig: async () => makeLoadedConfig("/tmp/project"),
+      log,
+      playwright: {
+        chromium: { launch: mock(async () => ({ close: mock(async () => {}) })) } as never,
+        firefox: { launch: mock(async () => { throw new Error("unexpected browser"); }) } as never,
+        webkit: { launch: mock(async () => { throw new Error("unexpected browser"); }) } as never,
+      },
+    });
+
+    const parsed = JSON.parse(String(log.mock.calls[0]?.[0])) as {
+      ok: boolean;
+      checks: Array<{ name: string; status: string; message: string }>;
+    };
+    const playwrightVersion = parsed.checks.find((check) => check.name === "playwright version");
+
+    expect(parsed.ok).toBe(true);
+    expect(playwrightVersion?.status).toBe("warn");
+    expect(playwrightVersion?.message).toContain("1.61");
+  });
+
+  test("passes the Playwright version check when 1.61 or newer is installed", async () => {
+    const log = mock(() => {});
+
+    await doctorCommand("/tmp/project", {
+      checkCommand: mock(async () => {}),
+      fetch: mock(async () => new Response("ok", { status: 200 })) as never,
+      getPlaywrightVersion: () => "1.61.0",
+      loadConfig: async () => makeLoadedConfig("/tmp/project"),
+      log,
+      playwright: {
+        chromium: { launch: mock(async () => ({ close: mock(async () => {}) })) } as never,
+        firefox: { launch: mock(async () => { throw new Error("unexpected browser"); }) } as never,
+        webkit: { launch: mock(async () => { throw new Error("unexpected browser"); }) } as never,
+      },
+    });
+
+    const parsed = JSON.parse(String(log.mock.calls[0]?.[0])) as {
+      ok: boolean;
+      checks: Array<{ name: string; status: string }>;
+    };
+    const playwrightVersion = parsed.checks.find((check) => check.name === "playwright version");
+
+    expect(playwrightVersion?.status).toBe("pass");
+  });
+
   test("throws after printing JSON when a required check fails", async () => {
     const log = mock(() => {});
 

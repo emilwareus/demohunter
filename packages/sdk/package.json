@@ -17,9 +17,9 @@
     "typecheck": "tsc -p tsconfig.json"
   },
   "devDependencies": {
-    "playwright": ">=1.59"
+    "playwright": ">=1.61"
   },
   "peerDependencies": {
-    "playwright": ">=1.59"
+    "playwright": ">=1.61"
   }
 }

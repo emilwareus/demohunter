@@ -2,6 +2,7 @@ import type { Locator, Page, Response } from "playwright";
 
 export type BrowserName = "chromium" | "firefox" | "webkit";
 export type RecordFormat = "mp4" | "webm";
+export type HighlightStyle = "ring" | "spotlight";
 
 export type ViewportConfig = {
   width: number;
@@ -12,6 +13,12 @@ export type RecordConfig = {
   showActions: boolean;
   showChapters: boolean;
   format: RecordFormat;
+  /** Render a custom DOM cursor in the recording pass. Default: true */
+  showCursor?: boolean;
+  /** Render a ripple animation on clicks during the recording pass. Default: true */
+  showClickRipple?: boolean;
+  /** Default highlight style applied when a tour omits a per-call style. Default: "ring" */
+  highlightStyle?: HighlightStyle;
 };
 
 export type TTSProviderName = "openai" | "elevenlabs";
@@ -93,6 +100,10 @@ export type WaitForStableOptions = {
 export type HighlightOptions = {
   name?: string;
   paddingPx?: number;
+  /** Visual style applied during the recording pass. Defaults to config.record.highlightStyle. */
+  style?: "ring" | "spotlight";
+  /** How long the highlight stays visible during the recording pass, in milliseconds. Default: 800 */
+  durationMs?: number;
 };
 
 export type SnapshotOptions = {
@@ -206,6 +217,9 @@ export const DEFAULT_RECORD_CONFIG: RecordConfig = {
   showActions: true,
   showChapters: true,
   format: "mp4",
+  showCursor: true,
+  showClickRipple: true,
+  highlightStyle: "ring",
 };
 
 export const DEFAULT_TTS_CONFIG: TTSConfig = {

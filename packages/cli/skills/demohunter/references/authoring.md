@@ -47,7 +47,7 @@ Useful option details:
 - `sleep(ms)` inside `narrateWhile(...)` waits inside the narration window
 - `typeText(locator, text, { replace?, pace?, seed?, timeoutMs? })` inside `narrateWhile(...)` types visible text incrementally
 - `waitForStable(..., { state?, timeoutMs? })`
-- `highlight(..., { name?, paddingPx? })`
+- `highlight(..., { name?, paddingPx?, style?, durationMs? })`
 - `snapshot(..., { name? })`
 - `assertVisible(..., { timeoutMs? })`
 
@@ -73,6 +73,8 @@ Inspect `demohunter.config.ts` before editing:
 - `baseURL` tells you which app entrypoint the tour expects.
 - `outputDir` and `cacheDir` affect where generated artifacts land.
 - `holdPaddingMs`, `record`, and `tts` can explain timing or narration behavior.
+- `record.showCursor` and `record.showClickRipple` (both default `true`) toggle the injected cursor and click ripple in the recording. `record.highlightStyle` (`"ring"` | `"spotlight"`, default `"ring"`) sets the default `highlight()` style.
+- Set `record.showActions: false` for polished videos when Playwright action labels or locator text would distract from the product UI.
 - `tts.provider` is either `openai` or `elevenlabs`; `tts.language` accepts ISO 639-1 language codes and can steer language/accent. ElevenLabs receives it as `language_code`; OpenAI receives it through voice instructions.
 - ElevenLabs voices are configured by voice ID and optional `voiceSettings`.
 
@@ -123,6 +125,106 @@ await narrateWhile("Here is the generated workflow. Notice the schedule and outp
   await highlight(page.getByText("Daily Digest"));
   await sleep(1200);
   await highlight(page.getByText("readyMessage"));
+});
+```
+
+## Highlight Visuals
+
+`highlight(locator, options?)` renders on the recorded video during the replay pass (Pass 2). It is
+a presentation-only effect: it never changes the emitted timeline, so strict replay stays intact.
+
+- `style: "ring"` (default) draws a clean outline ring around the element without showing locator/testid text.
+- `style: "spotlight"` dims the rest of the page and cuts out the target.
+- `paddingPx` expands the ring offset or the spotlight cutout.
+- `durationMs` controls how long the highlight stays visible at replay time (default `800`). The
+  hold delays the next authored call on the video only — it does not add timeline events.
+- The default style comes from `record.highlightStyle` in `demohunter.config.ts`; a per-call
+  `style` overrides it.
+
+```ts
+await highlight(page.getByRole("heading", { name: "Hello DemoHunter!" }), { style: "ring" });
+await highlight(page.getByRole("status"), { style: "spotlight", paddingPx: 12, durationMs: 1200 });
+```
+
+## Visual Effects Showcase Pattern
+
+When a tour is meant to demonstrate DemoHunter's recording effects, make the effects obvious and
+keep the product UI clean.
+
+Recommended config:
+
+```ts
+export default defineConfig({
+  baseURL: "http://127.0.0.1:3200",
+  record: {
+    showActions: false,
+    showCursor: true,
+    showClickRipple: true,
+  },
+});
+```
+
+Authoring guidance:
+
+- Say which effect is being shown in narration: ring highlight, injected cursor, click ripple, or spotlight.
+- Use longer highlight holds for demos, typically `durationMs: 3000` to `4000`.
+- Avoid Playwright action annotations for showcase videos; they can reveal selector text and distract from the UI.
+- Move the mouse deliberately before clicking. A slow move, short pause, small circle around the target, and final settle feels more human than a direct jump.
+- Keep these gestures inside `narrateWhile(...)` so the voiceover explains the visual motion while it happens.
+
+Example helper for a human-like cursor gesture:
+
+```ts
+async function gestureAroundLocator(page: Page, locator: Locator): Promise<void> {
+  const box = await locator.boundingBox();
+
+  if (box === null) {
+    return;
+  }
+
+  const centerX = box.x + box.width / 2;
+  const centerY = box.y + box.height / 2;
+  const radiusX = box.width / 2 + 24;
+  const radiusY = box.height / 2 + 20;
+
+  await page.mouse.move(centerX - radiusX - 120, centerY - radiusY - 40, { steps: 18 });
+  await page.waitForTimeout(180);
+  await page.mouse.move(centerX, centerY, { steps: 28 });
+  await page.waitForTimeout(220);
+
+  for (let index = 0; index <= 24; index += 1) {
+    const angle = (Math.PI * 2 * index) / 24;
+    await page.mouse.move(centerX + Math.cos(angle) * radiusX, centerY + Math.sin(angle) * radiusY, {
+      steps: 2,
+    });
+    await page.waitForTimeout(24);
+  }
+
+  await page.waitForTimeout(180);
+  await page.mouse.move(centerX, centerY, { steps: 18 });
+}
+```
+
+Example sequence:
+
+```ts
+await narrateWhile("The blue ring is a Pass 2-only highlight added to the video.", async () => {
+  await highlight(page.getByRole("heading", { name: "Hello DemoHunter!" }), {
+    durationMs: 4000,
+    paddingPx: 10,
+    style: "ring",
+  });
+});
+
+await narrateWhile("The cursor moves naturally, clicks with a ripple, then the result is spotlighted.", async () => {
+  const button = page.getByRole("button", { name: "Show the finale" });
+  await gestureAroundLocator(page, button);
+  await page.waitForTimeout(450);
+  await button.click();
+
+  const result = page.getByRole("status");
+  await result.waitFor();
+  await highlight(result, { durationMs: 4000, paddingPx: 12, style: "spotlight" });
 });
 ```
 

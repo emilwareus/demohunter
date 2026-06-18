@@ -1,5 +1,6 @@
 import { execFile } from "node:child_process";
 import { access, mkdir, rm, writeFile } from "node:fs/promises";
+import { createRequire } from "node:module";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
@@ -9,6 +10,36 @@ import * as playwright from "playwright";
 import { loadConfig } from "../config/load-config.js";
 
 const execFileAsync = promisify(execFile);
+
+const MINIMUM_PLAYWRIGHT_MAJOR = 1;
+const MINIMUM_PLAYWRIGHT_MINOR = 61;
+
+function readInstalledPlaywrightVersion(): string | undefined {
+  try {
+    const require = createRequire(import.meta.url);
+    const pkg = require("playwright/package.json") as { version?: string };
+
+    return typeof pkg.version === "string" ? pkg.version : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function isPlaywrightTooOld(version: string): boolean {
+  const [major, minor] = version
+    .split(".")
+    .map((part) => Number.parseInt(part, 10));
+
+  if (!Number.isFinite(major) || !Number.isFinite(minor)) {
+    return false;
+  }
+
+  if (major < MINIMUM_PLAYWRIGHT_MAJOR) {
+    return true;
+  }
+
+  return major === MINIMUM_PLAYWRIGHT_MAJOR && minor < MINIMUM_PLAYWRIGHT_MINOR;
+}
 
 type DoctorStatus = "pass" | "warn" | "fail";
 
@@ -21,6 +52,7 @@ type DoctorCheck = {
 type DoctorDependencies = {
   checkCommand: (command: string, args: string[]) => Promise<void>;
   fetch: typeof fetch;
+  getPlaywrightVersion: () => string | undefined;
   loadConfig: typeof loadConfig;
   log: (message: string) => void;
   playwright: Pick<typeof playwright, "chromium" | "firefox" | "webkit">;
@@ -31,6 +63,7 @@ const defaultDependencies: DoctorDependencies = {
     await execFileAsync(command, args);
   },
   fetch: globalThis.fetch,
+  getPlaywrightVersion: readInstalledPlaywrightVersion,
   loadConfig,
   log: console.log,
   playwright,
@@ -62,6 +95,29 @@ export async function doctorCommand(
     await resolvedDependencies.checkCommand("ffprobe", ["-version"]);
     return { message: "ffprobe is available on PATH" };
   });
+
+  const playwrightVersion = resolvedDependencies.getPlaywrightVersion();
+
+  if (playwrightVersion === undefined) {
+    checks.push({
+      name: "playwright version",
+      status: "warn",
+      message:
+        "Could not determine the installed Playwright version; visual effects require Playwright >=1.61",
+    });
+  } else if (isPlaywrightTooOld(playwrightVersion)) {
+    checks.push({
+      name: "playwright version",
+      status: "warn",
+      message: `Playwright ${playwrightVersion} is older than 1.61; cursor, click ripple, and highlight effects may not render`,
+    });
+  } else {
+    checks.push({
+      name: "playwright version",
+      status: "pass",
+      message: `Playwright ${playwrightVersion} satisfies the >=1.61 requirement for visual effects`,
+    });
+  }
 
   checks.push(
     process.env.OPENAI_API_KEY

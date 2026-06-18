@@ -31,8 +31,8 @@ const EXAMPLES = [
     projectRoot: path.join(repoRoot, "examples", "vite-demo"),
     tourId: "vite-demo",
     narrationTexts: [
-      "Welcome to DemoHunter. A lightweight Vite app is enough to record a narrated tour locally.",
-      "One click reveals the finale, and the portable output lands in dot demohunter, ready to replay.",
+      "This showcase video is demonstrating DemoHunter's recording effects. The blue ring around the heading is a Pass 2 highlight, added only to the video while the strict replay timeline stays unchanged.",
+      "Now watch the injected cursor move to the button. The click creates a visible ripple, then the spotlight highlight dims the page and cuts out the result message.",
     ],
   },
 ] as const;

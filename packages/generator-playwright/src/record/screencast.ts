@@ -9,6 +9,11 @@ export type StartScreencastInput = {
   outputPath: string;
   page: Page;
   showActions: boolean;
+  /**
+   * Cursor decoration for Playwright's action annotations. Set to "none" when a custom DOM cursor
+   * is injected to avoid a double cursor; defaults to Playwright's animated pointer otherwise.
+   */
+  actionCursor?: "pointer" | "none";
   viewport: ScreencastViewport;
 };
 
@@ -26,6 +31,7 @@ export async function startScreencast({
   outputPath,
   page,
   showActions,
+  actionCursor,
   viewport,
 }: StartScreencastInput): Promise<void> {
   await page.screencast.start({
@@ -37,7 +43,11 @@ export async function startScreencast({
     return;
   }
 
-  await page.screencast.showActions(ACTION_ANNOTATION_SETTINGS);
+  await page.screencast.showActions(
+    actionCursor === undefined
+      ? ACTION_ANNOTATION_SETTINGS
+      : { ...ACTION_ANNOTATION_SETTINGS, cursor: actionCursor },
+  );
 }
 
 export async function stopScreencast({ page, primaryError }: StopScreencastInput): Promise<void> {
