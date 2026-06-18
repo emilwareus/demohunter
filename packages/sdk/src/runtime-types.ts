@@ -23,6 +23,10 @@ export type WaitForStableOptions = {
 export type HighlightOptions = {
   name?: string;
   paddingPx?: number;
+  /** Visual style applied during the recording pass. Defaults to config.record.highlightStyle. */
+  style?: "ring" | "spotlight";
+  /** How long the highlight stays visible during the recording pass, in milliseconds. Default: 800 */
+  durationMs?: number;
 };
 
 export type SnapshotOptions = {

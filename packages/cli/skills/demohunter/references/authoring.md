@@ -47,7 +47,7 @@ Useful option details:
 - `sleep(ms)` inside `narrateWhile(...)` waits inside the narration window
 - `typeText(locator, text, { replace?, pace?, seed?, timeoutMs? })` inside `narrateWhile(...)` types visible text incrementally
 - `waitForStable(..., { state?, timeoutMs? })`
-- `highlight(..., { name?, paddingPx? })`
+- `highlight(..., { name?, paddingPx?, style?, durationMs? })`
 - `snapshot(..., { name? })`
 - `assertVisible(..., { timeoutMs? })`
 
@@ -73,6 +73,7 @@ Inspect `demohunter.config.ts` before editing:
 - `baseURL` tells you which app entrypoint the tour expects.
 - `outputDir` and `cacheDir` affect where generated artifacts land.
 - `holdPaddingMs`, `record`, and `tts` can explain timing or narration behavior.
+- `record.showCursor` and `record.showClickRipple` (both default `true`) toggle the injected cursor and click ripple in the recording. `record.highlightStyle` (`"ring"` | `"spotlight"`, default `"ring"`) sets the default `highlight()` style.
 - `tts.provider` is either `openai` or `elevenlabs`; `tts.language` accepts ISO 639-1 language codes and can steer language/accent. ElevenLabs receives it as `language_code`; OpenAI receives it through voice instructions.
 - ElevenLabs voices are configured by voice ID and optional `voiceSettings`.
 
@@ -124,6 +125,24 @@ await narrateWhile("Here is the generated workflow. Notice the schedule and outp
   await sleep(1200);
   await highlight(page.getByText("readyMessage"));
 });
+```
+
+## Highlight Visuals
+
+`highlight(locator, options?)` renders on the recorded video during the replay pass (Pass 2). It is
+a presentation-only effect: it never changes the emitted timeline, so strict replay stays intact.
+
+- `style: "ring"` (default) draws a Playwright outline ring around the element.
+- `style: "spotlight"` dims the rest of the page and cuts out the target.
+- `paddingPx` expands the ring offset or the spotlight cutout.
+- `durationMs` controls how long the highlight stays visible at replay time (default `800`). The
+  hold delays the next authored call on the video only — it does not add timeline events.
+- The default style comes from `record.highlightStyle` in `demohunter.config.ts`; a per-call
+  `style` overrides it.
+
+```ts
+await highlight(page.getByRole("heading", { name: "Hello DemoHunter!" }), { style: "ring" });
+await highlight(page.getByRole("status"), { style: "spotlight", paddingPx: 12, durationMs: 1200 });
 ```
 
 ## Template

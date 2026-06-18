@@ -122,8 +122,14 @@ describe("generateTour", () => {
         tourFile: createTourFile("/tmp/project"),
       },
       {
+        applyHighlightVisual: mock(async () => {
+          calls.push("apply-highlight");
+        }),
         attachDebugCapture: mock(() => createDebugCapture()),
         collectTimeline,
+        installRecordingEffects: mock(async () => {
+          calls.push("install-effects");
+        }),
         muxVideo,
         now,
         playwright: {
@@ -171,6 +177,7 @@ describe("generateTour", () => {
       "collect",
       "close-pass-1",
       "new-context",
+      "install-effects",
       "new-page-pass-2",
       "replay",
       "start",
@@ -186,6 +193,7 @@ describe("generateTour", () => {
       outputPath: "/tmp/project/.demohunter/billing-overview.recording.webm",
       page: passTwoPage,
       showActions: true,
+      actionCursor: "none",
       viewport: { height: 720, width: 1280 },
     });
     expect(browser.newContext).toHaveBeenNthCalledWith(1, {
@@ -245,6 +253,94 @@ describe("generateTour", () => {
       tempScreencastPath: "/tmp/project/.demohunter/billing-overview.recording.webm",
     });
     expect(now).toHaveBeenCalledTimes(4);
+  });
+
+  test("applies highlight visuals after the base highlight, resolving style and duration defaults", async () => {
+    const events: string[] = [];
+    const baseHighlight = mock(async () => {
+      events.push("base-highlight");
+    });
+    const applyHighlightVisual = mock(async () => {
+      events.push("apply-highlight");
+    });
+    const ringTarget = { id: "ring-target" };
+    const spotlightTarget = { id: "spotlight-target" };
+    const passTwoPage = { goto: mock(async () => {}) };
+    const replayTimeline = mock(async ({ onBeforeRun, tourFile }) => {
+      await onBeforeRun?.();
+      await tourFile.tour.run({ highlight: baseHighlight });
+    });
+
+    await generateTour(
+      {
+        loadedConfig: createLoadedConfig("/tmp/project"),
+        tourFile: {
+          path: "/tmp/project/demos/billing.tour.ts",
+          tour: {
+            id: "billing-overview",
+            title: "Billing overview",
+            run: async ({ highlight }: { highlight: (target: unknown, options?: unknown) => Promise<void> }) => {
+              await highlight(ringTarget);
+              await highlight(spotlightTarget, { style: "spotlight", paddingPx: 20, durationMs: 500 });
+            },
+          },
+        },
+      },
+      {
+        applyHighlightVisual,
+        attachDebugCapture: mock(() => createDebugCapture()),
+        collectTimeline: mock(async () => createTimeline()),
+        installRecordingEffects: mock(async () => {}),
+        muxVideo: mock(async () => ({
+          mp4: { fileName: "video.mp4" as const, format: "mp4" as const, path: "/tmp/video.mp4" },
+        })),
+        playwright: {
+          chromium: {
+            launch: mock(async () => ({
+              close: mock(async () => {}),
+              newContext: mock(async () => ({
+                addInitScript: mock(async () => {}),
+                close: mock(async () => {}),
+                newPage: mock(async () => passTwoPage),
+              })),
+            })),
+          },
+          firefox: { launch: mock(async () => { throw new Error("unexpected browser"); }) },
+          webkit: { launch: mock(async () => { throw new Error("unexpected browser"); }) },
+        },
+        prepareOutputDir: mock(async () => "/tmp/project/.demohunter/billing-overview"),
+        replayTimeline,
+        startScreencast: mock(async () => {}),
+        stopScreencast: mock(async () => {}),
+        writeGenerationOutput: mock(async () => ({
+          captionsSrtPath: "/tmp/captions.srt",
+          captionsVttPath: "/tmp/captions.vtt",
+          outputDir: "/tmp/project/.demohunter/billing-overview",
+          videoPath: "/tmp/video.mp4",
+        })),
+      },
+    );
+
+    expect(events).toEqual([
+      "base-highlight",
+      "apply-highlight",
+      "base-highlight",
+      "apply-highlight",
+    ]);
+    expect(applyHighlightVisual).toHaveBeenNthCalledWith(1, {
+      page: passTwoPage,
+      target: ringTarget,
+      style: "ring",
+      paddingPx: 8,
+      durationMs: 800,
+    });
+    expect(applyHighlightVisual).toHaveBeenNthCalledWith(2, {
+      page: passTwoPage,
+      target: spotlightTarget,
+      style: "spotlight",
+      paddingPx: 20,
+      durationMs: 500,
+    });
   });
 
   test("fails directly when pass 1 navigation fails instead of retrying readiness checks", async () => {
@@ -361,6 +457,7 @@ describe("generateTour", () => {
       {
           attachDebugCapture: mock(() => createDebugCapture()),
           collectTimeline: mock(async () => createTimeline()),
+          installRecordingEffects: mock(async () => {}),
           muxVideo,
           playwright: {
             chromium: {
@@ -418,6 +515,7 @@ describe("generateTour", () => {
         {
           attachDebugCapture,
           collectTimeline: mock(async () => createTimeline()),
+          installRecordingEffects: mock(async () => {}),
           muxVideo,
           playwright: {
             chromium: {

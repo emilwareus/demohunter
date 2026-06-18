@@ -59,6 +59,9 @@ describe("record defaults", () => {
       showActions: true,
       showChapters: true,
       format: "mp4",
+      showCursor: true,
+      showClickRipple: true,
+      highlightStyle: "ring",
     });
     expect(DEFAULT_DEMOHUNTER_CONFIG.record.format).toBe("mp4");
   });

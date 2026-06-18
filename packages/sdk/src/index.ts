@@ -11,6 +11,7 @@ export type {
   DemoHunterUserTTSConfig,
   ElevenLabsTTSConfig,
   ElevenLabsVoiceSettings,
+  HighlightStyle,
   OpenAITTSConfig,
   DemoHunterUserConfig,
   RecordConfig,

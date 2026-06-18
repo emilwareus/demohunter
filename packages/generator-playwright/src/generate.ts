@@ -1,9 +1,9 @@
 import { rm } from "node:fs/promises";
 import path from "node:path";
 
-import type { DemoHunterRunContext, ResolvedDemoHunterConfig } from "@demohunter/sdk";
+import type { DemoHunterRunContext, HighlightStyle, ResolvedDemoHunterConfig } from "@demohunter/sdk";
 import * as playwright from "playwright";
-import type { BrowserType } from "playwright";
+import type { BrowserType, Page } from "playwright";
 
 import { collectTimeline } from "./execute/collect-timeline.js";
 import type {
@@ -20,11 +20,16 @@ import { prepareOutputDir as prepareOutputDirHelper } from "./output/prepare-out
 import { writeGenerationOutput } from "./output/write-generation-output.js";
 import type { GenerationChapter, WriteGenerationOutputResult } from "./output/write-generation-output.js";
 import { showChapterOverlay } from "./overlays/chapter-overlay.js";
+import { applyHighlightVisual } from "./overlays/highlight-visual.js";
+import { installRecordingEffects } from "./overlays/install-recording-effects.js";
 import { muxVideo } from "./record/mux-video.js";
 import { startScreencast, stopScreencast } from "./record/screencast.js";
 import type { SmokeTourModule } from "./smoke-generate.js";
 
 const CHAPTER_OVERLAY_DURATION_MS = 900;
+const DEFAULT_HIGHLIGHT_DURATION_MS = 800;
+const DEFAULT_HIGHLIGHT_PADDING_PX = 8;
+const DEFAULT_HIGHLIGHT_STYLE: HighlightStyle = "ring";
 
 type BrowserTypeMap = Record<"chromium" | "firefox" | "webkit", Pick<BrowserType, "launch">>;
 
@@ -43,8 +48,10 @@ export type GenerateTourInput = {
 };
 
 type GenerateTourDependencies = {
+  applyHighlightVisual: typeof applyHighlightVisual;
   attachDebugCapture: typeof attachDebugCapture;
   collectTimeline: typeof collectTimeline;
+  installRecordingEffects: typeof installRecordingEffects;
   muxVideo: typeof muxVideo;
   now: () => number;
   playwright: BrowserTypeMap;
@@ -57,8 +64,10 @@ type GenerateTourDependencies = {
 };
 
 const defaultDependencies: GenerateTourDependencies = {
+  applyHighlightVisual,
   attachDebugCapture,
   collectTimeline,
+  installRecordingEffects,
   muxVideo,
   now: () => Date.now(),
   playwright,
@@ -145,6 +154,16 @@ export async function generateTour(
       viewport: config.viewport,
     });
 
+    const showCursor = config.record.showCursor ?? true;
+    const showClickRipple = config.record.showClickRipple ?? true;
+
+    if (showCursor || showClickRipple) {
+      await resolvedDependencies.installRecordingEffects(passTwoContext, {
+        showCursor,
+        showClickRipple,
+      });
+    }
+
     const passTwoPage = await passTwoContext.newPage();
     let recordingStartedAt: number | undefined;
     let screencastStarted = false;
@@ -161,6 +180,7 @@ export async function generateTour(
             outputPath: tempScreencastPath,
             page: passTwoPage,
             showActions: config.record.showActions,
+            actionCursor: showCursor ? "none" : "pointer",
             viewport: config.viewport,
           });
           screencastStarted = true;
@@ -206,7 +226,9 @@ export async function generateTour(
         },
         page: passTwoPage,
         timeline,
-        tourFile: wrapTourForReplay({
+        tourFile: wrapTourForRecording({
+          applyHighlightVisual: resolvedDependencies.applyHighlightVisual,
+          config,
           page: passTwoPage,
           showChapterOverlay: resolvedDependencies.showChapterOverlay,
           showChapters: config.record.showChapters,
@@ -390,16 +412,14 @@ function reportRuntimeEvent(
   }
 }
 
-function wrapTourForReplay(args: {
-  page: Parameters<typeof showChapterOverlay>[0]["page"];
+function wrapTourForRecording(args: {
+  applyHighlightVisual: typeof applyHighlightVisual;
+  config: ResolvedDemoHunterConfig;
+  page: Page;
   showChapterOverlay: typeof showChapterOverlay;
   showChapters: boolean;
   tourFile: SmokeTourModule;
 }): SmokeTourModule {
-  if (!args.showChapters) {
-    return args.tourFile;
-  }
-
   return {
     ...args.tourFile,
     tour: {
@@ -408,7 +428,7 @@ function wrapTourForReplay(args: {
         await args.tourFile.tour.run(
           new Proxy(runtime, {
             get(target, property, receiver) {
-              if (property === "chapter") {
+              if (args.showChapters && property === "chapter") {
                 return async (title: string, options?: Parameters<DemoHunterRunContext["chapter"]>[1]) => {
                   const chapter = Reflect.get(
                     target,
@@ -420,6 +440,27 @@ function wrapTourForReplay(args: {
                     durationMs: CHAPTER_OVERLAY_DURATION_MS,
                     page: args.page,
                     title,
+                  });
+                };
+              }
+
+              if (property === "highlight") {
+                return async (
+                  highlightTarget: Parameters<DemoHunterRunContext["highlight"]>[0],
+                  options?: Parameters<DemoHunterRunContext["highlight"]>[1],
+                ) => {
+                  const highlight = Reflect.get(
+                    target,
+                    property,
+                    receiver,
+                  ) as DemoHunterRunContext["highlight"];
+                  await highlight(highlightTarget, options);
+                  await args.applyHighlightVisual({
+                    page: args.page,
+                    target: highlightTarget,
+                    style: options?.style ?? args.config.record.highlightStyle ?? DEFAULT_HIGHLIGHT_STYLE,
+                    paddingPx: options?.paddingPx ?? DEFAULT_HIGHLIGHT_PADDING_PX,
+                    durationMs: options?.durationMs ?? DEFAULT_HIGHLIGHT_DURATION_MS,
                   });
                 };
               }

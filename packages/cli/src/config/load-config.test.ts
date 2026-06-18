@@ -86,6 +86,9 @@ describe("loadConfig", () => {
       showActions: false,
       showChapters: true,
       format: "mp4",
+      showCursor: true,
+      showClickRipple: true,
+      highlightStyle: "ring",
     });
   });
 
@@ -103,6 +106,9 @@ describe("loadConfig", () => {
       showActions: true,
       showChapters: false,
       format: "mp4",
+      showCursor: true,
+      showClickRipple: true,
+      highlightStyle: "ring",
     });
   });
 
@@ -136,6 +142,53 @@ describe("loadConfig", () => {
       showActions: false,
       showChapters: true,
       format: "webm",
+      showCursor: true,
+      showClickRipple: true,
+      highlightStyle: "ring",
+    });
+  });
+
+  test("merges partial record overrides for the visual-effect flags without dropping defaults", async () => {
+    const cwd = await writeConfig(`
+      export default {
+        baseURL: "http://localhost:4173",
+        record: {
+          showCursor: false,
+          showClickRipple: false,
+          highlightStyle: "spotlight"
+        }
+      };
+    `);
+
+    const loaded = await loadConfig(cwd);
+
+    expect(loaded.config.record).toEqual({
+      showActions: true,
+      showChapters: true,
+      format: "mp4",
+      showCursor: false,
+      showClickRipple: false,
+      highlightStyle: "spotlight",
+    });
+  });
+
+  test("keeps showCursor enabled while overriding only the highlight style", async () => {
+    const cwd = await writeConfig(`
+      export default {
+        baseURL: "http://localhost:4173",
+        record: { highlightStyle: "spotlight" }
+      };
+    `);
+
+    const loaded = await loadConfig(cwd);
+
+    expect(loaded.config.record).toEqual({
+      showActions: true,
+      showChapters: true,
+      format: "mp4",
+      showCursor: true,
+      showClickRipple: true,
+      highlightStyle: "spotlight",
     });
   });
 
