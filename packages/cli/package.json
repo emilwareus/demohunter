@@ -1,6 +1,6 @@
 {
   "name": "demohunter",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "description": "CLI and SDK for turning Playwright-style tours into narrated demo videos, captions, and a portable manifest, locally.",
   "license": "MIT",
   "author": "Emil Wareus",
