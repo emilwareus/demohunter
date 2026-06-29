@@ -46,15 +46,18 @@
       },
       "dependencies": {
         "@types/node": "25.6.0",
-        "playwright": ">=1.61",
         "typescript": "^5.0.0",
       },
       "devDependencies": {
         "@demohunter/generator-playwright": "workspace:*",
         "@demohunter/sdk": "workspace:*",
         "@demohunter/tts-core": "workspace:*",
+        "playwright": ">=1.61",
         "tsup": "^8.5.1",
         "typescript": "^5.9.3",
+      },
+      "peerDependencies": {
+        "playwright": ">=1.61",
       },
     },
     "packages/generator-playwright": {

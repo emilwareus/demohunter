@@ -129,6 +129,15 @@ async function expectPackedTypesToWorkForConsumer(tarballPath: string): Promise<
     throw new Error(extractResult.stderr || extractResult.stdout || "Failed to extract packed package");
   }
 
+  const packedPackage = JSON.parse(await readFile(path.join(packageRoot, "package.json"), "utf8")) as {
+    dependencies?: Record<string, string>;
+    peerDependencies?: Record<string, string>;
+  };
+  expect(packedPackage.dependencies ?? {}).not.toHaveProperty("playwright");
+  expect(packedPackage.peerDependencies).toMatchObject({
+    playwright: ">=1.61",
+  });
+
   await writeFile(
     path.join(consumerRoot, "index.ts"),
     `import { defineConfig, defineTour, type DemoHunterRunContext } from "demohunter";
